@@ -1,7 +1,7 @@
 import type { ActiveStudyActivity } from '../types/studyActivity';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
-const HEARTBEAT_EXPIRY_MS = 60_000;
+const HEARTBEAT_EXPIRY_MS = 300_000;
 const LEGACY_RECOVERY_LIMIT_MS = 300_000;
 
 interface Heartbeat {
@@ -31,7 +31,11 @@ export default class ReadingActivityLease {
 
   claim(sessionId: string) {
     this.owner = { sessionId, seenAt: Date.now() };
-    localStorage.setItem(this.key, JSON.stringify(this.owner));
+    try {
+      localStorage.setItem(this.key, JSON.stringify(this.owner));
+    } catch {
+      // Keep tracking in this reader when the cross-tab heartbeat cannot be saved.
+    }
   }
 
   refresh(session: ActiveStudyActivity) {
@@ -43,11 +47,15 @@ export default class ReadingActivityLease {
 
   release(sessionId: string) {
     if (this.owner?.sessionId === sessionId) this.owner = undefined;
-    if (this.read()?.sessionId === sessionId) localStorage.removeItem(this.key);
+    try {
+      if (this.read()?.sessionId === sessionId) localStorage.removeItem(this.key);
+    } catch {
+      // A leftover heartbeat expires; leaving the reader must remain safe.
+    }
   }
 
   recoveryEnd(session: ActiveStudyActivity): Date | undefined {
-    const heartbeat = this.read();
+    const heartbeat = this.owner?.sessionId === session.clientSessionId ? this.owner : this.read();
     if (heartbeat?.sessionId === session.clientSessionId) {
       if (Date.now() - heartbeat.seenAt < HEARTBEAT_EXPIRY_MS) return undefined;
       return new Date(heartbeat.seenAt);

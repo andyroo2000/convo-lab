@@ -11,10 +11,13 @@ import ReadingReader from './ReadingReader';
 import type { ReadingDetail } from './types';
 
 const categories = { reading: 'immerse', daily_audio: 'listen' };
+let capabilitiesAvailable = true;
 
 vi.mock('../../hooks/useStudyCapabilities', () => ({
   useStudyCapabilities: () => ({
-    data: { studyActivity: { categoriesByActivity: categories } },
+    data: capabilitiesAvailable
+      ? { studyActivity: { categoriesByActivity: categories } }
+      : undefined,
   }),
 }));
 vi.mock('../../lib/csrf', () => ({ fetchWithCsrf: vi.fn() }));
@@ -102,6 +105,7 @@ function active() {
 }
 
 beforeEach(() => {
+  capabilitiesAvailable = true;
   localStorage.clear();
   vi.useFakeTimers();
   vi.setSystemTime(initialTime);
@@ -317,7 +321,7 @@ describe('reading recovery and other tabs', () => {
       })
     );
     renderReaders([]);
-    await advance(59_000);
+    await advance(299_000);
     expect(saved()).toEqual([]);
     await advance(1_000);
     expect(saved()).toEqual([
@@ -352,5 +356,37 @@ describe('reading recovery and other tabs', () => {
     expect(screen.queryByRole('button', { name: '犬です。' })).not.toBeInTheDocument();
     expect(localStorage.getItem(activeKey)).toBe('{broken');
     expect(saved()).toEqual([]);
+  });
+
+  it.each(['setItem', 'removeItem'] as const)(
+    'keeps reading usable if heartbeat %s throws',
+    async (operation) => {
+      const original = Storage.prototype[operation];
+      vi.spyOn(Storage.prototype, operation).mockImplementation(function storageOperation(
+        this: Storage,
+        key: string,
+        value?: string
+      ) {
+        if (key.endsWith('.reading-heartbeat')) throw new Error('Storage unavailable');
+        return original.call(this, key, value!);
+      });
+      const view = renderReaders();
+      await advance(720_000);
+      view.show([]);
+      expect(saved()).toEqual([expect.objectContaining({ durationMs: 720_000 })]);
+    }
+  );
+
+  it('preserves elapsed time when capabilities arrive during reading', async () => {
+    capabilitiesAvailable = false;
+    const view = renderReaders();
+    await advance(120_000);
+    capabilitiesAvailable = true;
+    view.show(['first']);
+    await advance(600_000);
+    view.show([]);
+    await advance(0);
+    expect(saved().map((session) => session.durationMs)).toEqual([120_000, 600_000]);
+    expect(localStorage.getItem(pendingKey)).toBeNull();
   });
 });

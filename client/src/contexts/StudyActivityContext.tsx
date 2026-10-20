@@ -28,6 +28,8 @@ const ACTIVE_KEY_PREFIX = 'convolab.studyActivity.active.v1';
 const PENDING_KEY_PREFIX = 'convolab.studyActivity.pending.v1';
 const AUTOMATIC_RECOVERY_LIMIT_MS = 5 * 60 * 1000;
 const MANUAL_RECOVERY_LIMIT_MS = 6 * 60 * 60 * 1000;
+// The API accepts at most 24 hours in one recorded activity interval.
+const MAX_SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
 
 interface StartOptions {
   activity: StudyActivityKind;
@@ -111,7 +113,10 @@ function sessionFromActive(
   endedAt = new Date()
 ): StudyActivitySessionDraft {
   const startedAt = new Date(active.startedAt);
-  const durationMs = Math.max(0, Math.min(86_400_000, endedAt.getTime() - startedAt.getTime()));
+  const durationMs = Math.max(
+    0,
+    Math.min(MAX_SESSION_DURATION_MS, endedAt.getTime() - startedAt.getTime())
+  );
   return {
     ...active,
     endedAt: endedAt.toISOString(),
@@ -371,7 +376,7 @@ function useTrackReading(
       if (!enabled || previous?.source === 'manual') return () => undefined;
       if (previous) {
         const endedAt = isAutomaticReading(previous) ? lease.recoveryEnd(previous) : undefined;
-        finishActive(undefined, undefined, endedAt);
+        finishActive(undefined, undefined, endedAt).catch(() => undefined);
       }
       start({
         activity: 'reading',
@@ -386,7 +391,7 @@ function useTrackReading(
           activeRef.current?.clientSessionId === sessionId &&
           lease.isCurrent(sessionId)
         )
-          finishActive();
+          finishActive().catch(() => undefined);
         if (sessionId) lease.release(sessionId);
       };
     },
@@ -503,7 +508,7 @@ function useElapsedActivityTime(
       }
       const startedAt = new Date(current.startedAt).getTime();
       const recoveryLimit = isAutomaticReading(current)
-        ? 86_400_000
+        ? MAX_SESSION_DURATION_MS
         : recoveryLimitFor(current.source);
       const elapsed = Date.now() - startedAt;
       if (Number.isFinite(startedAt) && elapsed > recoveryLimit) {
