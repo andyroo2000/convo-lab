@@ -109,6 +109,7 @@ type StudyCardFaceProps = {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   card: StudyCardSummary;
   layout?: StudyCardLayout;
+  inlineAnswerAudio?: boolean;
   promptAudioRef?: Ref<AudioPlayerHandle>;
   side: 'front' | 'back';
 };
@@ -275,13 +276,32 @@ const ClozeAnswerDetails = ({
   </>
 );
 
+const getAnswerAudioControls = (compactMobile: boolean, inline: boolean) => {
+  if (inline) {
+    return {
+      renderMode: 'default',
+      size: 'compact',
+      showTimeline: false,
+      timelineMode: 'always',
+    } as const;
+  }
+  return {
+    renderMode: compactMobile ? 'hidden' : 'default',
+    size: 'default',
+    showTimeline: true,
+    timelineMode: compactMobile ? 'desktop' : 'always',
+  } as const;
+};
+
 const AnswerAudio = ({
   answerAudioRef,
   compactMobile,
+  inlineAnswerAudio,
   model,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   compactMobile: boolean;
+  inlineAnswerAudio: boolean;
   model: StudyCardBackModel;
 }) => {
   const answerAudioUrl = toAssetUrl(model.answerAudio?.url);
@@ -293,9 +313,7 @@ const AnswerAudio = ({
       filename={model.answerAudio?.filename}
       url={answerAudioUrl}
       label="Play answer audio"
-      renderMode={compactMobile ? 'hidden' : 'default'}
-      showTimeline
-      timelineMode={compactMobile ? 'desktop' : 'always'}
+      {...getAnswerAudioControls(compactMobile, inlineAnswerAudio)}
       testId="study-answer-audio"
     />
   );
@@ -341,10 +359,12 @@ const MissingAnswerAudioNotice = ({ model }: { model: StudyCardBackModel }) =>
 const ClozeStudyCardBack = ({
   answerAudioRef,
   compactMobile,
+  inlineAnswerAudio,
   model,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   compactMobile: boolean;
+  inlineAnswerAudio: boolean;
   model: StudyCardBackModel;
 }) => {
   const clozeHeadlineText = model.clozeHeading ? toRubyPlainText(model.clozeHeading) : null;
@@ -366,7 +386,12 @@ const ClozeStudyCardBack = ({
           rtClassName="text-[0.34em] font-medium text-gray-500"
         />
       ) : null}
-      <AnswerAudio answerAudioRef={answerAudioRef} compactMobile={compactMobile} model={model} />
+      <AnswerAudio
+        answerAudioRef={answerAudioRef}
+        compactMobile={compactMobile}
+        inlineAnswerAudio={inlineAnswerAudio}
+        model={model}
+      />
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       <AnswerImageLayout compactMobile={compactMobile} details={details} model={model} />
       <MissingAnswerAudioNotice model={model} />
@@ -378,11 +403,13 @@ const StandardStudyCardBack = ({
   answerAudioRef,
   card,
   compactMobile,
+  inlineAnswerAudio,
   model,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   card: StudyCardSummary;
   compactMobile: boolean;
+  inlineAnswerAudio: boolean;
   model: StudyCardBackModel;
 }) => {
   const details = <AnswerDetails compactMobile={compactMobile} model={model} />;
@@ -390,7 +417,12 @@ const StandardStudyCardBack = ({
   return (
     <div className={getBackLayoutClasses(compactMobile).container}>
       {renderJapaneseHeading(card, compactMobile)}
-      <AnswerAudio answerAudioRef={answerAudioRef} compactMobile={compactMobile} model={model} />
+      <AnswerAudio
+        answerAudioRef={answerAudioRef}
+        compactMobile={compactMobile}
+        inlineAnswerAudio={inlineAnswerAudio}
+        model={model}
+      />
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       <AnswerImageLayout compactMobile={compactMobile} details={details} model={model} />
       <MissingAnswerAudioNotice model={model} />
@@ -407,13 +439,15 @@ const StudyCardBack = ({
   answerAudioRef,
   card,
   compactMobile,
+  inlineAnswerAudio,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   card: StudyCardSummary;
   compactMobile: boolean;
+  inlineAnswerAudio: boolean;
 }) => {
   const model = getStudyCardBackModel(card);
-  const props = { answerAudioRef, card, compactMobile, model };
+  const props = { answerAudioRef, card, compactMobile, inlineAnswerAudio, model };
 
   return model.isClozePresentation ? (
     <ClozeStudyCardBack {...props} />
@@ -426,6 +460,7 @@ export const StudyCardFace = ({
   answerAudioRef,
   card,
   layout = 'default',
+  inlineAnswerAudio = false,
   promptAudioRef,
   side,
 }: StudyCardFaceProps) => {
@@ -437,6 +472,11 @@ export const StudyCardFace = ({
   }
 
   return (
-    <StudyCardBack answerAudioRef={answerAudioRef} card={card} compactMobile={compactMobile} />
+    <StudyCardBack
+      answerAudioRef={answerAudioRef}
+      card={card}
+      compactMobile={compactMobile}
+      inlineAnswerAudio={inlineAnswerAudio}
+    />
   );
 };

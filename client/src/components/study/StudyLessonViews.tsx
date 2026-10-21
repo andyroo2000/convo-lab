@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import type { StudyLessonPhase as StudyLessonPhaseValue } from '../../hooks/useStudyReviewSessionState';
 import type { StudySessionKind } from '../../hooks/useStudySessionLoader';
-import { StudyCardFace } from './StudyCardPreview';
+import { shouldIgnoreGlobalShortcut } from '../../lib/keyboardShortcuts';
+import { StudyCardFace, type AudioPlayerHandle } from './StudyCardPreview';
 
 interface StudyLessonPreviewNavigationProps {
   isFirst: boolean;
@@ -60,6 +62,24 @@ export interface StudyLessonPreviewProps {
   title: string;
 }
 
+const useLessonAudioShortcut = () => {
+  const audioRef = useRef<AudioPlayerHandle | null>(null);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return;
+      if (event.isComposing) return;
+      if (shouldIgnoreGlobalShortcut(event)) return;
+      const player = audioRef.current;
+      if (!player) return;
+      event.preventDefault();
+      player.play().catch(() => undefined);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+  return audioRef;
+};
+
 export const StudyLessonPreview = ({
   card,
   cardPosition,
@@ -74,40 +94,49 @@ export const StudyLessonPreview = ({
   previousLabel,
   startQuizLabel,
   title,
-}: StudyLessonPreviewProps) => (
-  <div className="min-h-0 flex-1 overflow-y-auto py-4">
-    <div className="mx-auto max-w-5xl space-y-4">
-      <div className="rounded-2xl bg-emerald-50 p-5 ring-1 ring-emerald-200">
-        <h2 className="text-2xl font-bold text-navy">{title}</h2>
-        <p className="mt-1 text-gray-600">{description}</p>
+}: StudyLessonPreviewProps) => {
+  const answerAudioRef = useLessonAudioShortcut();
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto py-4">
+      <div className="mx-auto max-w-5xl space-y-4">
+        <div className="rounded-2xl bg-emerald-50 p-5 ring-1 ring-emerald-200">
+          <h2 className="text-2xl font-bold text-navy">{title}</h2>
+          <p className="mt-1 text-gray-600">{description}</p>
+        </div>
+        {card ? (
+          <>
+            <div key={card.id} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+              <p className="mb-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-gray-500">
+                {cardPosition}
+              </p>
+              <StudyCardFace
+                card={card}
+                layout="mobile-focus"
+                side="back"
+                answerAudioRef={answerAudioRef}
+                inlineAnswerAudio
+              />
+            </div>
+            <StudyLessonPreviewNavigation
+              isFirst={isFirst}
+              isLast={isLast}
+              nextLabel={nextLabel}
+              onNext={onNext}
+              onPrevious={onPrevious}
+              onStartQuiz={onStartQuiz}
+              previousLabel={previousLabel}
+              startQuizLabel={startQuizLabel}
+            />
+          </>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-600">
+            {emptyMessage}
+          </p>
+        )}
       </div>
-      {card ? (
-        <>
-          <div key={card.id} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <p className="mb-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-gray-500">
-              {cardPosition}
-            </p>
-            <StudyCardFace card={card} layout="mobile-focus" side="back" />
-          </div>
-          <StudyLessonPreviewNavigation
-            isFirst={isFirst}
-            isLast={isLast}
-            nextLabel={nextLabel}
-            onNext={onNext}
-            onPrevious={onPrevious}
-            onStartQuiz={onStartQuiz}
-            previousLabel={previousLabel}
-            startQuizLabel={startQuizLabel}
-          />
-        </>
-      ) : (
-        <p className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-600">
-          {emptyMessage}
-        </p>
-      )}
     </div>
-  </div>
-);
+  );
+};
 
 export interface StudyLessonCompleteProps {
   anotherBatchLabel: string;
