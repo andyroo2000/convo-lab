@@ -150,7 +150,9 @@ const useReviewKeyboard = (
     focusMode: core.state.focusMode,
     handleGrade: actions.handleGrade,
     handleUndo: interactions.handleUndo,
-    interactionBlocked: core.state.masteryAnimation !== null,
+    interactionBlocked:
+      core.state.masteryAnimation !== null ||
+      (core.state.sessionKind === 'lessons' && core.state.lessonPhase !== 'quiz'),
     onError: interactions.reportAsyncSessionError,
     revealCurrentCard: actions.revealCurrentCard,
     revealed: core.state.revealed,
