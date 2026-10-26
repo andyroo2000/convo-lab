@@ -837,6 +837,8 @@
     "saveSource": "出典を保存",
     "sourceSaved": "出典を保存しました。",
     "learnSoonHint": "このカードを優先的に導入します。オフの本や章は引き続き停止されます。",
-    "creationSource": "新しいカードの出典と優先度"
+    "creationSource": "新しいカードの出典と優先度",
+    "unavailableSource": "現在の出典（取得できません）",
+    "unavailableChapter": "現在の章（取得できません）"
   }
 }

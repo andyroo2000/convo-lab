@@ -20,6 +20,21 @@ vi.mock('../../../hooks/useStudyPiles', () => ({
 }));
 
 describe('card book sources', () => {
+  it('preserves the visible source and chapter when the catalog cannot supply them', () => {
+    render(
+      <MemoryRouter>
+        <StudyBookSourceFields
+          value={{ pileId: 'missing', chapterId: 'missing-chapter' }}
+          onChange={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('combobox', { name: 'Book or source' })).toHaveValue('missing');
+    expect(
+      screen.getByRole('option', { name: 'Current source (unavailable)' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Chapter' })).toHaveValue('missing-chapter');
+  });
   it('allows assigning parked books without activating them and clears the old chapter', () => {
     const change = vi.fn();
     render(

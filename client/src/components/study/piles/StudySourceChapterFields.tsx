@@ -24,6 +24,9 @@ const StudySourceChapterFields = ({ value, onChange, book }: Props) => {
         className="min-h-11 w-full rounded border border-gray-300 bg-white px-3"
       >
         <option value="">{t('piles.noChapter')}</option>
+        {value.chapterId && !book?.chapters.some((chapter) => chapter.id === value.chapterId) && (
+          <option value={value.chapterId}>{t('piles.unavailableChapter')}</option>
+        )}
         {book?.chapters.map((chapter) => (
           <option key={chapter.id} value={chapter.id}>
             {chapter.title}

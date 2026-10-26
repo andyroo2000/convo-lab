@@ -10,6 +10,19 @@ interface Props {
   onChange: (source: StudyBookSource | null) => void;
   disabled?: boolean;
 }
+const MissingSourceOption = ({
+  source,
+  known,
+}: {
+  source: StudyBookSource | null;
+  known: boolean;
+}) => {
+  const { t } = useTranslation('study');
+  return source && !known ? (
+    <option value={source.pileId}>{t('piles.unavailableSource')}</option>
+  ) : null;
+};
+
 const StudyBookSourceFields = ({ value, onChange, disabled = false }: Props) => {
   const { t } = useTranslation('study');
   const id = useId();
@@ -30,6 +43,7 @@ const StudyBookSourceFields = ({ value, onChange, disabled = false }: Props) => 
         className="min-h-11 w-full rounded border border-gray-300 bg-white px-3"
       >
         <option value="">{t('piles.uncategorized')}</option>
+        <MissingSourceOption source={value} known={Boolean(book)} />
         {piles.map((pile) => (
           <option key={pile.id} value={pile.id}>
             {pile.title}

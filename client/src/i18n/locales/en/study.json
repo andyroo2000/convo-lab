@@ -861,6 +861,8 @@
     "saveSource": "Save source",
     "sourceSaved": "Source saved.",
     "learnSoonHint": "Reserve a share of new cards for this item. Paused books and chapters stay paused.",
-    "creationSource": "Source and priority for new cards"
+    "creationSource": "Source and priority for new cards",
+    "unavailableSource": "Current source (unavailable)",
+    "unavailableChapter": "Current chapter (unavailable)"
   }
 }
