@@ -23,18 +23,18 @@ const PileForm = ({ pileId, item, position = 0, onDone }: Props) => {
   const [initial] = useState(() => initialValues(item, position));
   const [id, setId] = useState(initial.id);
   const [title, setTitle] = useState(initial.title);
-  const [order, setOrder] = useState(initial.order);
+  const [order, setOrder] = useState(String(initial.order));
   const mutation = useSaveStudyPile();
   const submit = async () => {
     await mutation.mutateAsync({
       id,
       pileId,
-      attributes: { title: title.trim(), position: order },
+      attributes: { title: title.trim(), position: Number(order) },
     });
     if (!item) {
       setTitle('');
       setId(ulid().toLowerCase());
-      setOrder(order + 1);
+      setOrder(String(Number(order) + 1));
     }
     onDone?.();
   };
@@ -63,12 +63,13 @@ const PileForm = ({ pileId, item, position = 0, onDone }: Props) => {
         <input
           id={orderId}
           type="number"
+          step={1}
           min={0}
           max={1000000}
           required
           value={order}
           disabled={mutation.isPending}
-          onChange={(event) => setOrder(Number(event.target.value))}
+          onChange={(event) => setOrder(event.target.value)}
           className="mt-1 block min-h-11 w-24 rounded border border-gray-300 bg-white px-3"
         />
       </label>

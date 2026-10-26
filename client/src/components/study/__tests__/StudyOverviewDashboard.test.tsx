@@ -129,7 +129,7 @@ describe('StudyOverviewDashboard', () => {
     );
 
     const reviewsButton = screen.getByRole('button', { name: 'Reviews' });
-    const lessonsButton = screen.getByRole('button', { name: 'Lessons' });
+    const lessonsButton = screen.getByRole('button', { name: 'My usual mix' });
     expect(reviewsButton).toHaveAccessibleDescription('14 reviews About 6 min');
     expect(lessonsButton).toHaveAccessibleDescription('5 new cards');
     fireEvent.click(reviewsButton);

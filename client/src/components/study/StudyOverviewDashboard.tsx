@@ -236,7 +236,7 @@ const StudyOverviewDashboard = (props: StudyOverviewDashboardProps) => {
               type="button"
               onClick={() => onBeginLesson()}
               disabled={isStartingSession || lessonsAvailable === 0}
-              aria-label={t('overview.lessons')}
+              aria-label={t('piles.usualMix')}
               aria-describedby={lessonCountId}
               className="study-console-quick min-h-28 px-4 py-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan disabled:cursor-not-allowed disabled:opacity-55"
             >

@@ -9,6 +9,7 @@ interface Props {
   onBeginLesson: (pileId?: string) => void;
   disabled: boolean;
 }
+
 const shelfChoices = (catalog: StudyPileCatalog | undefined, t: TFunction<'study'>) => {
   const books = catalog?.piles.filter((pile) => pile.is_active) ?? [];
   return [
@@ -61,21 +62,23 @@ const StudyPileShelf = ({ onBeginLesson, disabled }: Props) => {
           {t('piles.retry')}
         </button>
       )}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {choices.map(({ id, title, count, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            disabled={disabled || count === 0 || query.isError}
-            onClick={() => onBeginLesson(id)}
-            className="min-h-32 rounded-lg border border-navy/20 border-l-8 bg-white p-4 text-left shadow-sm transition hover:bg-cyan/10 focus-visible:outline-cyan disabled:opacity-50"
-          >
-            <Icon aria-hidden="true" className="mb-3 size-5 text-navy" />
-            <span className="block font-bold text-navy">{title}</span>
-            <span className="text-sm text-gray-600">{t('piles.ready', { count })}</span>
-          </button>
-        ))}
-      </div>
+      {query.data && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {choices.map(({ id, title, count, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              disabled={disabled || count === 0 || query.isError}
+              onClick={() => onBeginLesson(id)}
+              className="min-h-32 rounded-lg border border-navy/20 border-l-8 bg-white p-4 text-left shadow-sm transition hover:bg-cyan/10 focus-visible:outline-cyan disabled:opacity-50"
+            >
+              <Icon aria-hidden="true" className="mb-3 size-5 text-navy" />
+              <span className="block font-bold text-navy">{title}</span>
+              <span className="text-sm text-gray-600">{t('piles.ready', { count })}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 };

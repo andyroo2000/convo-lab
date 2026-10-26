@@ -264,7 +264,7 @@ describe('useStudy request helpers', () => {
     );
 
     await startStudySession();
-    await startStudyLesson();
+    await startStudyLesson('learn-soon');
     await submitStudyReview(reviewRequest);
     await undoStudyReview('review-log-1');
 
@@ -272,7 +272,7 @@ describe('useStudy request helpers', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       `${STUDY_API_BASE}/lessons/start`,
-      expect.any(Object)
+      expect.objectContaining({ body: expect.stringContaining('"pileId":"learn-soon"') })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
