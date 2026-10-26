@@ -645,7 +645,7 @@ export function useSubmitStudyReview() {
     onSuccess: () => {
       // The review response already contains the authoritative card and overview.
       // Let the review session advance without waiting for dashboard refetches.
-      invalidateStudyQueries(queryClient, ['session', 'overview']).catch((error) => {
+      invalidateStudyQueries(queryClient, ['session', 'overview', 'piles']).catch((error) => {
         console.error('Study dashboard refresh failed:', error);
       });
     },

@@ -139,7 +139,12 @@ const exitFocusMode = (context: StudyFocusModeLifecycleOptions) => {
   context.setReviewRetryAvailable(false);
   resetSharedFocusState(context);
   context.runBackgroundTask(
-    () => context.queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+    () =>
+      Promise.all(
+        ['overview', 'piles'].map((scope) =>
+          context.queryClient.invalidateQueries({ queryKey: ['study', scope] })
+        )
+      ),
     { label: 'Study overview refresh' }
   );
 };
