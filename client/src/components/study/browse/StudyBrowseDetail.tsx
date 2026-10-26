@@ -3,6 +3,7 @@ import type { StudyClientCapabilities } from '@languageflow/shared/src/types';
 
 import type { StudyBrowseController } from '../../../hooks/useStudyBrowseController';
 import ConfirmModal from '../../common/ConfirmModal';
+import StudyCardPlacement from '../piles/StudyCardPlacement';
 import StudyCardEditor from '../StudyCardEditor';
 import StudyCandidateCardPreviewModal from '../StudyCandidatePreview';
 import StudyLearningPathEditor from '../StudyLearningPathEditor';
@@ -124,6 +125,11 @@ const StudyBrowseSelectedCard = ({
         </p>
         <StudyBrowseCardActions controller={controller} />
       </div>
+
+      <StudyCardPlacement
+        key={`${selectedCard.id}:${JSON.stringify(selectedCard.bookSource)}`}
+        card={selectedCard}
+      />
 
       {promotedCardId === selectedCard.id ? (
         <p role="status" className="text-sm font-medium text-green-700">

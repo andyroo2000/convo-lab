@@ -11,6 +11,10 @@ import type { StudyManualCardDraft } from '@languageflow/shared/src/types';
 import StudyCreatePage from '../StudyCreatePage';
 import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
 
+vi.mock('../../hooks/useStudyPiles', () => ({
+  useStudyPiles: () => ({ data: { piles: [] }, isLoading: false, isError: false }),
+}));
+
 // Import this harness before StudyCreatePage so Vitest hoists its shared mocks first.
 const MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS = [
   studyCapabilitiesFixture.cardAuthoring.defaultAnswerAudioVoiceId,

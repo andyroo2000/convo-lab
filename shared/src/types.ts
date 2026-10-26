@@ -224,7 +224,16 @@ export interface StudyCardState {
   rawFsrs?: Record<string, unknown> | null;
 }
 
+export interface StudyBookSource {
+  pileId: string;
+  chapterId?: string | null;
+  position?: number | null;
+  reference?: string | null;
+}
+
 export interface StudyCardSummary {
+  bookSource?: StudyBookSource | null;
+  learnSoon?: boolean;
   id: string;
   syncId?: string;
   noteId: string | null;
@@ -335,6 +344,8 @@ export interface StudyCardCandidateCommitItem {
 }
 
 export interface StudyVocabBundleGenerateRequest {
+  bookSource?: StudyBookSource | null;
+  learnSoon?: boolean;
   targetWord: string;
   sourceSentence?: string | null;
   context?: string | null;
@@ -456,6 +467,8 @@ export interface StudyManualCardDraftListResponse {
 }
 
 export interface StudyManualCardDraftCreateRequest {
+  bookSource?: StudyBookSource | null;
+  learnSoon?: boolean;
   creationKind: StudyCardCreationKind;
   cardType: StudyCardType;
   prompt: StudyPromptPayload;

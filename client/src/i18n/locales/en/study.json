@@ -208,7 +208,7 @@
     "laneBalanceTitle": "New-card mix",
     "laneBalanceDescription": "Set the relative share of each source in new-card lessons. Empty lanes automatically give their space to the others.",
     "standardLane": "Standard queue",
-    "lessonFollowupLane": "Lesson follow-up",
+    "lessonFollowupLane": "Learn soon",
     "wanikaniLane": "WaniKani",
     "laneShare": "{{percent}}%",
     "laneBalanceHelp": "These are relative weights, not daily limits. For example, 3 · 1 · 1 aims for roughly 60% · 20% · 20% across lessons.",
@@ -851,6 +851,16 @@
     "parkedBooks": "Saved for later",
     "empty": "No books here yet.",
     "addBook": "Add a book or source",
-    "importHint": "New books and chapters start off, so you can import ahead of time."
+    "importHint": "New books and chapters start off, so you can import ahead of time.",
+    "cardSource": "Card source",
+    "book": "Book or source",
+    "chapter": "Chapter",
+    "noChapter": "No chapter",
+    "cardOrder": "Order within chapter",
+    "reference": "Page or reference",
+    "saveSource": "Save source",
+    "sourceSaved": "Source saved.",
+    "learnSoonHint": "Reserve a share of new cards for this item. Paused books and chapters stay paused.",
+    "creationSource": "Source and priority for new cards"
   }
 }
