@@ -12,7 +12,20 @@ import StudyCreatePage from '../StudyCreatePage';
 import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
 
 vi.mock('../../hooks/useStudyPiles', () => ({
-  useStudyPiles: () => ({ data: { piles: [] }, isLoading: false, isError: false }),
+  useStudyPiles: () => ({
+    data: {
+      piles: [
+        {
+          id: 'book',
+          title: 'Genki II',
+          is_active: false,
+          chapters: [{ id: 'chapter', title: 'Chapter 21' }],
+        },
+      ],
+    },
+    isLoading: false,
+    isError: false,
+  }),
 }));
 
 // Import this harness before StudyCreatePage so Vitest hoists its shared mocks first.
