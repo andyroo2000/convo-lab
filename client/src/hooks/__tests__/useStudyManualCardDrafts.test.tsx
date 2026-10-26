@@ -59,6 +59,7 @@ describe('manual card draft mutations', () => {
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
+    queryClient.setQueryData(['study', 'piles'], { piles: [] });
     const { result } = renderHook(() => useCreateCardFromStudyManualCardDraft(), { wrapper });
     const draft = { id: draftId, committedCardId: null };
 
@@ -71,9 +72,13 @@ describe('manual card draft mutations', () => {
       }
     });
     expect(firstError).toEqual(new TypeError('Network request failed'));
+    expect(queryClient.getQueryState(['study', 'piles'])).toMatchObject({ isInvalidated: true });
+    queryClient.setQueryData(['study', 'piles'], { piles: [] });
     await act(async () => {
       await result.current.mutateAsync(draft);
     });
+
+    expect(queryClient.getQueryState(['study', 'piles'])).toMatchObject({ isInvalidated: true });
 
     const commitCalls = vi
       .mocked(global.fetch)
