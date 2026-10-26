@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
+  StudyBookSource,
   StudyCardCreationKind,
   StudyCardImagePlacement,
   StudyManualCardDraft,
   StudyCardSummary,
   StudyMediaRef,
 } from '@languageflow/shared/src/types';
+import StudyCreationSource from '../components/study/piles/StudyCreationSource';
+import { creationPlacementPayload } from '../lib/studyCardPlacementApi';
 
 import StudyManualDraftComposerPanel from '../components/study/StudyManualDraftComposerPanel';
 import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
@@ -136,6 +139,8 @@ function nextDraftAfterCreation(drafts: { id: string }[], index: number): string
 }
 
 const StudyCreatePage = () => {
+  const [bookSource, setBookSource] = useState<StudyBookSource | null>(null);
+  const [learnSoon, setLearnSoon] = useState(false);
   const { t } = useTranslation('study');
   const { effectiveUser, isImpersonating } = useEffectiveUser();
   // Learning OS Study routes are scoped to the authenticated session and do not support
@@ -556,6 +561,7 @@ const StudyCreatePage = () => {
       const selectedDraftIdAtStart = selectedManualDraftIdRef.current;
       try {
         await createDraft.mutateAsync({
+          ...creationPlacementPayload(bookSource, learnSoon),
           creationKind,
           cardType: manualPayloadWithoutMedia.cardType,
           prompt: manualPayloadWithoutMedia.prompt,
@@ -706,6 +712,7 @@ const StudyCreatePage = () => {
       setVocabSuccess(null);
       try {
         const result = await createVocabBundleDrafts.mutateAsync({
+          ...creationPlacementPayload(bookSource, learnSoon),
           targetWord,
           sourceSentence: sourceSentence || null,
           context,
@@ -809,6 +816,16 @@ const StudyCreatePage = () => {
           capabilitiesQuery.refetch().catch(() => undefined);
         }}
       />
+
+      {!selectedManualDraft && (
+        <StudyCreationSource
+          source={bookSource}
+          setSource={setBookSource}
+          learnSoon={learnSoon}
+          setLearnSoon={setLearnSoon}
+          disabled={createDraft.isPending || createVocabBundleDrafts.isPending}
+        />
+      )}
 
       {mode === 'generate' ? (
         <StudyVocabDraftGeneratorPanel

@@ -201,7 +201,7 @@
     "laneBalanceTitle": "新規カードの配分",
     "laneBalanceDescription": "新規カードのレッスンで、各ソースを出す相対的な割合を設定します。空のレーンの分は自動的に他へ回ります。",
     "standardLane": "標準キュー",
-    "lessonFollowupLane": "レッスンの復習",
+    "lessonFollowupLane": "早めに学ぶ",
     "wanikaniLane": "WaniKani",
     "laneShare": "{{percent}}%",
     "laneBalanceHelp": "1日の上限ではなく相対的な重みです。たとえば 3・1・1 は、レッスン全体で約 60%・20%・20% を目標にします。",
@@ -827,6 +827,18 @@
     "parkedBooks": "あとで学ぶ",
     "empty": "まだ本がありません。",
     "addBook": "本やソースを追加",
-    "importHint": "先に取り込めるよう、新しい本と章はオフで作成されます。"
+    "importHint": "先に取り込めるよう、新しい本と章はオフで作成されます。",
+    "cardSource": "カードの出典",
+    "book": "本・ソース",
+    "chapter": "章",
+    "noChapter": "章なし",
+    "cardOrder": "章内の順序",
+    "reference": "ページ・参照",
+    "saveSource": "出典を保存",
+    "sourceSaved": "出典を保存しました。",
+    "learnSoonHint": "このカードを優先的に導入します。オフの本や章は引き続き停止されます。",
+    "creationSource": "新しいカードの出典と優先度",
+    "unavailableSource": "現在の出典（取得できません）",
+    "unavailableChapter": "現在の章（取得できません）"
   }
 }
