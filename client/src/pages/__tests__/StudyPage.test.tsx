@@ -159,7 +159,7 @@ describe('StudyPage overview and lessons', () => {
     renderStudyPage();
 
     expect(screen.getByRole('button', { name: 'Reviews' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Lessons' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'My usual mix' })).toBeEnabled();
     expect(
       screen.getByText('No reviews are due. You can start a Lesson whenever you’re ready.')
     ).toBeInTheDocument();
@@ -189,7 +189,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+    await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
@@ -243,7 +243,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+    await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: /Good/ }));
@@ -359,7 +359,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+    await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
 
     expect(await screen.findByText('Card 1 of 2')).toBeInTheDocument();
     expect(screen.getByText('会社')).toBeInTheDocument();
@@ -410,7 +410,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Lessons' }));
+    await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
 
     expect(await screen.findByText('Card 1 of 1')).toBeInTheDocument();
     expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
