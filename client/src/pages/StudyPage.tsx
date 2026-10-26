@@ -529,9 +529,9 @@ const StudyDashboard = ({
             label: 'Study session start',
           });
         }}
-        onBeginLesson={() => {
+        onBeginLesson={(pileId) => {
           lessonPreview.setIndex(0);
-          runBackgroundTask(() => reviewSession.enterFocusMode('lessons'), {
+          runBackgroundTask(() => reviewSession.enterFocusMode('lessons', { pileId }), {
             label: 'Study lesson start',
           });
         }}

@@ -20,6 +20,7 @@ import type { StudySessionKind, StudySessionLoadOptions } from './useStudySessio
 
 interface StudyFocusModeLifecycleOptions {
   activeLessonCohortIdRef: MutableRefObject<string | null>;
+  activePileIdRef: MutableRefObject<string | null>;
   answeredCardIdsRef: MutableRefObject<Set<string>>;
   autoRefreshEmptySessionRef: MutableRefObject<boolean>;
   canSurfaceAsyncSessionErrorRef: MutableRefObject<boolean>;
@@ -93,6 +94,7 @@ const prepareFocusEntry = (
   context.setSessionLoading(true);
   context.setFocusMode(true);
   context.setSessionKind(kind);
+  context.activePileIdRef.current = kind === 'lessons' ? (options.pileId ?? null) : null;
   context.activeLessonCohortIdRef.current =
     kind === 'lessons' ? (options.lessonCohortId ?? null) : null;
   context.setLessonPhase(kind === 'lessons' ? 'preview' : 'quiz');
@@ -130,6 +132,7 @@ const exitFocusMode = (context: StudyFocusModeLifecycleOptions) => {
   context.setReviewConflictRecovered(false);
   context.setShowSetDueControls(false);
   context.activeLessonCohortIdRef.current = null;
+  context.activePileIdRef.current = null;
   context.requestGuardRef.current.reset();
   context.setReviewSubmitPending(false);
   context.pendingReviewOperationRef.current = null;

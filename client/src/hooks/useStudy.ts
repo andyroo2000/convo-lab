@@ -187,11 +187,11 @@ export async function startStudySession(): Promise<StudySessionResponse> {
   });
 }
 
-export async function startStudyLesson(): Promise<StudySessionResponse> {
+export async function startStudyLesson(pileId?: string): Promise<StudySessionResponse> {
   const timeZone = getDeviceStudyTimeZone();
   return apiRequest<StudySessionResponse>('/lessons/start', {
     method: 'POST',
-    body: JSON.stringify({ timeZone }),
+    body: JSON.stringify({ timeZone, pileId }),
   });
 }
 

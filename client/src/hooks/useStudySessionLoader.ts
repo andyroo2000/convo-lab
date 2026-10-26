@@ -19,12 +19,14 @@ export type StudySessionKind = 'reviews' | 'lessons';
 export interface StudySessionLoadOptions {
   allowEmptySessionRefresh?: boolean;
   lessonCohortId?: string;
+  pileId?: string;
 }
 
-const fetchStudySession = (kind: StudySessionKind, lessonCohortId?: string) => {
+const fetchStudySession = (kind: StudySessionKind, options: StudySessionLoadOptions) => {
+  const { lessonCohortId, pileId } = options;
   if (kind === 'reviews') return startStudySession();
   if (lessonCohortId) return startStudyIntroductionCohortLesson(lessonCohortId);
-  return startStudyLesson();
+  return startStudyLesson(pileId);
 };
 
 const shouldRefreshEmptySession = (
@@ -83,7 +85,7 @@ const executeSessionLoad = async (context: StudySessionLoadContext) => {
   context.setSessionError(null);
 
   try {
-    const session = await fetchStudySession(context.kind, context.options.lessonCohortId);
+    const session = await fetchStudySession(context.kind, context.options);
     if (!isCurrentSessionRequest(context)) return null;
 
     applyLoadedSession(context, session);

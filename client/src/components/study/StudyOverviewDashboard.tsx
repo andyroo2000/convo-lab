@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useGoogleCalendarConnection } from '../../hooks/useGoogleCalendarConnection';
 import { useKnownKanji } from '../../hooks/useKnownKanji';
 import estimateReviewMinutes, { calendarDayLabel } from '../../utils/studyTodayPresentation';
+import StudyPileShelf from './StudyPileShelf';
 import MasterySpreadChart from './MasterySpreadChart';
 
 interface StudyOverviewDashboardProps {
@@ -15,7 +16,7 @@ interface StudyOverviewDashboardProps {
   loading: boolean;
   error: Error | null;
   onBeginReview: () => void;
-  onBeginLesson: () => void;
+  onBeginLesson: (pileId?: string) => void;
   isStartingSession: boolean;
 }
 
@@ -233,7 +234,7 @@ const StudyOverviewDashboard = (props: StudyOverviewDashboardProps) => {
           <div className="study-console-quick-grid grid grid-cols-2">
             <button
               type="button"
-              onClick={onBeginLesson}
+              onClick={() => onBeginLesson()}
               disabled={isStartingSession || lessonsAvailable === 0}
               aria-label={t('overview.lessons')}
               aria-describedby={lessonCountId}
@@ -242,7 +243,7 @@ const StudyOverviewDashboard = (props: StudyOverviewDashboardProps) => {
               <span className="study-console-quick-icon is-lessons mb-2 grid size-8 place-items-center text-white">
                 <BookOpen aria-hidden="true" className="size-4" />
               </span>
-              <span className="block font-bold text-navy">{t('overview.lessons')}</span>
+              <span className="block font-bold text-navy">{t('piles.usualMix')}</span>
               <span id={lessonCountId} className="mt-0.5 block text-sm text-gray-600">
                 {newCardCountText}
               </span>
@@ -269,6 +270,8 @@ const StudyOverviewDashboard = (props: StudyOverviewDashboardProps) => {
         {loading ? <p className="mt-2 text-gray-500">{t('overview.loading')}</p> : null}
         {error ? <p className="mt-2 text-red-600">{error.message}</p> : null}
       </section>
+
+      <StudyPileShelf onBeginLesson={onBeginLesson} disabled={isStartingSession} />
 
       <nav
         aria-label={t('overview.studyTools')}

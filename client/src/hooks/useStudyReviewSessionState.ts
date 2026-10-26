@@ -85,6 +85,7 @@ const useStudyReviewProgressState = () => {
 const useStudyReviewSessionRefs = () => {
   const requestGuardRef = useRef(createStudyReviewRequestGuard());
   const sessionEpochRef = useRef(0);
+  const activePileIdRef = useRef<string | null>(null);
   const activeLessonCohortIdRef = useRef<string | null>(null);
   const canSurfaceAsyncSessionErrorRef = useRef(false);
   const answeredCardIdsRef = useRef<Set<string>>(new Set());
@@ -94,6 +95,7 @@ const useStudyReviewSessionRefs = () => {
 
   return {
     activeLessonCohortIdRef,
+    activePileIdRef,
     answeredCardIdsRef,
     autoRefreshEmptySessionRef,
     canSurfaceAsyncSessionErrorRef,

@@ -5,6 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import estimateReviewMinutes, { calendarDayLabel } from '../../../utils/studyTodayPresentation';
 import StudyOverviewDashboard from '../StudyOverviewDashboard';
 
+vi.mock('../../../hooks/useStudyPiles', () => ({
+  useStudyPiles: () => ({ data: { piles: [] }, isLoading: false, isError: false }),
+}));
+
 const useKnownKanji = vi.fn();
 const useGoogleCalendarConnection = vi.fn();
 

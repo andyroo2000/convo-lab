@@ -38,6 +38,7 @@ const useReviewGrading = (
 ) =>
   useStudyReviewGrading({
     activeLessonCohortIdRef: core.state.activeLessonCohortIdRef,
+    activePileIdRef: core.state.activePileIdRef,
     answeredCardIdsRef: core.state.answeredCardIdsRef,
     applyReviewResultToSession: interactions.applyReviewResultToSession,
     autoRefreshEmptySessionRef: core.state.autoRefreshEmptySessionRef,
