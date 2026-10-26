@@ -755,22 +755,23 @@ export function useCreateCardFromStudyManualCardDraft() {
       return result;
     },
     onError: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'piles'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+      // A failed response may still have committed the card on the server.
+      await invalidateStudyQueries(queryClient, [
+        'manual-card-drafts',
+        'overview',
+        'piles',
+        'session',
+        'browser',
       ]);
     },
     onSuccess: async (_result, draft) => {
       pendingCardIds.current.delete(draft.id);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['study', 'manual-card-drafts'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'piles'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+      await invalidateStudyQueries(queryClient, [
+        'manual-card-drafts',
+        'overview',
+        'piles',
+        'session',
+        'browser',
       ]);
     },
   });
