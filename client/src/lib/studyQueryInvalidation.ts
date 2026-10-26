@@ -14,6 +14,7 @@ export type StudyQueryScope =
   | 'manual-card-drafts'
   | 'new-queue'
   | 'overview'
+  | 'piles'
   | 'session'
   | 'settings';
 

@@ -32,6 +32,7 @@ export interface PendingStudyReviewOperation {
 
 export interface StudyReviewSubmissionContext {
   activeLessonCohortIdRef: MutableRefObject<string | null>;
+  activePileIdRef: MutableRefObject<string | null>;
   answeredCardIdsRef: MutableRefObject<Set<string>>;
   applyReviewResultToSession: (
     updatedCard: StudyCardSummary,
@@ -187,6 +188,7 @@ const reloadAfterReviewConflict = async (context: StudyReviewSubmissionContext) 
       {
         allowEmptySessionRefresh: false,
         lessonCohortId: context.activeLessonCohortIdRef.current ?? undefined,
+        pileId: context.activePileIdRef.current ?? undefined,
       },
       context.expectedEpoch
     ),

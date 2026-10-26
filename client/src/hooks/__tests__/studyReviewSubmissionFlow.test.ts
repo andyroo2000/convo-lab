@@ -50,6 +50,7 @@ const makeContext = (
   overrides: Partial<StudyReviewSubmissionContext> = {}
 ): StudyReviewSubmissionContext => ({
   activeLessonCohortIdRef: { current: null },
+  activePileIdRef: { current: null },
   answeredCardIdsRef: { current: new Set() },
   applyReviewResultToSession: vi.fn(),
   autoRefreshEmptySessionRef: { current: false },

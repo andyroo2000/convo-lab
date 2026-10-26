@@ -798,5 +798,35 @@
   },
   "preview": {
     "audioFailed": "音声を再生できませんでした。もう一度お試しください。"
+  },
+  "piles": {
+    "shelf": "パイルを選ぶ",
+    "manage": "パイル管理",
+    "shelfHint": "新しいカードを学ぶ本を選びます。復習はすべて共通です。",
+    "usualMix": "いつもの配分",
+    "learnSoon": "早めに学ぶ",
+    "uncategorized": "未分類",
+    "ready": "学習可能：{{count}}枚",
+    "loading": "読み込み中…",
+    "retry": "再試行",
+    "title": "タイトル",
+    "order": "順序",
+    "save": "保存",
+    "add": "追加",
+    "counts": "学習可能 {{ready}}枚 · 未導入 {{remaining}}枚 · 導入済み {{learned}}枚",
+    "include": "{{title}}を新しいカードに含める",
+    "active": "オン",
+    "parked": "オフ",
+    "edit": "タイトルと順序を編集",
+    "chapters": "章（{{count}}）",
+    "chapterHint": "オンの章から順に新しいカードを出します。本をオフにしても章の設定は保持されます。カードの解放条件も適用されます。",
+    "addChapter": "章を追加",
+    "back": "学習に戻る",
+    "manageHint": "新しいカードを出す本と章を選びます。オフにしても復習は続きます。標準キューでは順序の数字が小さいものから出題されます。",
+    "activeBooks": "本棚",
+    "parkedBooks": "あとで学ぶ",
+    "empty": "まだ本がありません。",
+    "addBook": "本やソースを追加",
+    "importHint": "先に取り込めるよう、新しい本と章はオフで作成されます。"
   }
 }

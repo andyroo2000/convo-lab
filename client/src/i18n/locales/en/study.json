@@ -822,5 +822,35 @@
   },
   "preview": {
     "audioFailed": "Audio playback failed. Try again."
+  },
+  "piles": {
+    "shelf": "Choose a pile",
+    "manage": "Manage piles",
+    "shelfHint": "Pick a book for your next new cards. Reviews always stay together.",
+    "usualMix": "My usual mix",
+    "learnSoon": "Learn soon",
+    "uncategorized": "Uncategorized",
+    "ready": "{{count}} ready",
+    "loading": "Loading piles…",
+    "retry": "Try again",
+    "title": "Title",
+    "order": "Order",
+    "save": "Save",
+    "add": "Add",
+    "counts": "{{ready}} ready · {{remaining}} remaining · {{learned}} introduced",
+    "include": "Include {{title}} in new cards",
+    "active": "On",
+    "parked": "Off",
+    "edit": "Edit title and order",
+    "chapters": "Chapters ({{count}})",
+    "chapterHint": "Only enabled chapters supply new cards, in order. Turning a book off keeps these choices. Cards still need to meet their unlock requirements.",
+    "addChapter": "Add chapter",
+    "back": "Back to study",
+    "manageHint": "Choose which books and chapters supply new cards. Pausing a pile never pauses reviews. Lower order numbers come first in the Standard queue.",
+    "activeBooks": "On your shelf",
+    "parkedBooks": "Saved for later",
+    "empty": "No books here yet.",
+    "addBook": "Add a book or source",
+    "importHint": "New books and chapters start off, so you can import ahead of time."
   }
 }

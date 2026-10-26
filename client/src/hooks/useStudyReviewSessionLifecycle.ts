@@ -31,6 +31,7 @@ const useReviewFocusLifecycle = (
   });
   const focus = useStudyFocusModeLifecycle({
     activeLessonCohortIdRef: core.state.activeLessonCohortIdRef,
+    activePileIdRef: core.state.activePileIdRef,
     answeredCardIdsRef: core.state.answeredCardIdsRef,
     autoRefreshEmptySessionRef: core.state.autoRefreshEmptySessionRef,
     canSurfaceAsyncSessionErrorRef: core.state.canSurfaceAsyncSessionErrorRef,

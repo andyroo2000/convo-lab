@@ -94,6 +94,7 @@ const usePracticeModeActions = (
 const useLoadNextLessonBatch = (state: StudyReviewSessionState, loadSession: LoadStudySession) => {
   const {
     activeLessonCohortIdRef,
+    activePileIdRef,
     answeredCardIdsRef,
     setAnsweredCardIds,
     setCurrentIndex,
@@ -106,9 +107,11 @@ const useLoadNextLessonBatch = (state: StudyReviewSessionState, loadSession: Loa
     setRevealed(false);
     await loadSession('lessons', {
       lessonCohortId: activeLessonCohortIdRef.current ?? undefined,
+      pileId: activePileIdRef.current ?? undefined,
     });
   }, [
     activeLessonCohortIdRef,
+    activePileIdRef,
     answeredCardIdsRef,
     loadSession,
     setAnsweredCardIds,

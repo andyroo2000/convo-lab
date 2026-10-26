@@ -5,6 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import estimateReviewMinutes, { calendarDayLabel } from '../../../utils/studyTodayPresentation';
 import StudyOverviewDashboard from '../StudyOverviewDashboard';
 
+vi.mock('../../../hooks/useStudyPiles', () => ({
+  useStudyPiles: () => ({ data: { piles: [] }, isLoading: false, isError: false }),
+}));
+
 const useKnownKanji = vi.fn();
 const useGoogleCalendarConnection = vi.fn();
 
@@ -125,7 +129,7 @@ describe('StudyOverviewDashboard', () => {
     );
 
     const reviewsButton = screen.getByRole('button', { name: 'Reviews' });
-    const lessonsButton = screen.getByRole('button', { name: 'Lessons' });
+    const lessonsButton = screen.getByRole('button', { name: 'My usual mix' });
     expect(reviewsButton).toHaveAccessibleDescription('14 reviews About 6 min');
     expect(lessonsButton).toHaveAccessibleDescription('5 new cards');
     fireEvent.click(reviewsButton);

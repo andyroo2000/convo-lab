@@ -44,6 +44,7 @@ const ReadingsPage = lazy(() => import('./pages/ReadingsPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ManageStudyPilesPage = lazy(() => import('./pages/ManageStudyPilesPage'));
 const StudyPage = lazy(() => import('./pages/StudyPage'));
 const StudyBrowsePage = lazy(() => import('./pages/StudyBrowsePage'));
 const StudyImportPage = lazy(() => import('./pages/StudyImportPage'));
@@ -227,6 +228,14 @@ const renderStudyRoutes = () => (
         element={
           <StudyRouteWrapper>
             <StudyPage />
+          </StudyRouteWrapper>
+        }
+      />
+      <Route
+        path="piles"
+        element={
+          <StudyRouteWrapper>
+            <ManageStudyPilesPage />
           </StudyRouteWrapper>
         }
       />

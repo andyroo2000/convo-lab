@@ -76,7 +76,8 @@
     "prettier": "^3.7.4",
     "tailwindcss": "^3.4.11",
     "vite": "^8.2.1",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.2",
+    "zod": "^4.6.7"
   },
   "overrides": {
     "braces": "npm:@dieub/braces-depth-guard@3.0.3-pn.3"

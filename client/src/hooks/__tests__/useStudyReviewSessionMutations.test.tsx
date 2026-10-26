@@ -181,6 +181,29 @@ describe('useStudyReviewSession mutations', () => {
     expect(reviewMutateAsyncMock).toHaveBeenCalledTimes(1);
   });
 
+  it('retains the selected pile through the next batch and conflict recovery', async () => {
+    reviewMutateAsyncMock.mockRejectedValueOnce(new JsonRequestError('Conflict', 409, {}));
+    const { result } = renderHook(() => useStudyReviewSession(), { wrapper: createWrapper() });
+    await act(async () => {
+      await result.current.enterFocusMode('lessons', { pileId: 'learn-soon' });
+    });
+    await act(async () => {
+      await result.current.loadNextLessonBatch();
+    });
+    act(() => result.current.beginLessonQuiz());
+    act(() => result.current.revealCurrentCard());
+    await act(async () => {
+      await result.current.handleGrade('good');
+    });
+    expect(startStudyLessonMock).toHaveBeenCalledTimes(3);
+    expect(startStudyLessonMock.mock.calls).toEqual([
+      ['learn-soon'],
+      ['learn-soon'],
+      ['learn-soon'],
+    ]);
+    expect(result.current.reviewConflictRecovered).toBe(true);
+  });
+
   it('preserves the lesson cohort during authoritative conflict recovery', async () => {
     const cohortId = '01k00000000000000000000000';
     reviewMutateAsyncMock.mockRejectedValueOnce(
