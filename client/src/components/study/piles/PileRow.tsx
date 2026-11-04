@@ -8,6 +8,9 @@ const PileRow = ({ item, pileId }: { item: StudyPileChapter; pileId?: string }) 
   const toggleId = useId();
   const { t } = useTranslation('study');
   const mutation = useSaveStudyPile();
+  const isActive = mutation.isPending
+    ? (mutation.variables?.attributes.is_active ?? item.is_active)
+    : item.is_active;
   return (
     <div className="py-3">
       <div className="flex items-center justify-between gap-4">
@@ -28,7 +31,7 @@ const PileRow = ({ item, pileId }: { item: StudyPileChapter; pileId?: string }) 
           <input
             id={toggleId}
             type="checkbox"
-            checked={item.is_active}
+            checked={isActive}
             disabled={mutation.isPending}
             aria-label={t('piles.include', { title: item.title })}
             onChange={(event) =>
@@ -40,7 +43,7 @@ const PileRow = ({ item, pileId }: { item: StudyPileChapter; pileId?: string }) 
             }
             className="size-5 accent-navy"
           />
-          {t(item.is_active ? 'piles.active' : 'piles.parked')}
+          {t(isActive ? 'piles.active' : 'piles.parked')}
         </label>
       </div>
       {mutation.isError && (
