@@ -280,6 +280,9 @@ export interface StudyJlptLevelMastery {
 export interface StudyJlptMastery {
   N5: StudyJlptLevelMastery;
   N4?: StudyJlptLevelMastery;
+  N3?: StudyJlptLevelMastery;
+  N2?: StudyJlptLevelMastery;
+  N1?: StudyJlptLevelMastery;
 }
 
 export interface StudyLearningReadiness {

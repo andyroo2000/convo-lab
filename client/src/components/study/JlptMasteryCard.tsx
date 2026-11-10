@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useStudyOverview } from '../../hooks/useStudy';
 
 interface MasteryMetricProps {
-  level: 'N5' | 'N4';
+  level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
   label: string;
   metric: StudyJlptMasteryMetric;
   tone: 'navy' | 'coral';
@@ -102,13 +102,13 @@ const MasteryMetric = ({
 };
 
 interface LevelBandProps {
-  level: 'N5' | 'N4';
+  level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
   mastery: StudyJlptLevelMastery;
 }
 
 const LevelBand = ({ level, mastery }: LevelBandProps) => {
   const { t } = useTranslation('study');
-  const captionKey = level === 'N5' ? 'time.jlptMastery.n5Caption' : 'time.jlptMastery.n4Caption';
+  const captionKey = `time.jlptMastery.${level.toLowerCase()}Caption`;
 
   return (
     <section
@@ -154,8 +154,10 @@ const LevelBand = ({ level, mastery }: LevelBandProps) => {
 const JlptMasteryCard = () => {
   const { t } = useTranslation('study');
   const overviewQuery = useStudyOverview({ enabled: true, refetchOnMount: 'always' });
-  const n5 = overviewQuery.data?.jlptMastery?.N5;
-  const n4 = overviewQuery.data?.jlptMastery?.N4;
+  const mastery = overviewQuery.data?.jlptMastery;
+  const levels = (['N5', 'N4', 'N3', 'N2', 'N1'] as const).flatMap((level) =>
+    mastery?.[level] ? [{ level, mastery: mastery[level] }] : []
+  );
   let body: ReactNode;
 
   if (overviewQuery.isLoading) {
@@ -178,12 +180,13 @@ const JlptMasteryCard = () => {
         </button>
       </div>
     );
-  } else if (n5) {
+  } else if (levels.length > 0) {
     body = (
       <div className="p-6">
         <div className="space-y-5">
-          <LevelBand level="N5" mastery={n5} />
-          {n4 ? <LevelBand level="N4" mastery={n4} /> : null}
+          {levels.map((entry) => (
+            <LevelBand key={entry.level} {...entry} />
+          ))}
         </div>
         <p className="mt-4 text-xs font-semibold leading-relaxed text-gray-500">
           {t('time.jlptMastery.explanation')}

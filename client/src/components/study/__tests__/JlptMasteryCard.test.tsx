@@ -123,6 +123,47 @@ describe('JlptMasteryCard', () => {
     expect(screen.getByText('20 of 89')).toBeInTheDocument();
   });
 
+  it('renders all five levels in order with independent vocabulary and grammar totals', () => {
+    const higherLevels = Object.fromEntries(
+      [
+        ['N3', 1730, 130],
+        ['N2', 1812, 149],
+        ['N1', 3423, 150],
+      ].map(([level, vocabulary, grammar]) => [
+        level,
+        {
+          vocabulary: {
+            masteryPercent: 12,
+            known: 10,
+            matched: 20,
+            covered: 20,
+            total: vocabulary,
+          },
+          grammar: { masteryPercent: 7, known: 3, matched: 5, covered: 5, total: grammar },
+        },
+      ])
+    );
+    setOverview({ data: { jlptMastery: { ...mastery, ...higherLevels } } });
+    render(<JlptMasteryCard />);
+    fireEvent.click(screen.getByRole('heading', { name: 'JLPT Mastery' }));
+
+    expect(
+      screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)
+    ).toEqual(['N5', 'N4', 'N3', 'N2', 'N1']);
+    expect(screen.getAllByRole('progressbar')).toHaveLength(10);
+    ['N3', 'N2', 'N1'].forEach((level) => {
+      expect(
+        screen.getByRole('progressbar', { name: `${level} Vocabulary mastery` })
+      ).toHaveAttribute('aria-valuenow', '12');
+      expect(screen.getByRole('progressbar', { name: `${level} Grammar mastery` })).toHaveAttribute(
+        'aria-valuenow',
+        '7'
+      );
+    });
+    expect(screen.getByText('10 of 3423')).toBeInTheDocument();
+    expect(screen.getByText('3 of 150')).toBeInTheDocument();
+  });
+
   it('clamps inconsistent legacy values and falls back to covered for matched', () => {
     setOverview({
       data: {
