@@ -16,6 +16,11 @@ interface MasteryMetricProps {
 const clamp = (value: number, minimum: number, maximum: number) =>
   Math.min(Math.max(value, minimum), maximum);
 
+const optionalCount = (value: number | null | undefined, total: number) =>
+  value == null ? undefined : clamp(value, 0, total);
+
+const hasOverlap = (value: number | undefined) => value !== undefined && value > 0;
+
 const MasteryMetric = ({
   level,
   label,
@@ -26,13 +31,10 @@ const MasteryMetric = ({
   const { t } = useTranslation('study');
   const total = Math.max(0, metric.total);
   const matched = clamp(metric.matched ?? metric.covered, 0, total);
-  const known = metric.known == null ? undefined : clamp(metric.known, 0, total);
-  const knownFromCards =
-    metric.knownFromCards == null ? undefined : clamp(metric.knownFromCards, 0, total);
-  const knownFromWaniKani =
-    metric.knownFromWaniKani == null ? undefined : clamp(metric.knownFromWaniKani, 0, total);
-  const knownFromBoth =
-    metric.knownFromBoth == null ? undefined : clamp(metric.knownFromBoth, 0, total);
+  const known = optionalCount(metric.known, total);
+  const knownFromCards = optionalCount(metric.knownFromCards, total);
+  const knownFromWaniKani = optionalCount(metric.knownFromWaniKani, total);
+  const knownFromBoth = optionalCount(metric.knownFromBoth, total);
   const masteryPercent = clamp(metric.masteryPercent, 0, 100);
   const barColor = tone === 'navy' ? 'bg-navy' : 'bg-coral';
 
@@ -82,7 +84,7 @@ const MasteryMetric = ({
             <dd className="font-mono font-black text-navy">{knownFromWaniKani}</dd>
           </div>
         ) : null}
-        {showSourceBreakdown && knownFromBoth !== undefined && knownFromBoth > 0 ? (
+        {showSourceBreakdown && hasOverlap(knownFromBoth) ? (
           <div className="flex items-center justify-between gap-4 pl-3">
             <dt className="font-semibold text-gray-500">
               {t('time.jlptMastery.overlapSourceLabel')}
