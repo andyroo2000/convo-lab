@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useStudyOverview } from '../../hooks/useStudy';
 
 interface MasteryMetricProps {
-  level: 'N5' | 'N4';
+  level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
   label: string;
   metric: StudyJlptMasteryMetric;
   tone: 'navy' | 'coral';
@@ -15,6 +15,11 @@ interface MasteryMetricProps {
 
 const clamp = (value: number, minimum: number, maximum: number) =>
   Math.min(Math.max(value, minimum), maximum);
+
+const optionalCount = (value: number | null | undefined, total: number) =>
+  value == null ? undefined : clamp(value, 0, total);
+
+const hasOverlap = (value: number | undefined) => value !== undefined && value > 0;
 
 const MasteryMetric = ({
   level,
@@ -26,13 +31,10 @@ const MasteryMetric = ({
   const { t } = useTranslation('study');
   const total = Math.max(0, metric.total);
   const matched = clamp(metric.matched ?? metric.covered, 0, total);
-  const known = metric.known == null ? undefined : clamp(metric.known, 0, total);
-  const knownFromCards =
-    metric.knownFromCards == null ? undefined : clamp(metric.knownFromCards, 0, total);
-  const knownFromWaniKani =
-    metric.knownFromWaniKani == null ? undefined : clamp(metric.knownFromWaniKani, 0, total);
-  const knownFromBoth =
-    metric.knownFromBoth == null ? undefined : clamp(metric.knownFromBoth, 0, total);
+  const known = optionalCount(metric.known, total);
+  const knownFromCards = optionalCount(metric.knownFromCards, total);
+  const knownFromWaniKani = optionalCount(metric.knownFromWaniKani, total);
+  const knownFromBoth = optionalCount(metric.knownFromBoth, total);
   const masteryPercent = clamp(metric.masteryPercent, 0, 100);
   const barColor = tone === 'navy' ? 'bg-navy' : 'bg-coral';
 
@@ -82,7 +84,7 @@ const MasteryMetric = ({
             <dd className="font-mono font-black text-navy">{knownFromWaniKani}</dd>
           </div>
         ) : null}
-        {showSourceBreakdown && knownFromBoth !== undefined && knownFromBoth > 0 ? (
+        {showSourceBreakdown && hasOverlap(knownFromBoth) ? (
           <div className="flex items-center justify-between gap-4 pl-3">
             <dt className="font-semibold text-gray-500">
               {t('time.jlptMastery.overlapSourceLabel')}
@@ -102,13 +104,13 @@ const MasteryMetric = ({
 };
 
 interface LevelBandProps {
-  level: 'N5' | 'N4';
+  level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
   mastery: StudyJlptLevelMastery;
 }
 
 const LevelBand = ({ level, mastery }: LevelBandProps) => {
   const { t } = useTranslation('study');
-  const captionKey = level === 'N5' ? 'time.jlptMastery.n5Caption' : 'time.jlptMastery.n4Caption';
+  const captionKey = `time.jlptMastery.${level.toLowerCase()}Caption`;
 
   return (
     <section
@@ -154,8 +156,10 @@ const LevelBand = ({ level, mastery }: LevelBandProps) => {
 const JlptMasteryCard = () => {
   const { t } = useTranslation('study');
   const overviewQuery = useStudyOverview({ enabled: true, refetchOnMount: 'always' });
-  const n5 = overviewQuery.data?.jlptMastery?.N5;
-  const n4 = overviewQuery.data?.jlptMastery?.N4;
+  const mastery = overviewQuery.data?.jlptMastery;
+  const levels = (['N5', 'N4', 'N3', 'N2', 'N1'] as const).flatMap((level) =>
+    mastery?.[level] ? [{ level, mastery: mastery[level] }] : []
+  );
   let body: ReactNode;
 
   if (overviewQuery.isLoading) {
@@ -178,12 +182,13 @@ const JlptMasteryCard = () => {
         </button>
       </div>
     );
-  } else if (n5) {
+  } else if (levels.length > 0) {
     body = (
       <div className="p-6">
         <div className="space-y-5">
-          <LevelBand level="N5" mastery={n5} />
-          {n4 ? <LevelBand level="N4" mastery={n4} /> : null}
+          {levels.map((entry) => (
+            <LevelBand key={entry.level} {...entry} />
+          ))}
         </div>
         <p className="mt-4 text-xs font-semibold leading-relaxed text-gray-500">
           {t('time.jlptMastery.explanation')}
