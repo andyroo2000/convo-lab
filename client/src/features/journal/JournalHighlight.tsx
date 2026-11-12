@@ -30,7 +30,7 @@ const JournalHighlight = ({ segment }: { segment: JournalSegment }) => {
       <button
         ref={anchor}
         type="button"
-        className={`rounded px-0.5 text-left text-inherit underline decoration-2 underline-offset-4 ${styles[segment.kind]}`}
+        className={`inline rounded px-0.5 leading-normal text-left text-inherit underline decoration-2 underline-offset-4 [box-decoration-break:clone] ${styles[segment.kind]}`}
         aria-label={`${labels[segment.kind]}: ${segment.text}`}
         aria-describedby={open ? id : undefined}
         onPointerEnter={(event) => {
