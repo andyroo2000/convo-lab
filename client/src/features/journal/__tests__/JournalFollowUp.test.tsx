@@ -77,7 +77,7 @@ it('reuses the client request after a lost response instead of appending twice',
 
 it('clears a submitted answer only after the analysis confirms its application', async () => {
   const request = {
-    id: 'reply',
+    id: '01arz3ndektsv4rrffq69g5fav',
     analysisId: analysis.id,
     answer: '友達と。',
     expectedRevision: 0,
@@ -88,7 +88,7 @@ it('clears a submitted answer only after the analysis confirms its application',
     JSON.stringify({ answer: request.answer, replace: false, request })
   );
   const reply = {
-    id: 'reply',
+    id: '01arz3ndektsv4rrffq69g5fav',
     parentId: null,
     answer: request.answer,
     status: 'ready' as const,
@@ -146,4 +146,32 @@ it('uses the shown revision for undo and refreshes after an ambiguous failure', 
   await act(() => result.current.undo());
   expect(undoJournalAnswer).toHaveBeenCalledWith('entry', current);
   expect(result.current.error).toContain('refreshed');
+});
+
+it('preserves text but releases an outdated request for deliberate resubmission', async () => {
+  const request = {
+    id: '01arz3ndektsv4rrffq69g5fav',
+    analysisId: analysis.id,
+    answer: '友達と。',
+    expectedRevision: 0,
+    replace: true,
+  };
+  localStorage.setItem(
+    'convolab:journal-answer:a:entry:analysis',
+    JSON.stringify({ answer: request.answer, replace: true, request })
+  );
+  vi.mocked(getJournalReply).mockRejectedValue(new Error('Offline'));
+  const { result } = renderHook(
+    () =>
+      useJournalReplies({
+        ownerId: 'a',
+        entryId: 'entry',
+        analysis: { ...analysis, replyRevision: 2 },
+      }),
+    { wrapper: wrapper() }
+  );
+  await waitFor(() => expect(result.current.draft.request).toBeUndefined());
+  expect(result.current.draft.answer).toBe(request.answer);
+  expect(result.current.draft.replace).toBe(false);
+  expect(result.current.waiting).toBe(false);
 });

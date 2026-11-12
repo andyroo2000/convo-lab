@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ulid } from 'ulid';
-import {
-  getJournalReply,
-  sendJournalAnswer,
-  undoJournalAnswer,
-  type JournalAnswerRequest,
-} from './journalReplies';
+import { JsonRequestError } from '../../lib/apiClient';
+import { readAnswerDraft, type AnswerDraft } from './journalAnswerDraft';
+import { getJournalReply, sendJournalAnswer, undoJournalAnswer } from './journalReplies';
 import type { JournalAnalysis } from './types';
 
 interface ReplyOptions {
@@ -14,22 +11,11 @@ interface ReplyOptions {
   entryId: string;
   analysis: JournalAnalysis;
 }
-interface AnswerDraft {
-  answer: string;
-  replace: boolean;
-  request?: JournalAnswerRequest;
-}
-
-function readDraft(key: string): AnswerDraft {
-  const value = JSON.parse(localStorage.getItem(key) ?? 'null') as AnswerDraft | null;
-  return value && typeof value.answer === 'string' ? value : { answer: '', replace: false };
-}
-
 export default function useJournalReplies({ ownerId, entryId, analysis }: ReplyOptions) {
   const key = `convolab:journal-answer:${ownerId}:${entryId}:${analysis.id}`;
   const [draft, setDraft] = useState<AnswerDraft>(() => {
     try {
-      return readDraft(key);
+      return readAnswerDraft(key);
     } catch {
       return { answer: '', replace: false };
     }
@@ -44,7 +30,7 @@ export default function useJournalReplies({ ownerId, entryId, analysis }: ReplyO
     };
   }, []);
   const client = useQueryClient();
-  const pendingId = draft.request?.id ?? analysis.pendingReplyId;
+  const pendingId = analysis.pendingReplyId ?? draft.request?.id;
   const query = useQuery({
     queryKey: ['journal-reply', ownerId, entryId, pendingId],
     queryFn: ({ signal }) => getJournalReply(entryId, pendingId!, signal),
@@ -56,6 +42,7 @@ export default function useJournalReplies({ ownerId, entryId, analysis }: ReplyO
     },
   });
   const status = query.data?.data.status;
+  const notApplied = query.error instanceof JsonRequestError && query.error.status === 404;
   const processing =
     Boolean(analysis.pendingReplyId) || status === 'queued' || status === 'processing';
   const refresh = () =>
@@ -86,6 +73,20 @@ export default function useJournalReplies({ ownerId, entryId, analysis }: ReplyO
     }
   }, [analysis.currentReply?.id, draft.request, key]);
 
+  useEffect(() => {
+    const { request } = draft;
+    if (!request || analysis.currentReply?.id === request.id) return;
+    if ((analysis.replyRevision ?? 0) === request.expectedRevision) return;
+    const next = { answer: draft.answer, replace: false };
+    setDraft(next);
+    setError('The entry changed. Review your answer before adding it again.');
+    try {
+      localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      /* Keep the answer on screen. */
+    }
+  }, [analysis.replyRevision, analysis.currentReply?.id, draft, key]);
+
   async function submit() {
     if (!draft.answer.trim()) return;
     if (busy || processing) return;
@@ -105,8 +106,10 @@ export default function useJournalReplies({ ownerId, entryId, analysis }: ReplyO
       client.setQueryData(['journal-reply', ownerId, entryId, input.id], response);
       await refresh();
     } catch {
-      if (live.current)
+      if (live.current) {
+        await refresh().catch(() => undefined);
         setError('Could not add this answer. Your writing is kept here; try again.');
+      }
     } finally {
       if (live.current) setBusy(false);
     }
@@ -121,7 +124,7 @@ export default function useJournalReplies({ ownerId, entryId, analysis }: ReplyO
       if (live.current) await refresh();
     } catch {
       if (live.current) {
-        await refresh();
+        await refresh().catch(() => undefined);
         setError('Could not confirm undo. The entry has been refreshed.');
       }
     } finally {
@@ -138,7 +141,7 @@ export default function useJournalReplies({ ownerId, entryId, analysis }: ReplyO
     persist({ answer: '', replace: false });
   }
   return {
-    waiting: Boolean(draft.request) && status !== 'failed',
+    waiting: Boolean(draft.request) && status !== 'failed' && !notApplied,
     draft,
     busy,
     processing,
