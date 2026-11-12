@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteJournalEntry, listJournalEntries } from './journalApi';
 import { JournalDraftStore, newJournalDraft } from './journalDrafts';
+import { removeJournalDeviceData } from './journalDeviceCleanup';
 import type { JournalDraft, JournalEntry } from './types';
 
 export default function useJournalArchive(ownerId: string) {
@@ -75,6 +76,7 @@ export default function useJournalArchive(ownerId: string) {
     try {
       const local = store.get(entry.id);
       if (local) store.discard(local);
+      removeJournalDeviceData(ownerId, entry.id);
       saved();
       setError('');
       return true;

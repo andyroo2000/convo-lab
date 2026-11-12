@@ -7,6 +7,10 @@ import { AUTH_SESSION_EXPIRED_EVENT } from '../lib/authSession';
 import { accountApi } from '../lib/accountApi';
 import { authApi } from '../lib/authApi';
 import { clearRetiredBrowserStudyStorage } from '../lib/retiredStudyStorage';
+import {
+  removeDeletedAccountJournal,
+  retryJournalDeviceCleanup,
+} from '../features/journal/journalDeviceCleanup';
 
 interface AuthContextType {
   user: User | null;
@@ -106,6 +110,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     clearRetiredBrowserStudyStorage();
+    try {
+      retryJournalDeviceCleanup();
+    } catch {
+      console.warn('Journal device cleanup will retry when browser storage is available.');
+    }
     // Check for existing session
     checkAuth();
   }, [checkAuth]);
@@ -202,7 +211,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error(error.error?.message || error.message || 'Delete failed');
     }
 
-    await clearLocalSession();
+    try {
+      if (user) removeDeletedAccountJournal(String(user.id));
+    } finally {
+      await clearLocalSession();
+    }
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
