@@ -467,7 +467,21 @@ for attempt in {1..30}; do
         $userId = App\Models\User::query()
             ->where("convolab_email_normalized", getenv("AUTH_SMOKE_EMAIL"))
             ->value("id");
-        echo "AUTH_SMOKE_TOKEN_COUNT=".($userId === null ? 0 : App\Domain\Auth\Models\ConvoLabEmailVerificationToken::query()
+        // A mail retry rotates its token. Wait for that job to finish before
+        // issuing the separate token used by this smoke test.
+        $pendingMail = DB::table("jobs")
+            ->where("payload", "like", "%SendConvoLabVerificationEmail%")
+            ->get(["payload"])
+            ->contains(function ($row) use ($userId): bool {
+                $payload = json_decode($row->payload, true);
+                if (($payload["displayName"] ?? null) !== App\Jobs\SendConvoLabVerificationEmail::class) {
+                    return false;
+                }
+                $command = @unserialize($payload["data"]["command"] ?? "", ["allowed_classes" => false]);
+
+                return is_object($command) && (((array) $command)["userId"] ?? null) === $userId;
+            });
+        echo "AUTH_SMOKE_TOKEN_COUNT=".($userId === null || $pendingMail ? 0 : App\Domain\Auth\Models\ConvoLabEmailVerificationToken::query()
             ->where("user_id", $userId)
             ->count()).PHP_EOL;
       ' < /dev/null \
@@ -480,7 +494,7 @@ for attempt in {1..30}; do
   else
     echo "Verification mail token query attempt $attempt/30 failed; retrying." >&2
   fi
-  echo "Verification mail job attempt $attempt/30 has not issued a token; retrying."
+  echo "Verification mail job attempt $attempt/30 has not finished issuing its token; retrying."
   if [ "$attempt" -lt 30 ]; then
     sleep 2
   fi
