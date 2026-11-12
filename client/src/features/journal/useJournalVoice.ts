@@ -47,7 +47,9 @@ export default function useJournalVoice({
   const ready = Boolean(voiceId) && saved.isSuccess && !loading && !error;
 
   function refreshAfterAudio() {
-    client.invalidateQueries({ queryKey: ['journal-audio-state', ownerId] }).catch(() => undefined);
+    client
+      .invalidateQueries({ queryKey: ['journal-audio-state', ownerId], refetchType: 'none' })
+      .catch(() => undefined);
   }
 
   function retry() {

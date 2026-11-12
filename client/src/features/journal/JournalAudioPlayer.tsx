@@ -97,7 +97,11 @@ const JournalAudioSession = ({
           onChange={(event) => changeVoice(event.target.value)}
           disabled={voice.loading || voice.error}
         >
-          {!voice.voiceId && <option value="">Select voice</option>}
+          {!voice.voiceId && (
+            <option value="" disabled>
+              Select voice
+            </option>
+          )}
           {voice.voices.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}

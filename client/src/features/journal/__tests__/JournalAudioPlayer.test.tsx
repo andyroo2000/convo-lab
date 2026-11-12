@@ -124,3 +124,19 @@ it('uses the server default for an entry without generated audio', async () => {
   await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('yua'));
   expect(getJournalAudio).not.toHaveBeenCalled();
 });
+
+it('keeps loaded audio usable without a preference refetch after playback', async () => {
+  vi.mocked(getJournalAudioState)
+    .mockResolvedValueOnce({ data: { voiceId: haru, hasAudio: false } })
+    .mockRejectedValue(new Error('Offline'));
+  setup();
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
+  await screen.findByLabelText('Corrected version audio');
+  expect(screen.getByRole('combobox')).toBeEnabled();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.queryByText('Loading saved voice…')).toBeNull();
+  expect(getJournalAudioState).toHaveBeenCalledTimes(1);
+});
