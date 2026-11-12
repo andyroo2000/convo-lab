@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import JournalCopyButton from './JournalCopyButton';
 import JournalAudioPlayer from './JournalAudioPlayer';
 import JournalHighlight from './JournalHighlight';
 import JournalFollowUp from './JournalFollowUp';
@@ -21,21 +21,10 @@ function keyedSegments(segments: JournalSegment[]) {
 }
 
 const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
   const feedback = analysis.result;
   const addition = analysis.currentReply?.result;
   if (!feedback) return null;
   const correctedText = addition?.entryText ?? feedback.correctedText;
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(correctedText);
-      setCopied(true);
-      setCopyError(false);
-    } catch {
-      setCopyError(true);
-    }
-  }
   return (
     <div className="space-y-8">
       <div>
@@ -50,7 +39,7 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
             Optional change
           </span>
         </div>
-        <div lang="ja" className="whitespace-pre-wrap text-xl leading-loose text-navy">
+        <div lang="ja" className="whitespace-pre-wrap text-xl leading-[2.7] text-navy">
           {keyedSegments(feedback.segments).map((segment) =>
             ['plain', 'keep'].includes(segment.kind) ? (
               <JournalRuby key={segment.key} text={segment.reading} />
@@ -63,15 +52,7 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
       <section aria-label="Corrected Version" className="space-y-4 border-t border-gray-200 pt-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-navy">Corrected Version</h2>
-          <button
-            type="button"
-            className="text-sm text-indigo"
-            onClick={() => {
-              copy().catch(() => undefined);
-            }}
-          >
-            {copied ? 'Copied' : 'Copy'}
-          </button>
+          <JournalCopyButton text={correctedText} />
         </div>
         <JournalAudioPlayer
           key={`${analysis.id}:${analysis.updatedAt}:${analysis.replyRevision}`}
@@ -80,7 +61,7 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
           analysisId={analysis.id}
           expectedReplyRevision={analysis.replyRevision ?? 0}
         />
-        <p lang="ja" className="whitespace-pre-wrap text-xl leading-loose text-navy">
+        <p lang="ja" className="whitespace-pre-wrap text-xl leading-[2.7] text-navy">
           {addition ? (
             <>
               <JournalRuby text={addition.previousReading} />
@@ -93,11 +74,6 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
             <JournalRuby text={feedback.correctedReading} />
           )}
         </p>
-        {copyError && (
-          <p role="alert" className="text-sm text-rose-700">
-            Could not copy. Select the corrected text to copy it.
-          </p>
-        )}
       </section>
       <JournalFollowUp key={analysis.id} ownerId={ownerId} entryId={entryId} analysis={analysis} />
     </div>
