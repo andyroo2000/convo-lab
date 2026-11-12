@@ -52,6 +52,8 @@ export default function useJournalPopover() {
     timeout.current = setTimeout(() => setOpen(false), 120);
   };
 
+  useEffect(() => () => clearTimeout(timeout.current), []);
+
   useLayoutEffect(() => {
     if (!open) return;
     const placement = positionPopover(anchor.current, popup.current);

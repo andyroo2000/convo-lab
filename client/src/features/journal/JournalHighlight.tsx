@@ -32,7 +32,9 @@ const JournalHighlight = ({ segment }: { segment: JournalSegment }) => {
         onPointerEnter={(event) => {
           if (event.pointerType === 'mouse') show();
         }}
-        onPointerLeave={hide}
+        onPointerLeave={(event) => {
+          if (event.pointerType === 'mouse') hide();
+        }}
         onFocus={show}
         onBlur={hide}
         onClick={show}
@@ -48,7 +50,9 @@ const JournalHighlight = ({ segment }: { segment: JournalSegment }) => {
             style={position}
             className="fixed z-50 max-h-[calc(100dvh-24px)] overflow-y-auto w-max max-w-[min(24rem,calc(100vw-24px))] rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
             onPointerEnter={show}
-            onPointerLeave={hide}
+            onPointerLeave={(event) => {
+              if (event.pointerType === 'mouse') hide();
+            }}
           >
             <p lang="ja" className="whitespace-pre-wrap text-xl leading-loose text-navy">
               <JournalRuby text={segment.suggestionReading ?? segment.reading} />

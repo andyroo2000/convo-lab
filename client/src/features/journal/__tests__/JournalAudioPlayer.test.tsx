@@ -69,3 +69,13 @@ it('keeps a failed download retryable and aborts when leaving the entry', async 
   unmount();
   expect(signal.aborted).toBe(true);
 });
+
+it('uses an available voice when the preferred voice is missing', async () => {
+  vi.mocked(getJournalVoices).mockResolvedValue({ data: [{ id: 'yumi', name: 'Yumi' }] });
+  setup();
+  await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('yumi'));
+  fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
+  await waitFor(() =>
+    expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'yumi' }))
+  );
+});

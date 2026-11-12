@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Play } from 'lucide-react';
-import { getJournalAudio, getJournalVoices } from './journalAudio';
+import { getJournalAudio, getJournalVoices, type JournalVoice } from './journalAudio';
 
 interface AudioProps {
   ownerId: string;
   entryId: string;
   analysisId: string;
+}
+
+function selectVoice(voices: JournalVoice[], preferred: string) {
+  const selected = voices.find((voice) => voice.id === preferred);
+  return selected?.id ?? voices[0]?.id ?? '';
 }
 
 const JournalAudioPlayer = ({ ownerId, entryId, analysisId }: AudioProps) => {
@@ -16,6 +21,7 @@ const JournalAudioPlayer = ({ ownerId, entryId, analysisId }: AudioProps) => {
     staleTime: Infinity,
   });
   const [voice, setVoice] = useState('fishaudio:abb4362e736f40b7b5716f4fafcafa9f');
+  const voiceId = selectVoice(voices.data?.data ?? [], voice);
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +51,7 @@ const JournalAudioPlayer = ({ ownerId, entryId, analysisId }: AudioProps) => {
       const blob = await getJournalAudio({
         entryId,
         analysisId,
-        voiceId: voice,
+        voiceId,
         signal: controller.signal,
       });
       if (!controller.signal.aborted) setUrl(URL.createObjectURL(blob));
@@ -80,7 +86,7 @@ const JournalAudioPlayer = ({ ownerId, entryId, analysisId }: AudioProps) => {
           <button
             type="button"
             aria-label="Play corrected version"
-            disabled={busy || !voices.data}
+            disabled={busy || !voiceId}
             onClick={() => {
               prepare().catch(() => undefined);
             }}
@@ -94,7 +100,7 @@ const JournalAudioPlayer = ({ ownerId, entryId, analysisId }: AudioProps) => {
         <select
           aria-label="Narration voice"
           className="max-w-44 rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm"
-          value={voice}
+          value={voiceId}
           onChange={(event) => changeVoice(event.target.value)}
           disabled={!voices.data}
         >
