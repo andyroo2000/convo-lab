@@ -75,6 +75,10 @@ export default defineConfig({
         target: learningOsApiUrl,
         changeOrigin: true,
       },
+      '^/api/journal(?:/|$)': {
+        target: learningOsApiUrl,
+        changeOrigin: true,
+      },
       '^/api/study(?:/|$)': {
         target: learningOsApiUrl,
         changeOrigin: true,
