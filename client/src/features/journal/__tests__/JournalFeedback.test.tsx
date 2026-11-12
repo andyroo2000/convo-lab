@@ -15,6 +15,14 @@ const segment: JournalSegment = {
   explanationReading: 'Use 見[み]ました for the past tense.',
 };
 
+it('renders older praise segments as ordinary text with readings and no popover', () => {
+  const { container } = render(<JournalHighlight segment={{ ...segment, kind: 'keep' }} />);
+  expect(container.textContent).toContain('映画えいがを見みますた。');
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  expect(screen.queryByText('Worth keeping')).not.toBeInTheDocument();
+});
+
 it('opens a compact correction on tap or keyboard focus and closes with Escape', () => {
   render(<JournalHighlight segment={segment} />);
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
