@@ -12,9 +12,10 @@ afterEach(() => vi.useRealTimers());
 it('copies the corrected text, announces success, and resets the icon', async () => {
   vi.useFakeTimers();
   render(<JournalCopyButton text="映画を見た。" />);
-  await act(async () =>
-    fireEvent.click(screen.getByRole('button', { name: 'Copy corrected version' }))
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'Copy corrected version' }));
+  await act(async () => {
+    await Promise.resolve();
+  });
   expect(writeText).toHaveBeenCalledWith('映画を見た。');
   expect(screen.getByRole('status')).toHaveTextContent('Copied');
   act(() => vi.advanceTimersByTime(2000));
