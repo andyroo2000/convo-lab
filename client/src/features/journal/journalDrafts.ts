@@ -27,7 +27,7 @@ export class JournalDraftStore {
 
   constructor(
     ownerId: string,
-    private readonly storage: Storage = localStorage
+    private readonly storage?: Storage
   ) {
     if (!ownerId) throw new Error('Sign in to save a journal draft.');
     this.prefix = `convolab:journal:v1:${encodeURIComponent(ownerId)}:`;
@@ -35,10 +35,10 @@ export class JournalDraftStore {
 
   list(): JournalDraft[] {
     const drafts: JournalDraft[] = [];
-    for (let index = 0; index < this.storage.length; index += 1) {
-      const storageKey = this.storage.key(index);
+    for (let index = 0; index < this.deviceStorage.length; index += 1) {
+      const storageKey = this.deviceStorage.key(index);
       if (storageKey?.startsWith(this.prefix)) {
-        const draft = readDraft(this.storage, storageKey);
+        const draft = readDraft(this.deviceStorage, storageKey);
         if (draft && storageKey === this.key(draft.id)) drafts.push(draft);
       }
     }
@@ -48,18 +48,19 @@ export class JournalDraftStore {
   }
 
   get(id: JournalDraft['id']): JournalDraft | null {
-    const draft = readDraft(this.storage, this.key(id));
+    const draft = readDraft(this.deviceStorage, this.key(id));
     return draft?.id === id ? draft : null;
   }
 
   put(draft: JournalDraft): void {
     const validated = draftSchema.parse(draft);
     // Let storage failures reach the editor instead of claiming the draft is safe.
-    this.storage.setItem(this.key(draft.id), JSON.stringify(validated));
+    this.deviceStorage.setItem(this.key(draft.id), JSON.stringify(validated));
   }
 
   discard(draft: JournalDraft): void {
-    if (this.get(draft.id)?.editId === draft.editId) this.storage.removeItem(this.key(draft.id));
+    if (this.get(draft.id)?.editId === draft.editId)
+      this.deviceStorage.removeItem(this.key(draft.id));
   }
 
   acknowledge(sent: JournalDraft, saved: JournalEntry): void {
@@ -70,6 +71,10 @@ export class JournalDraftStore {
     } else if (current.expectedVersion === sent.expectedVersion) {
       this.put({ ...current, expectedVersion: saved.version });
     }
+  }
+
+  private get deviceStorage(): Storage {
+    return this.storage ?? localStorage;
   }
 
   private key(id: JournalDraft['id']): string {
