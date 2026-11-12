@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useJournalPopover from './useJournalPopover';
 import JournalRuby from './JournalRuby';
@@ -18,8 +18,9 @@ const labels = {
 };
 
 const JournalHighlight = ({ segment }: { segment: JournalSegment }) => {
-  const { anchor, popup, open, position, show, hide } = useJournalPopover();
+  const { anchor, popup, open, position, show, hide, close } = useJournalPopover();
   const id = useId();
+  const closeOnClick = useRef(false);
 
   return (
     <>
@@ -36,8 +37,14 @@ const JournalHighlight = ({ segment }: { segment: JournalSegment }) => {
           if (event.pointerType === 'mouse') hide();
         }}
         onFocus={show}
-        onBlur={hide}
-        onClick={show}
+        onPointerDown={() => {
+          closeOnClick.current = open;
+        }}
+        onClick={() => {
+          if (closeOnClick.current) close();
+          else show();
+          closeOnClick.current = false;
+        }}
       >
         <JournalRuby text={segment.reading} />
       </button>

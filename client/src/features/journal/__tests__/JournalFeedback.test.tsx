@@ -48,3 +48,18 @@ it('preserves Japanese and English as text rather than interpreting markup', () 
   expect(container.innerHTML).not.toContain('<script>');
   expect(screen.getByText('にほん').tagName).toBe('RT');
 });
+
+it('keeps a tapped popup open when the anchor blurs and toggles it on another tap', () => {
+  render(<JournalHighlight segment={segment} />);
+  const anchor = screen.getByRole('button');
+  fireEvent.pointerDown(anchor, { pointerType: 'touch' });
+  fireEvent.focus(anchor);
+  fireEvent.click(anchor);
+  const popup = screen.getByRole('tooltip');
+  fireEvent.blur(anchor);
+  fireEvent.pointerDown(popup, { pointerType: 'touch' });
+  expect(screen.getByRole('tooltip')).toBeInTheDocument();
+  fireEvent.pointerDown(anchor, { pointerType: 'touch' });
+  fireEvent.click(anchor);
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+});

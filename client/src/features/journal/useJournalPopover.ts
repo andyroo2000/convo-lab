@@ -16,7 +16,7 @@ function dismissPopover(
   { anchor, popup }: { anchor: RefObject<HTMLElement>; popup: RefObject<HTMLElement> },
   close: () => void
 ) {
-  const outside = (event: PointerEvent) => {
+  const outside = (event: Event) => {
     if (anchor.current?.contains(event.target as Node)) return;
     if (!popup.current?.contains(event.target as Node)) close();
   };
@@ -24,6 +24,7 @@ function dismissPopover(
     if (event.key === 'Escape') close();
   };
   document.addEventListener('pointerdown', outside);
+  document.addEventListener('focusin', outside);
   document.addEventListener('keydown', escape);
   window.addEventListener('resize', close);
   const scroll = (event: Event) => {
@@ -32,6 +33,7 @@ function dismissPopover(
   window.addEventListener('scroll', scroll, true);
   return () => {
     document.removeEventListener('pointerdown', outside);
+    document.removeEventListener('focusin', outside);
     document.removeEventListener('keydown', escape);
     window.removeEventListener('resize', close);
     window.removeEventListener('scroll', scroll, true);
@@ -70,5 +72,9 @@ export default function useJournalPopover() {
     };
   }, [open]);
 
-  return { anchor, popup, open, position, show, hide };
+  const close = () => {
+    clearTimeout(timeout.current);
+    setOpen(false);
+  };
+  return { anchor, popup, open, position, show, hide, close };
 }
