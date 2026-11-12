@@ -7,7 +7,15 @@ function saveStatus(editor: Editor): string {
   return editor.error ? 'Check save status' : 'Saved';
 }
 
-const JournalEditorForm = ({ editor, processing }: { editor: Editor; processing: boolean }) => {
+const JournalEditorForm = ({
+  editor,
+  processing,
+  onSubmitted,
+}: {
+  editor: Editor;
+  processing: boolean;
+  onSubmitted?: () => void;
+}) => {
   const { draft, busy } = editor;
   if (!draft) return null;
   return (
@@ -68,7 +76,10 @@ const JournalEditorForm = ({ editor, processing }: { editor: Editor; processing:
           className="btn-primary"
           disabled={busy || processing || !draft.body.trim()}
           onClick={() => {
-            editor.save(true).catch(() => undefined);
+            editor
+              .save(true)
+              .then(onSubmitted)
+              .catch(() => undefined);
           }}
         >
           {busy ? 'Saving…' : 'Submit'}

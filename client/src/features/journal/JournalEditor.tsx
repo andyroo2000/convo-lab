@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import useJournalEditor from './useJournalEditor';
 import useJournalAnalysis from './useJournalAnalysis';
+import JournalEntryHeading from './JournalEntryHeading';
 import JournalEditorForm from './JournalEditorForm';
 import { EditorMessages, FeedbackStatus } from './JournalEditorMessages';
 import type { JournalAnalysis, JournalEntry } from './types';
@@ -31,6 +32,7 @@ const JournalEditor = ({
   onOpen,
   renderFeedback,
 }: JournalEditorProps) => {
+  const [editing, setEditing] = useState(false);
   const editor = useJournalEditor({ ownerId, entryId, onSaved });
   const analysis = useJournalAnalysis({
     ownerId,
@@ -42,11 +44,21 @@ const JournalEditor = ({
   });
   const current = currentFeedback(editor, analysis);
   const processing = isProcessing(current);
+  const reviewing = current?.status === 'ready' && !editing;
 
   return (
     <article className="mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8">
       <EditorMessages editor={editor} onOpen={onOpen} />
-      <JournalEditorForm editor={editor} processing={processing} />
+      {reviewing ? (
+        <JournalEntryHeading draft={editor.draft} onEdit={() => setEditing(true)} />
+      ) : (
+        <JournalEditorForm
+          editor={editor}
+          processing={processing}
+          onSubmitted={() => setEditing(false)}
+        />
+      )}
+
       <FeedbackStatus
         analysis={analysis}
         current={current}
@@ -54,7 +66,7 @@ const JournalEditor = ({
           analysis.refetch().catch(() => undefined);
         }}
       />
-      {current?.status === 'ready' && renderFeedback?.(current)}
+      {reviewing && current && renderFeedback?.(current)}
     </article>
   );
 };

@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Eye, BookOpen, BookMarked, Clock3 } from 'lucide-react';
+import { Eye, BookOpen, BookMarked, Clock3, NotebookPen } from 'lucide-react';
+import JournalNav from '../../features/journal/JournalNav';
 import ReadingsNav from '../../features/readings/ReadingsNav';
 import useReadings from '../../features/readings/useReadings';
 import { useAuth } from '../../contexts/AuthContext';
@@ -115,6 +116,7 @@ const DesktopNavigation = ({
       </Link>
     ) : null}
     <ReadingsNav disabled={Boolean(viewAsUserId)} />
+    <JournalNav disabled={Boolean(viewAsUserId)} />
     {!viewAsUserId ? (
       <Link
         to="/app/study/time"
@@ -229,6 +231,7 @@ const Layout = () => {
   const viewAsUserId = getViewAsUserId(searchParams);
   const readings = useReadings(!viewAsUserId);
   const hasReadings = Boolean(readings.data?.length) && !viewAsUserId;
+  const isJournalActive = location.pathname.startsWith('/app/journal');
   const isReadingsActive = location.pathname.startsWith('/app/readings');
   const route = getLayoutRouteState(location.pathname);
   const protectedReturnUrl = `${location.pathname}${location.search}${location.hash}`;
@@ -259,6 +262,17 @@ const Layout = () => {
   };
   const mobileNavItems = useMemo<UserMenuMobileNavItem[]>(
     () => [
+      ...(!viewAsUserId
+        ? [
+            {
+              id: 'journal',
+              label: 'Journal',
+              path: '/app/journal',
+              isActive: isJournalActive,
+              icon: NotebookPen,
+            },
+          ]
+        : []),
       ...(hasReadings
         ? [
             {
@@ -271,7 +285,7 @@ const Layout = () => {
           ]
         : []),
     ],
-    [hasReadings, isReadingsActive]
+    [hasReadings, isReadingsActive, isJournalActive, viewAsUserId]
   );
 
   // Show loading spinner while checking authentication
