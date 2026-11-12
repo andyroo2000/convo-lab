@@ -30,11 +30,11 @@ function show(body: string, status: 'processing' | 'ready') {
 
 it.each(['processing', 'ready'] as const)('shows %s only for the current diary text', (status) => {
   const { unmount } = show('edited', status);
-  expect(screen.queryByText('Preparing feedback…')).not.toBeInTheDocument();
+  expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   expect(screen.queryByText('Corrections')).not.toBeInTheDocument();
   unmount();
   show('original', status);
   expect(
-    screen.getByText(status === 'ready' ? 'Corrections' : 'Preparing feedback…')
+    screen.getByText(status === 'ready' ? 'Corrections' : 'Reviewing your Japanese…')
   ).toBeInTheDocument();
 });

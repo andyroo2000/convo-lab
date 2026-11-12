@@ -49,13 +49,10 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
           <span className="underline decoration-dashed decoration-amber-500 decoration-2 underline-offset-4">
             Optional change
           </span>
-          <span className="underline decoration-dotted decoration-emerald-500 decoration-2 underline-offset-4">
-            Worth keeping
-          </span>
         </div>
         <div lang="ja" className="whitespace-pre-wrap text-xl leading-loose text-navy">
           {keyedSegments(feedback.segments).map((segment) =>
-            segment.kind === 'plain' ? (
+            ['plain', 'keep'].includes(segment.kind) ? (
               <JournalRuby key={segment.key} text={segment.reading} />
             ) : (
               <JournalHighlight key={segment.key} segment={segment} />

@@ -77,6 +77,40 @@ it('does not replace an edited title with a generated title', () => {
   expect(result.current.draft?.title).toBe('My title');
 });
 
+it('adopts the generated title immediately after a blank-title submission', async () => {
+  const { result, entry } = setup();
+  vi.mocked(saveJournalDraft).mockResolvedValue({ ...entry, title: null });
+  await act(() => result.current.save(true));
+  act(() => result.current.acceptGeneratedEntry({ ...entry, version: 3 }));
+  expect(result.current.draft?.title).toBe('Movie night');
+  expect(result.current.draft?.expectedVersion).toBe(3);
+});
+
+it('does not let an older entry load overwrite a title already received from feedback', async () => {
+  const draft = newJournalDraft();
+  let finishLoad: (entry: JournalEntry) => void = () => undefined;
+  vi.mocked(getJournalEntry).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finishLoad = resolve;
+      })
+  );
+  const { result } = renderHook(() =>
+    useJournalEditor({ ownerId: 'a', entryId: draft.id, onSaved: vi.fn() })
+  );
+  const generated = {
+    ...draft,
+    title: 'A new title',
+    version: 2,
+    createdAt: 'now',
+    updatedAt: 'now',
+  };
+  act(() => result.current.acceptGeneratedEntry(generated));
+  await act(async () => finishLoad({ ...generated, title: null, version: 1 }));
+  expect(result.current.draft?.title).toBe('A new title');
+  expect(result.current.draft?.expectedVersion).toBe(2);
+});
+
 it('ignores a save completing after switching accounts', async () => {
   const draft = newJournalDraft();
   new JournalDraftStore('a').put(draft);

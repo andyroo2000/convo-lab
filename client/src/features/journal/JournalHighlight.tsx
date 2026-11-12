@@ -7,13 +7,13 @@ import type { JournalSegment } from './types';
 const styles = {
   correction: 'bg-rose-50 decoration-rose-400 decoration-solid',
   optional: 'bg-amber-50 decoration-amber-500 decoration-dashed',
-  keep: 'bg-emerald-50 decoration-emerald-500 decoration-dotted',
+  keep: '',
   plain: '',
 };
 const labels = {
   correction: 'Correction',
   optional: 'Optional change',
-  keep: 'Worth keeping',
+  keep: '',
   plain: '',
 };
 
@@ -21,6 +21,9 @@ const JournalHighlight = ({ segment }: { segment: JournalSegment }) => {
   const { anchor, popup, open, position, show, hide, close } = useJournalPopover();
   const id = useId();
   const closeOnClick = useRef(false);
+
+  if (segment.kind === 'plain' || segment.kind === 'keep')
+    return <JournalRuby text={segment.reading} />;
 
   return (
     <>

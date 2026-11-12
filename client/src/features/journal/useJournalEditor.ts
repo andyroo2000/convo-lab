@@ -47,7 +47,9 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
     if (!local) {
       getJournalEntry({ id: entryId, signal: controller.signal })
         .then((entry) => {
-          if (scope.current === epoch) setDraft(draftFromEntry(entry));
+          if (scope.current !== epoch || entry.version < acceptedVersion.current) return;
+          acceptedVersion.current = entry.version;
+          setDraft(draftFromEntry(entry));
         })
         .catch((reason) => {
           if (!controller.signal.aborted)
@@ -157,8 +159,7 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
     if (entry.version <= acceptedVersion.current) return;
     acceptedVersion.current = entry.version;
     setDraft((current) => {
-      if (!current) return current;
-      if (current.body !== entry.body) return current;
+      if (current && current.body !== entry.body) return current;
       try {
         if (store.get(entryId)) return current;
       } catch {
