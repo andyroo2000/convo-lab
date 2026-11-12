@@ -2,18 +2,23 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import JournalAudioPlayer from '../JournalAudioPlayer';
-import { getJournalAudio, getJournalVoices } from '../journalAudio';
+import { getJournalAudio, getJournalVoices, getJournalAudioState } from '../journalAudio';
 
-vi.mock('../journalAudio', () => ({ getJournalAudio: vi.fn(), getJournalVoices: vi.fn() }));
-const ren = 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f';
+vi.mock('../journalAudio', () => ({
+  getJournalAudio: vi.fn(),
+  getJournalVoices: vi.fn(),
+  getJournalAudioState: vi.fn(),
+}));
+const haru = 'fishaudio:21c74cb823fa45ef996ccc91cd6038b6';
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(getJournalVoices).mockResolvedValue({
     data: [
-      { id: ren, name: 'Ren' },
-      { id: 'yumi', name: 'Yumi' },
+      { id: haru, name: 'Haru (M)' },
+      { id: 'yua', name: 'Yua (F)' },
     ],
   });
+  vi.mocked(getJournalAudioState).mockResolvedValue({ data: { voiceId: haru, hasAudio: true } });
   vi.mocked(getJournalAudio).mockResolvedValue(new Blob(['audio']));
   vi.stubGlobal(
     'URL',
@@ -50,9 +55,9 @@ it('downloads corrected audio on demand and releases it when the voice changes',
     )
   );
   expect(getJournalAudio).toHaveBeenCalledWith(
-    expect.objectContaining({ entryId: 'entry', analysisId: 'analysis', voiceId: ren })
+    expect.objectContaining({ entryId: 'entry', analysisId: 'analysis', voiceId: haru })
   );
-  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'yumi' } });
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'yua' } });
   expect(screen.queryByLabelText('Corrected version audio')).toBeNull();
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:journal');
 });
@@ -70,12 +75,52 @@ it('keeps a failed download retryable and aborts when leaving the entry', async 
   expect(signal.aborted).toBe(true);
 });
 
-it('uses an available voice when the preferred voice is missing', async () => {
-  vi.mocked(getJournalVoices).mockResolvedValue({ data: [{ id: 'yumi', name: 'Yumi' }] });
+it('requires an explicit choice when the saved voice is unavailable', async () => {
+  vi.mocked(getJournalVoices).mockResolvedValue({ data: [{ id: 'yua', name: 'Yua (F)' }] });
   setup();
-  await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('yumi'));
+  await waitFor(() => expect(screen.getByRole('combobox')).toBeEnabled());
+  expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeDisabled();
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'yua' } });
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   await waitFor(() =>
-    expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'yumi' }))
+    expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'yua' }))
   );
+});
+
+it('waits for the entry voice before enabling playback, even when the catalog is loaded', async () => {
+  let finish: (value: { data: { voiceId: string; hasAudio: boolean } }) => void = () => undefined;
+  vi.mocked(getJournalAudioState).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  setup();
+  await screen.findByRole('option', { name: 'Yua (F)' });
+  expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeDisabled();
+  finish({ data: { voiceId: 'yua', hasAudio: true } });
+  await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('yua'));
+  fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
+  await waitFor(() =>
+    expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'yua' }))
+  );
+});
+
+it('does not guess a voice when preferences fail and supports retry', async () => {
+  vi.mocked(getJournalAudioState).mockRejectedValueOnce(new Error('Offline'));
+  setup();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not load your saved voice');
+  expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeDisabled();
+  expect(getJournalAudio).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeEnabled()
+  );
+});
+
+it('uses the server default for an entry without generated audio', async () => {
+  vi.mocked(getJournalAudioState).mockResolvedValue({ data: { voiceId: 'yua', hasAudio: false } });
+  setup();
+  await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('yua'));
+  expect(getJournalAudio).not.toHaveBeenCalled();
 });

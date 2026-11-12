@@ -8,6 +8,22 @@ export interface JournalVoice {
 }
 export const getJournalVoices = () => requestJson<{ data: JournalVoice[] }>('/api/journal/voices');
 
+export function getJournalAudioState({
+  entryId,
+  analysisId,
+  expectedReplyRevision = 0,
+  signal,
+}: Omit<AudioRequest, 'voiceId'>) {
+  const query = new URLSearchParams({
+    analysisId,
+    expectedReplyRevision: String(expectedReplyRevision),
+  });
+  return requestJson<{ data: { voiceId: string; hasAudio: boolean } }>(
+    `/api/journal/entries/${encodeURIComponent(entryId)}/audio?${query}`,
+    { signal }
+  );
+}
+
 interface AudioRequest {
   entryId: string;
   analysisId: string;

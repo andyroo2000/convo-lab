@@ -1,33 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Play } from 'lucide-react';
-import { getJournalAudio, getJournalVoices, type JournalVoice } from './journalAudio';
+import { getJournalAudio } from './journalAudio';
+import useJournalVoice, { type JournalAudioProps } from './useJournalVoice';
 
-interface AudioProps {
-  ownerId: string;
-  entryId: string;
-  analysisId: string;
-  expectedReplyRevision?: number;
-}
-
-function selectVoice(voices: JournalVoice[], preferred: string) {
-  const selected = voices.find((voice) => voice.id === preferred);
-  return selected?.id ?? voices[0]?.id ?? '';
-}
-
-const JournalAudioPlayer = ({
+const JournalAudioSession = ({
   ownerId,
   entryId,
   analysisId,
   expectedReplyRevision = 0,
-}: AudioProps) => {
-  const voices = useQuery({
-    queryKey: ['journal-voices', ownerId],
-    queryFn: getJournalVoices,
-    staleTime: Infinity,
-  });
-  const [voice, setVoice] = useState('fishaudio:abb4362e736f40b7b5716f4fafcafa9f');
-  const voiceId = selectVoice(voices.data?.data ?? [], voice);
+}: JournalAudioProps) => {
+  const voice = useJournalVoice({ ownerId, entryId, analysisId, expectedReplyRevision });
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -48,6 +30,7 @@ const JournalAudioPlayer = ({
   }, [url]);
 
   async function prepare() {
+    if (!voice.ready) return;
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
@@ -58,10 +41,13 @@ const JournalAudioPlayer = ({
         entryId,
         analysisId,
         expectedReplyRevision,
-        voiceId,
+        voiceId: voice.voiceId,
         signal: controller.signal,
       });
-      if (!controller.signal.aborted) setUrl(URL.createObjectURL(blob));
+      if (!controller.signal.aborted) {
+        setUrl(URL.createObjectURL(blob));
+        voice.refreshAfterAudio();
+      }
     } catch {
       if (!controller.signal.aborted) setError('Audio could not be prepared. Try again.');
     } finally {
@@ -72,7 +58,7 @@ const JournalAudioPlayer = ({
   function changeVoice(value: string) {
     request.current?.abort();
     player.current?.pause();
-    setVoice(value);
+    voice.choose(value);
     setUrl('');
     setBusy(false);
     setError('');
@@ -93,7 +79,7 @@ const JournalAudioPlayer = ({
           <button
             type="button"
             aria-label="Play corrected version"
-            disabled={busy || !voiceId}
+            disabled={busy || !voice.ready}
             onClick={() => {
               prepare().catch(() => undefined);
             }}
@@ -107,11 +93,12 @@ const JournalAudioPlayer = ({
         <select
           aria-label="Narration voice"
           className="max-w-44 rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm"
-          value={voiceId}
+          value={voice.voiceId}
           onChange={(event) => changeVoice(event.target.value)}
-          disabled={!voices.data}
+          disabled={voice.loading || voice.error}
         >
-          {voices.data?.data.map((item) => (
+          {!voice.voiceId && <option value="">Select voice</option>}
+          {voice.voices.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
             </option>
@@ -123,16 +110,15 @@ const JournalAudioPlayer = ({
           {error}
         </p>
       )}
-      {voices.error && (
+      {voice.loading && (
+        <p role="status" className="text-sm text-gray-500">
+          Loading saved voice…
+        </p>
+      )}
+      {voice.error && (
         <p role="alert" className="text-sm text-rose-700">
-          Could not load voices.{' '}
-          <button
-            type="button"
-            className="underline"
-            onClick={() => {
-              voices.refetch().catch(() => undefined);
-            }}
-          >
+          Could not load your saved voice.{' '}
+          <button type="button" className="underline" onClick={voice.retry}>
             Retry
           </button>
         </p>
@@ -140,5 +126,20 @@ const JournalAudioPlayer = ({
     </div>
   );
 };
+
+const JournalAudioPlayer = ({
+  ownerId,
+  entryId,
+  analysisId,
+  expectedReplyRevision = 0,
+}: JournalAudioProps) => (
+  <JournalAudioSession
+    key={`${ownerId}:${entryId}:${analysisId}:${expectedReplyRevision}`}
+    ownerId={ownerId}
+    entryId={entryId}
+    analysisId={analysisId}
+    expectedReplyRevision={expectedReplyRevision}
+  />
+);
 
 export default JournalAudioPlayer;
