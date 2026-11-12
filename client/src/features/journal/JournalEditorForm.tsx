@@ -10,7 +10,7 @@ function saveStatus(editor: Editor): string {
 const JournalEditorForm = ({
   editor,
   processing,
-  onSubmitted,
+  onSubmitted = () => undefined,
 }: {
   editor: Editor;
   processing: boolean;
@@ -78,7 +78,9 @@ const JournalEditorForm = ({
           onClick={() => {
             editor
               .save(true)
-              .then(onSubmitted)
+              .then((success) => {
+                if (success) onSubmitted();
+              })
               .catch(() => undefined);
           }}
         >

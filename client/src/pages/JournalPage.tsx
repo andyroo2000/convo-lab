@@ -8,17 +8,11 @@ import JournalEditor from '../features/journal/JournalEditor';
 import JournalFeedback from '../features/journal/JournalFeedback';
 import useJournalArchive from '../features/journal/useJournalArchive';
 
-const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
-  const { entryId } = useParams();
-  const navigate = useNavigate();
-  const archive = useJournalArchive(ownerId);
+function useJournalListScroll(entryId?: string) {
   const listScroll = useRef(0);
   const wasReading = useRef(Boolean(entryId));
-  const { refresh } = archive;
-  useEffect(() => {
-    refresh();
-  }, [refresh, entryId]);
   useLayoutEffect(() => {
+    if (window.matchMedia('(min-width: 768px)').matches) return;
     if (entryId && !wasReading.current) {
       listScroll.current = window.scrollY;
       window.scrollTo(0, 0);
@@ -26,6 +20,17 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
     if (!entryId && wasReading.current) window.scrollTo(0, listScroll.current);
     wasReading.current = Boolean(entryId);
   }, [entryId]);
+}
+
+const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
+  const { entryId } = useParams();
+  const navigate = useNavigate();
+  const archive = useJournalArchive(ownerId);
+  const { refresh } = archive;
+  useEffect(() => {
+    refresh();
+  }, [refresh, entryId]);
+  useJournalListScroll(entryId);
   const open = (id: string) => navigate(`/app/journal/${id}`);
   const create = () => {
     const id = archive.create();

@@ -23,6 +23,7 @@ const JournalArchiveRow = ({ entry, selected, remove, onDeleted }: RowProps) => 
     setBusy(true);
     const deleted = await remove(entry);
     setBusy(false);
+    setConfirming(false);
     if (deleted) onDeleted(entry.id);
   }
   return (
@@ -40,10 +41,10 @@ const JournalArchiveRow = ({ entry, selected, remove, onDeleted }: RowProps) => 
         </Link>
         <button
           type="button"
-          aria-label={`Delete ${title}`}
+          aria-label={`${confirming ? 'Confirm delete' : 'Delete'} ${title}`}
           aria-expanded={confirming}
           disabled={busy}
-          className="mr-2 rounded-lg p-2 text-gray-400 hover:bg-rose-50 hover:text-rose-700"
+          className="mr-2 rounded-lg focus-visible:ring-2 focus-visible:ring-indigo p-2 text-gray-400 hover:bg-rose-50 hover:text-rose-700"
           onClick={() => {
             deleteEntry().catch(() => setBusy(false));
           }}

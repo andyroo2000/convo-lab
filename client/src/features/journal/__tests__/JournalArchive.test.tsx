@@ -72,7 +72,7 @@ it('requires confirmation and preserves the row when deletion fails', async () =
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(screen.queryByText('Delete this entry?')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Delete Movie night' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Delete Movie night' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm delete Movie night' }));
   await waitFor(() => expect(remove).toHaveBeenCalledWith(entry));
   expect(onDeleted).not.toHaveBeenCalled();
 });
