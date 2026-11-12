@@ -45,6 +45,11 @@ export interface JournalReply {
 }
 
 export interface JournalAnalysis {
+  correctedDocument?: {
+    text: string;
+    reading: string;
+    suggestions: { id: string; applied: boolean }[];
+  } | null;
   replyRevision?: number;
   currentReply?: JournalReply | null;
   pendingReplyId?: string | null;
