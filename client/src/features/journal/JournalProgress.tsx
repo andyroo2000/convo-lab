@@ -14,10 +14,9 @@ const JournalProgress = ({
     return () => window.clearInterval(timer);
   }, []);
   const parsed = Date.parse(startedAt ?? '');
-  const elapsed = Math.max(
-    0,
-    Math.floor((now - (Number.isFinite(parsed) ? parsed : openedAt)) / 1000)
-  );
+  // Fall back to time on this screen when the server timestamp is missing or clocks disagree.
+  const start = parsed <= openedAt && openedAt - parsed < 120_000 ? parsed : openedAt;
+  const elapsed = Math.max(0, Math.floor((now - start) / 1000));
   const queued = status === 'queued';
   // This is an estimate of waiting time, not a percentage reported by the model.
   const width = queued ? 8 : Math.min(94, 15 + 79 * (1 - Math.exp(-elapsed / 35)));
@@ -30,7 +29,6 @@ const JournalProgress = ({
     <section
       className="rounded-2xl border border-indigo/15 bg-indigo/5 p-5"
       aria-label="Feedback progress"
-      aria-busy="true"
     >
       <div className="mb-3 flex items-center justify-between gap-4">
         <p role="status" className="font-medium text-navy">
@@ -40,13 +38,11 @@ const JournalProgress = ({
           {elapsed}s
         </span>
       </div>
-      <div
-        role="progressbar"
-        aria-label="Preparing journal feedback"
-        aria-valuetext={queued ? 'Queued' : 'Reviewing; time estimate only'}
-        className="h-2.5 overflow-hidden rounded-full bg-indigo/10"
-      >
+      <div className="h-2.5 overflow-hidden rounded-full bg-indigo/10">
         <div
+          role="progressbar"
+          aria-label="Preparing journal feedback"
+          aria-valuetext={queued ? 'Queued' : 'Reviewing; time estimate only'}
           className="h-full rounded-full bg-gradient-to-r from-indigo via-violet-500 to-sky-400 transition-[width] duration-1000 motion-safe:animate-pulse motion-reduce:transition-none"
           style={{ width: `${width}%` }}
         />

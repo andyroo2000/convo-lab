@@ -47,7 +47,7 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
     if (!local) {
       getJournalEntry({ id: entryId, signal: controller.signal })
         .then((entry) => {
-          if (scope.current !== epoch || entry.version < acceptedVersion.current) return;
+          if (scope.current !== epoch || entry.version <= acceptedVersion.current) return;
           acceptedVersion.current = entry.version;
           setDraft(draftFromEntry(entry));
         })
