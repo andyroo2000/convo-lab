@@ -86,13 +86,15 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
   async function submitSaved(entry: JournalEntry, epoch: number) {
     try {
       const data = await submitJournalEntry(entry);
-      if (scope.current !== epoch) return;
+      if (scope.current !== epoch) return false;
       setSubmission({ data, entry });
       setSubmitted((value) => value + 1);
+      return true;
     } catch {
       if (scope.current === epoch)
         setError('Saved, but feedback could not be requested. Try Submit again.');
     }
+    return false;
   }
 
   function acknowledgeStorage(sent: JournalDraft, entry: JournalEntry) {
@@ -113,7 +115,7 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
   }
 
   async function save(submit = false) {
-    if (!draft || busy) return;
+    if (!draft || busy) return false;
     const epoch = scope.current;
     const sent = draft;
     setBusy(true);
@@ -121,16 +123,17 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
     try {
       const entry = await saveJournalDraft(sent);
       const storageError = acknowledgeStorage(sent, entry);
-      if (scope.current !== epoch) return;
+      if (scope.current !== epoch) return false;
       acceptSave(entry);
       setError(storageError);
-      if (submit) await submitSaved(entry, epoch);
+      return submit ? await submitSaved(entry, epoch) : true;
     } catch (reason) {
-      if (scope.current !== epoch) return;
+      if (scope.current !== epoch) return false;
       reportSaveError(reason);
     } finally {
       if (scope.current === epoch) setBusy(false);
     }
+    return false;
   }
 
   function copyAsNew(): JournalDraft | null {

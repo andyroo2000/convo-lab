@@ -96,7 +96,7 @@ it('ignores a save completing after switching accounts', async () => {
       initialProps: { ownerId: 'a', entryId: draft.id },
     }
   );
-  let pending: Promise<void>;
+  let pending: Promise<unknown>;
   act(() => {
     pending = result.current.save(true);
   });
@@ -135,4 +135,16 @@ it('reports a submit failure separately after the writing was saved', async () =
   );
   expect(result.current.conflict).toBe(false);
   expect(store.get(draft.id)).toBeNull();
+});
+
+it('reports unsuccessful submission so the edit form can remain open', async () => {
+  const { result, entry } = setup();
+  vi.mocked(saveJournalDraft).mockResolvedValue(entry);
+  vi.mocked(submitJournalEntry).mockRejectedValue(new Error('Offline'));
+  let saved: unknown;
+  await act(async () => {
+    saved = await result.current.save(true);
+  });
+  expect(saved).not.toBe(true);
+  expect(result.current.error).toContain('feedback could not be requested');
 });

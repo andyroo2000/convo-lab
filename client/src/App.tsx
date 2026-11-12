@@ -40,6 +40,7 @@ const JapaneseVerbConjugationToolPage = lazy(
 );
 const PlaybackPage = lazy(() => import('./pages/PlaybackPage'));
 const PracticePage = lazy(() => import('./pages/PracticePage'));
+const JournalPage = lazy(() => import('./pages/JournalPage'));
 const ReadingsPage = lazy(() => import('./pages/ReadingsPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -295,6 +296,8 @@ const renderStudyRoutes = () => (
 const renderProtectedRoutes = () => (
   <Route path="/app" element={<Layout />}>
     <Route index element={<Navigate to="/app/study" replace />} />
+    <Route path="journal" element={<JournalPage />} />
+    <Route path="journal/:entryId" element={<JournalPage />} />
     <Route path="readings" element={<ReadingsPage />} />
     <Route path="readings/:readingId" element={<ReadingsPage />} />
     <Route path="settings" element={<SettingsPage />} />
