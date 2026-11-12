@@ -13,9 +13,16 @@ interface AudioRequest {
   analysisId: string;
   voiceId: string;
   signal: AbortSignal;
+  expectedReplyRevision?: number;
 }
 
-export async function getJournalAudio({ entryId, analysisId, voiceId, signal }: AudioRequest) {
+export async function getJournalAudio({
+  entryId,
+  analysisId,
+  voiceId,
+  signal,
+  expectedReplyRevision = 0,
+}: AudioRequest) {
   const response = await fetchWithCsrf(
     `/api/journal/entries/${encodeURIComponent(entryId)}/audio`,
     {
@@ -23,7 +30,7 @@ export async function getJournalAudio({ entryId, analysisId, voiceId, signal }: 
       credentials: 'include',
       signal,
       headers: { Accept: 'audio/mpeg', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ analysisId, voiceId }),
+      body: JSON.stringify({ analysisId, voiceId, expectedReplyRevision }),
     }
   );
   notifyAuthSessionExpired(response);

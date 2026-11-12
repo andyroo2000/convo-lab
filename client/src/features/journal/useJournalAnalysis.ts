@@ -12,6 +12,12 @@ interface AnalysisOptions {
   onEntry: (entry: JournalEntry) => void;
 }
 
+function shouldPoll(analysis: JournalAnalysis | null | undefined) {
+  return (
+    analysis?.pendingReplyId || analysis?.status === 'queued' || analysis?.status === 'processing'
+  );
+}
+
 export default function useJournalAnalysis(options: AnalysisOptions) {
   const { ownerId, entryId, enabled, submitted, onEntry } = options;
   const onEntryRef = useRef(onEntry);
@@ -24,10 +30,7 @@ export default function useJournalAnalysis(options: AnalysisOptions) {
     enabled,
     initialData: options.submission,
     retry: false,
-    refetchInterval: (state) => {
-      const status = state.state.data?.data?.status;
-      return status === 'queued' || status === 'processing' ? 2000 : false;
-    },
+    refetchInterval: (state) => (shouldPoll(state.state.data?.data) ? 2000 : false),
   });
   useEffect(() => {
     if (query.data?.entry) onEntryRef.current(query.data.entry);
