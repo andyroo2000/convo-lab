@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import useJournalEditor from './useJournalEditor';
 import useJournalAnalysis from './useJournalAnalysis';
 import JournalEditorForm from './JournalEditorForm';
+import { EditorMessages, FeedbackStatus } from './JournalEditorMessages';
 import type { JournalAnalysis, JournalEntry } from './types';
 
 interface JournalEditorProps {
@@ -13,65 +14,6 @@ interface JournalEditorProps {
 }
 
 type Editor = ReturnType<typeof useJournalEditor>;
-
-const EditorMessages = ({ editor, onOpen }: { editor: Editor; onOpen: (id: string) => void }) => (
-  <>
-    {editor.error && (
-      <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">
-        {editor.error}
-      </p>
-    )}
-    {editor.conflict && (
-      <div className="space-y-2 text-sm">
-        <p>This entry changed on another device. Your writing is still here.</p>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => {
-            const copy = editor.copyAsNew();
-            if (copy) onOpen(copy.id);
-          }}
-        >
-          Save my writing as a new entry
-        </button>
-      </div>
-    )}
-    {!editor.draft && !editor.error && <p role="status">Loading entry…</p>}
-  </>
-);
-
-const FeedbackStatus = ({
-  analysis,
-  retry,
-  current,
-}: {
-  current: JournalAnalysis | null | undefined;
-  analysis: ReturnType<typeof useJournalAnalysis>;
-  retry: () => void;
-}) => {
-  if (analysis.error)
-    return (
-      <p role="alert" className="text-sm text-rose-700">
-        Could not load feedback.{' '}
-        <button type="button" className="underline" onClick={retry}>
-          Retry
-        </button>
-      </p>
-    );
-  if (current?.status === 'failed')
-    return (
-      <p role="alert" className="text-sm text-rose-700">
-        {current.error} Submit again to retry.
-      </p>
-    );
-  if (current?.status === 'queued' || current?.status === 'processing')
-    return (
-      <p role="status" className="text-sm text-gray-600">
-        Preparing feedback…
-      </p>
-    );
-  return null;
-};
 
 function currentFeedback(editor: Editor, analysis: ReturnType<typeof useJournalAnalysis>) {
   if (analysis.data?.entry.body !== editor.draft?.body) return null;

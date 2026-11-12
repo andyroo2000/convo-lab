@@ -21,10 +21,12 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
   const [submitted, setSubmitted] = useState(0);
   const [submission, setSubmission] = useState<{ data: JournalAnalysis; entry: JournalEntry }>();
   const scope = useRef(0);
+  const acceptedVersion = useRef(0);
 
   useEffect(() => {
     scope.current += 1;
     const epoch = scope.current;
+    acceptedVersion.current = 0;
     const controller = new AbortController();
     setDraft(null);
     setError('');
@@ -103,6 +105,7 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
   }
 
   function acceptSave(entry: JournalEntry) {
+    acceptedVersion.current = entry.version;
     setDraft(draftFromEntry(entry));
     setLocallySaved(false);
     setConflict(false);
@@ -148,6 +151,8 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
   }
 
   function acceptGeneratedEntry(entry: JournalEntry) {
+    if (entry.version <= acceptedVersion.current) return;
+    acceptedVersion.current = entry.version;
     setDraft((current) => {
       if (!current) return current;
       if (current.body !== entry.body) return current;
