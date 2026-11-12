@@ -68,13 +68,20 @@ export default function useJournalArchive(ownerId: string) {
   async function remove(entry: Pick<JournalEntry, 'id' | 'version'>) {
     try {
       if (entry.version > 0) await deleteJournalEntry(entry);
+    } catch {
+      setError('Could not delete this entry online. Refresh and try again.');
+      return false;
+    }
+    try {
       const local = store.get(entry.id);
       if (local) store.discard(local);
       saved();
       setError('');
       return true;
     } catch {
-      setError('Could not delete this entry. Refresh and try again.');
+      setError(
+        'The device copy could not be removed. Any online deletion succeeded; retry to clear this copy.'
+      );
       return false;
     }
   }
