@@ -43,7 +43,9 @@ const EditorMessages = ({ editor, onOpen }: { editor: Editor; onOpen: (id: strin
 const FeedbackStatus = ({
   analysis,
   retry,
+  current,
 }: {
+  current: JournalAnalysis | null | undefined;
   analysis: ReturnType<typeof useJournalAnalysis>;
   retry: () => void;
 }) => {
@@ -56,7 +58,6 @@ const FeedbackStatus = ({
         </button>
       </p>
     );
-  const current = analysis.data?.data;
   if (current?.status === 'failed')
     return (
       <p role="alert" className="text-sm text-rose-700">
@@ -93,6 +94,7 @@ const JournalEditor = ({
     ownerId,
     entryId,
     submitted: editor.submitted,
+    submission: editor.submission,
     enabled: Boolean(editor.draft?.expectedVersion),
     onEntry: editor.acceptGeneratedEntry,
   });
@@ -105,6 +107,7 @@ const JournalEditor = ({
       <JournalEditorForm editor={editor} processing={processing} />
       <FeedbackStatus
         analysis={analysis}
+        current={current}
         retry={() => {
           analysis.refetch().catch(() => undefined);
         }}

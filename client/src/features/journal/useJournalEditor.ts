@@ -3,7 +3,7 @@ import { ulid } from 'ulid';
 import { JsonRequestError } from '../../lib/apiClient';
 import { getJournalEntry, saveJournalDraft, submitJournalEntry } from './journalApi';
 import { draftFromEntry, JournalDraftStore, newJournalDraft } from './journalDrafts';
-import type { JournalDraft, JournalEntry } from './types';
+import type { JournalAnalysis, JournalDraft, JournalEntry } from './types';
 
 interface EditorOptions {
   ownerId: string;
@@ -19,6 +19,7 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
   const [conflict, setConflict] = useState(false);
   const [locallySaved, setLocallySaved] = useState(false);
   const [submitted, setSubmitted] = useState(0);
+  const [submission, setSubmission] = useState<{ data: JournalAnalysis; entry: JournalEntry }>();
   const scope = useRef(0);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
     setConflict(false);
     setLocallySaved(false);
     setBusy(false);
+    setSubmission(undefined);
     let local: JournalDraft | null = null;
     try {
       local = store.get(entryId);
@@ -80,16 +82,27 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
   }
 
   async function submitSaved(entry: JournalEntry, epoch: number) {
-    await submitJournalEntry(entry);
-    if (scope.current === epoch) setSubmitted((value) => value + 1);
+    try {
+      const data = await submitJournalEntry(entry);
+      if (scope.current !== epoch) return;
+      setSubmission({ data, entry });
+      setSubmitted((value) => value + 1);
+    } catch {
+      if (scope.current === epoch)
+        setError('Saved, but feedback could not be requested. Try Submit again.');
+    }
   }
 
-  function acknowledge(sent: JournalDraft, entry: JournalEntry) {
+  function acknowledgeStorage(sent: JournalDraft, entry: JournalEntry) {
     try {
       store.acknowledge(sent, entry);
     } catch {
-      setError('Saved online, but device storage could not be updated.');
+      return 'Saved online, but device storage could not be updated.';
     }
+    return '';
+  }
+
+  function acceptSave(entry: JournalEntry) {
     setDraft(draftFromEntry(entry));
     setLocallySaved(false);
     setConflict(false);
@@ -104,8 +117,10 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
     setError('');
     try {
       const entry = await saveJournalDraft(sent);
+      const storageError = acknowledgeStorage(sent, entry);
       if (scope.current !== epoch) return;
-      acknowledge(sent, entry);
+      acceptSave(entry);
+      setError(storageError);
       if (submit) await submitSaved(entry, epoch);
     } catch (reason) {
       if (scope.current !== epoch) return;
@@ -153,6 +168,7 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
     conflict,
     locallySaved,
     submitted,
+    submission,
     change,
     save,
     copyAsNew,

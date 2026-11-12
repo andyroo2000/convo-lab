@@ -108,6 +108,7 @@ it('ignores a save completing after switching accounts', async () => {
   expect(result.current.draft?.id).toBe(other.id);
   expect(submitJournalEntry).not.toHaveBeenCalled();
   expect(onSaved).not.toHaveBeenCalled();
+  expect(new JournalDraftStore('a').get(draft.id)).toBeNull();
 });
 
 it('loads saved entries when no local draft exists', async () => {
@@ -122,4 +123,16 @@ it('loads saved entries when no local draft exists', async () => {
     useJournalEditor({ ownerId: 'a', entryId: draft.id, onSaved: vi.fn() })
   );
   await waitFor(() => expect(result.current.draft?.expectedVersion).toBe(3));
+});
+
+it('reports a submit failure separately after the writing was saved', async () => {
+  const { result, entry, store, draft } = setup();
+  vi.mocked(saveJournalDraft).mockResolvedValue(entry);
+  vi.mocked(submitJournalEntry).mockRejectedValue(new Error('Unavailable'));
+  await act(() => result.current.save(true));
+  expect(result.current.error).toBe(
+    'Saved, but feedback could not be requested. Try Submit again.'
+  );
+  expect(result.current.conflict).toBe(false);
+  expect(store.get(draft.id)).toBeNull();
 });

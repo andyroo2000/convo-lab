@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { getJournalAnalysis } from './journalApi';
-import type { JournalEntry } from './types';
+import type { JournalAnalysis, JournalEntry } from './types';
 
 interface AnalysisOptions {
   ownerId: string;
   entryId: string;
   enabled: boolean;
   submitted: number;
+  submission?: { data: JournalAnalysis; entry: JournalEntry };
   onEntry: (entry: JournalEntry) => void;
 }
 
@@ -21,6 +22,7 @@ export default function useJournalAnalysis(options: AnalysisOptions) {
     queryKey: ['journal-analysis', ownerId, entryId, submitted],
     queryFn: ({ signal }) => getJournalAnalysis({ id: entryId, signal }),
     enabled,
+    initialData: options.submission,
     retry: false,
     refetchInterval: (state) => {
       const status = state.state.data?.data?.status;
