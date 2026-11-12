@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import JournalAudioPlayer from './JournalAudioPlayer';
 import JournalHighlight from './JournalHighlight';
+import JournalFollowUp from './JournalFollowUp';
 import JournalRuby from './JournalRuby';
 import type { JournalAnalysis, JournalSegment } from './types';
 
@@ -23,10 +24,12 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const feedback = analysis.result;
+  const addition = analysis.currentReply?.result;
   if (!feedback) return null;
+  const correctedText = addition?.entryText ?? feedback.correctedText;
   async function copy() {
     try {
-      await navigator.clipboard.writeText(feedback!.correctedText);
+      await navigator.clipboard.writeText(correctedText);
       setCopied(true);
       setCopyError(false);
     } catch {
@@ -74,13 +77,24 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
           </button>
         </div>
         <JournalAudioPlayer
-          key={`${analysis.id}:${analysis.updatedAt}`}
+          key={`${analysis.id}:${analysis.updatedAt}:${analysis.replyRevision}`}
           ownerId={ownerId}
           entryId={entryId}
           analysisId={analysis.id}
+          expectedReplyRevision={analysis.replyRevision ?? 0}
         />
         <p lang="ja" className="whitespace-pre-wrap text-xl leading-loose text-navy">
-          <JournalRuby text={feedback.correctedReading} />
+          {addition ? (
+            <>
+              <JournalRuby text={addition.previousReading} />
+              {'\n\n'}
+              <mark className="rounded bg-indigo/10 text-inherit">
+                <JournalRuby text={addition.correctedReading} />
+              </mark>
+            </>
+          ) : (
+            <JournalRuby text={feedback.correctedReading} />
+          )}
         </p>
         {copyError && (
           <p role="alert" className="text-sm text-rose-700">
@@ -88,6 +102,7 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
           </p>
         )}
       </section>
+      <JournalFollowUp key={analysis.id} ownerId={ownerId} entryId={entryId} analysis={analysis} />
     </div>
   );
 };

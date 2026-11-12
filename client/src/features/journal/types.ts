@@ -33,7 +33,21 @@ export interface JournalFeedback {
   segments: JournalSegment[];
 }
 
+export interface JournalReply {
+  id: string;
+  parentId: string | null;
+  answer: string;
+  status: JournalAnalysis['status'];
+  result:
+    | (JournalFeedback & { entryText: string; entryReading: string; previousReading: string })
+    | null;
+  error: string | null;
+}
+
 export interface JournalAnalysis {
+  replyRevision?: number;
+  currentReply?: JournalReply | null;
+  pendingReplyId?: string | null;
   id: string;
   sourceVersion: number;
   status: 'queued' | 'processing' | 'ready' | 'failed';

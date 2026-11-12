@@ -7,6 +7,7 @@ interface AudioProps {
   ownerId: string;
   entryId: string;
   analysisId: string;
+  expectedReplyRevision?: number;
 }
 
 function selectVoice(voices: JournalVoice[], preferred: string) {
@@ -14,7 +15,12 @@ function selectVoice(voices: JournalVoice[], preferred: string) {
   return selected?.id ?? voices[0]?.id ?? '';
 }
 
-const JournalAudioPlayer = ({ ownerId, entryId, analysisId }: AudioProps) => {
+const JournalAudioPlayer = ({
+  ownerId,
+  entryId,
+  analysisId,
+  expectedReplyRevision = 0,
+}: AudioProps) => {
   const voices = useQuery({
     queryKey: ['journal-voices', ownerId],
     queryFn: getJournalVoices,
@@ -51,6 +57,7 @@ const JournalAudioPlayer = ({ ownerId, entryId, analysisId }: AudioProps) => {
       const blob = await getJournalAudio({
         entryId,
         analysisId,
+        expectedReplyRevision,
         voiceId,
         signal: controller.signal,
       });
