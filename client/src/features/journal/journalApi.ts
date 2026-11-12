@@ -10,7 +10,12 @@ export function listJournalEntries(cursor?: string, signal?: AbortSignal) {
   return requestJson<JournalPage>(`${base}?${query}`, { signal });
 }
 
-export async function getJournalEntry(id: string, signal?: AbortSignal) {
+interface EntryRequest {
+  id: string;
+  signal?: AbortSignal;
+}
+
+export async function getJournalEntry({ id, signal }: EntryRequest) {
   const response = await requestJson<{ data: JournalEntry }>(entryPath(id), { signal });
   return response.data;
 }
@@ -25,14 +30,16 @@ export async function saveJournalDraft(draft: JournalDraft, signal?: AbortSignal
   return response.data;
 }
 
-export function deleteJournalEntry(id: string, expectedVersion: number) {
+export function deleteJournalEntry({ id, version }: Pick<JournalEntry, 'id' | 'version'>) {
+  const expectedVersion = version;
   return requestJson<void>(entryPath(id), {
     method: 'DELETE',
     body: JSON.stringify({ expectedVersion }),
   });
 }
 
-export async function submitJournalEntry(id: string, expectedVersion: number) {
+export async function submitJournalEntry({ id, version }: Pick<JournalEntry, 'id' | 'version'>) {
+  const expectedVersion = version;
   const response = await requestJson<{ data: JournalAnalysis }>(`${entryPath(id)}/submit`, {
     method: 'POST',
     body: JSON.stringify({ expectedVersion }),
@@ -40,7 +47,7 @@ export async function submitJournalEntry(id: string, expectedVersion: number) {
   return response.data;
 }
 
-export function getJournalAnalysis(id: string, signal?: AbortSignal) {
+export function getJournalAnalysis({ id, signal }: EntryRequest) {
   return requestJson<{ data: JournalAnalysis | null; entry: JournalEntry }>(
     `${entryPath(id)}/analysis`,
     { signal }

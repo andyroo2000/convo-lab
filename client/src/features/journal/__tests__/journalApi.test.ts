@@ -43,18 +43,18 @@ it('encodes archive cursors and supports aborting navigation requests', async ()
   expect(requestJson).toHaveBeenCalledWith('/api/journal/entries?limit=30&cursor=a%2Bb%2F%3D', {
     signal,
   });
-  await getJournalAnalysis('entry', signal);
+  await getJournalAnalysis({ id: 'entry', signal });
   expect(requestJson).toHaveBeenLastCalledWith('/api/journal/entries/entry/analysis', { signal });
 });
 
 it('includes optimistic versions when submitting or deleting', async () => {
   vi.mocked(requestJson).mockResolvedValue({ data: { status: 'queued' } });
-  expect(await submitJournalEntry('entry', 3)).toEqual({ status: 'queued' });
+  expect(await submitJournalEntry({ id: 'entry', version: 3 })).toEqual({ status: 'queued' });
   expect(requestJson).toHaveBeenLastCalledWith('/api/journal/entries/entry/submit', {
     method: 'POST',
     body: '{"expectedVersion":3}',
   });
-  await deleteJournalEntry('entry', 4);
+  await deleteJournalEntry({ id: 'entry', version: 4 });
   expect(requestJson).toHaveBeenLastCalledWith('/api/journal/entries/entry', {
     method: 'DELETE',
     body: '{"expectedVersion":4}',
