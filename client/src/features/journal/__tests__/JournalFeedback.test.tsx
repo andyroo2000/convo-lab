@@ -43,6 +43,8 @@ it('hides only readings whose entire kanji word is known', () => {
 });
 
 it('preserves Japanese and English as text rather than interpreting markup', () => {
-  render(<JournalRuby text="<script>日本[にほん]</script>" />);
-  expect(screen.getByText(/<script>/)).toBeInTheDocument();
+  const { container } = render(<JournalRuby text="<script>日本[にほん]</script>" />);
+  expect(container.textContent).toBe('<script>日本にほん</script>');
+  expect(container.innerHTML).not.toContain('<script>');
+  expect(screen.getByText('にほん').tagName).toBe('RT');
 });
