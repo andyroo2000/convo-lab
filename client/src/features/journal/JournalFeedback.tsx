@@ -52,7 +52,7 @@ const JournalFeedback = ({ ownerId, entryId, analysis }: FeedbackProps) => {
       <section aria-label="Corrected Version" className="space-y-4 border-t border-gray-200 pt-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-navy">Corrected Version</h2>
-          <JournalCopyButton text={correctedText} />
+          <JournalCopyButton key={correctedText} text={correctedText} />
         </div>
         <JournalAudioPlayer
           key={`${analysis.id}:${analysis.updatedAt}:${analysis.replyRevision}`}

@@ -90,7 +90,7 @@ const JournalAudioSession = ({
             <span className="h-1 flex-1 rounded bg-gray-200" />
           </button>
         )}
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-navy">
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-navy focus-within:ring-2 focus-within:ring-indigo has-[:disabled]:opacity-50">
           <Speech size={20} aria-hidden="true" />
           <select
             aria-label="Narration voice"

@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
 const JournalCopyButton = ({ text }: { text: string }) => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(false);
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
   async function copy() {
     try {
       await navigator.clipboard.writeText(text);
@@ -16,7 +21,7 @@ const JournalCopyButton = ({ text }: { text: string }) => {
   const label = copied ? 'Copied' : 'Copy corrected version';
   const Icon = copied ? Check : Copy;
   return (
-    <div>
+    <div className="relative">
       <button
         type="button"
         aria-label={label}
@@ -28,8 +33,14 @@ const JournalCopyButton = ({ text }: { text: string }) => {
       >
         <Icon size={18} aria-hidden="true" />
       </button>
+      <span role="status" className="sr-only">
+        {copied ? 'Copied' : ''}
+      </span>
       {error && (
-        <p role="alert" className="text-sm text-rose-700">
+        <p
+          role="alert"
+          className="absolute right-0 top-full z-10 w-64 rounded-lg border border-rose-100 bg-white p-3 text-sm text-rose-700 shadow-sm"
+        >
           Could not copy. Select the corrected text to copy it.
         </p>
       )}
