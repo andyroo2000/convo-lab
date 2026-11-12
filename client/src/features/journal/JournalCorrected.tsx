@@ -70,7 +70,7 @@ const JournalCorrected = ({ ownerId, entryId, analysis, controls }: Props) => {
             value={draft.text}
             maxLength={30000}
             rows={8}
-            disabled={controls.busy}
+            readOnly={controls.busy}
             className="w-full rounded-xl border border-gray-300 bg-white p-4 text-xl leading-loose text-navy focus:border-indigo focus:outline-none"
             onChange={(event) => setDraft({ ...draft, text: event.target.value })}
           />

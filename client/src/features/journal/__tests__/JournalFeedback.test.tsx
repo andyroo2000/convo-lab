@@ -92,3 +92,38 @@ it('applies optional changes only on request and lets corrections be rejected', 
   fireEvent.click(screen.getByRole('button', { name: 'Reject correction' }));
   await waitFor(() => expect(toggle).toHaveBeenCalledTimes(2));
 });
+
+it('moves keyboard focus into the action and restores it on Escape without reopening', async () => {
+  render(
+    <JournalHighlight
+      segment={segment}
+      action={{ applied: true, disabled: false, toggle: vi.fn() }}
+    />
+  );
+  const anchor = screen.getByRole('button');
+  anchor.focus();
+  fireEvent.click(anchor, { detail: 0 });
+  const action = screen.getByRole('button', { name: 'Reject correction' });
+  await waitFor(() => expect(action).toHaveFocus());
+  fireEvent.keyDown(action, { key: 'Escape' });
+  expect(anchor).toHaveFocus();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+it('keeps a failed change open and displays the error next to its action', async () => {
+  render(
+    <JournalHighlight
+      segment={segment}
+      action={{
+        applied: true,
+        disabled: false,
+        error: 'Please try again.',
+        toggle: vi.fn().mockResolvedValue(false),
+      }}
+    />
+  );
+  fireEvent.click(screen.getByRole('button'));
+  fireEvent.click(screen.getByRole('button', { name: 'Reject correction' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Please try again.');
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+});

@@ -35,8 +35,10 @@ export default function useJournalDocument({ ownerId, entryId, analysis }: Optio
       await refresh().catch(() => undefined);
       let message = 'Could not save this change. Your writing is still here; please try again.';
       if (failure instanceof JsonRequestError && failure.status === 409) {
-        message =
-          'The entry changed and has been refreshed. Your edits are still here; copy them before closing the editor, then reopen it to review the latest version.';
+        message = 'The entry changed and has been refreshed. Review the suggestion and try again.';
+        if ('text' in input)
+          message =
+            'The entry changed and has been refreshed. Your edits are still here; copy them before closing the editor, then reopen it to review the latest version.';
       }
       setError(message);
       return false;

@@ -1,6 +1,6 @@
-import { useId, useRef } from 'react';
+import { useId } from 'react';
 import { createPortal } from 'react-dom';
-import useJournalPopover from './useJournalPopover';
+import useJournalActionPopover from './useJournalActionPopover';
 import JournalRuby from './JournalRuby';
 import type { JournalSegment } from './types';
 
@@ -24,17 +24,28 @@ function actionLabel(kind: JournalSegment['kind'], applied: boolean) {
 
 interface HighlightProps {
   segment: JournalSegment;
-  action?: { applied: boolean; disabled: boolean; toggle: () => Promise<boolean> };
+  action?: { applied: boolean; disabled: boolean; error?: string; toggle: () => Promise<boolean> };
 }
 const JournalNote = ({ segment, action, close }: HighlightProps & { close: () => void }) => (
   <>
     <p className="text-sm leading-relaxed text-gray-600">
       <JournalRuby text={segment.explanationReading ?? segment.explanation ?? ''} />
     </p>
+    {action?.error && (
+      <p role="alert" className="mt-2 text-sm text-rose-700">
+        {action.error}
+      </p>
+    )}
     {action ? (
       <button
         type="button"
         disabled={action.disabled}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            close();
+          }
+        }}
         className="mt-3 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-indigo hover:bg-indigo/5 disabled:opacity-40"
         onClick={() => {
           action
@@ -56,9 +67,8 @@ const JournalNote = ({ segment, action, close }: HighlightProps & { close: () =>
 );
 
 const JournalHighlight = ({ segment, action }: HighlightProps) => {
-  const { anchor, popup, open, position, show, hide, close } = useJournalPopover();
+  const { anchor, popup, open, position, show, hide, dismiss, trigger } = useJournalActionPopover();
   const id = useId();
-  const closeOnClick = useRef(false);
 
   if (segment.kind === 'plain' || segment.kind === 'keep')
     return <JournalRuby text={segment.reading} />;
@@ -79,15 +89,7 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
         onPointerLeave={(event) => {
           if (event.pointerType === 'mouse') hide();
         }}
-        onFocus={show}
-        onPointerDown={() => {
-          closeOnClick.current = open;
-        }}
-        onClick={() => {
-          if (closeOnClick.current) close();
-          else show();
-          closeOnClick.current = false;
-        }}
+        {...trigger}
       >
         <JournalRuby text={segment.reading} />
       </button>
@@ -105,7 +107,7 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
               if (event.pointerType === 'mouse') hide();
             }}
           >
-            <JournalNote segment={segment} action={action} close={close} />
+            <JournalNote segment={segment} action={action} close={dismiss} />
           </div>,
           document.body
         )}
