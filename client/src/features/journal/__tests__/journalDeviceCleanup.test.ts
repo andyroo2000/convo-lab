@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
+import { JournalDraftStore, newJournalDraft } from '../journalDrafts';
 import {
   removeDeletedAccountJournal,
   removeJournalDeviceData,
@@ -36,5 +37,23 @@ it('retains a cleanup marker after failure and retries it on a later session', (
   failure.mockRestore();
   expect(localStorage.getItem('convolab:journal-account-deletion:1')).toBe('pending');
   retryJournalDeviceCleanup();
+  expect(localStorage.length).toBe(0);
+});
+
+it('removes drafts written through the real draft store', () => {
+  const store = new JournalDraftStore('owner with spaces');
+  const draft = newJournalDraft();
+  store.put(draft);
+  removeJournalDeviceData('owner with spaces', draft.id);
+  expect(store.get(draft.id)).toBeNull();
+});
+
+it('still removes private writing when quota prevents adding a cleanup marker', () => {
+  localStorage.setItem('convolab:journal:v1:1:entry', 'private draft');
+  const quota = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+    throw new DOMException('Full', 'QuotaExceededError');
+  });
+  removeDeletedAccountJournal('1');
+  quota.mockRestore();
   expect(localStorage.length).toBe(0);
 });

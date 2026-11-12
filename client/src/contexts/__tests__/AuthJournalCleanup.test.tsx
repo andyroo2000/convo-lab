@@ -34,13 +34,27 @@ it.each([true, false])(
     const key = 'convolab:journal:v1:1:entry';
     localStorage.setItem(key, 'private writing');
     await act(async () => {
-      try {
-        await result.current.deleteAccount('password');
-      } catch {
-        expect(confirmed).toBe(false);
-      }
+      const deletion = result.current.deleteAccount('password');
+      if (confirmed) await expect(deletion).resolves.toBeUndefined();
+      else await expect(deletion).rejects.toThrow('Rejected');
     });
     expect(localStorage.getItem(key)).toBe(confirmed ? null : 'private writing');
     expect(result.current.user).toEqual(confirmed ? null : user);
   }
 );
+
+it('retries journal cleanup when the session provider mounts', async () => {
+  localStorage.setItem('convolab:journal-account-deletion:1', 'pending');
+  localStorage.setItem('convolab:journal-answer:1:entry:analysis', 'private answer');
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+  const client = new QueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
+  );
+  const { result } = renderHook(useAuth, { wrapper });
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(localStorage.getItem('convolab:journal-answer:1:entry:analysis')).toBeNull();
+  expect(localStorage.getItem('convolab:journal-account-deletion:1')).toBeNull();
+});

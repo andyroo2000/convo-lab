@@ -18,7 +18,12 @@ export function removeJournalDeviceData(ownerId: string, entryId?: string, stora
 
 export function removeDeletedAccountJournal(ownerId: string, storage = localStorage) {
   const marker = `${pendingPrefix}${ownerId}`;
-  storage.setItem(marker, 'pending');
+  try {
+    storage.setItem(marker, 'pending');
+  } catch {
+    // A full store may reject new keys while still allowing private data removal.
+    console.warn('Could not persist the journal cleanup marker; attempting cleanup now.');
+  }
   removeJournalDeviceData(ownerId, undefined, storage);
   storage.removeItem(marker);
 }

@@ -199,6 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const deleteAccount = async (currentPassword: string) => {
+    const ownerId = user ? String(user.id) : null;
     const response = await fetchWithCsrf(accountApi.currentUser, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -212,7 +213,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      if (user) removeDeletedAccountJournal(String(user.id));
+      if (ownerId) removeDeletedAccountJournal(ownerId);
+    } catch {
+      console.warn('Account deleted; journal device cleanup will retry when storage is available.');
     } finally {
       await clearLocalSession();
     }
