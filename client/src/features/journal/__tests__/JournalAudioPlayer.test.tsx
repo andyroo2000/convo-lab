@@ -1,5 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  focusManager,
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import JournalAudioPlayer from '../JournalAudioPlayer';
 import { getJournalAudio, getJournalVoices, getJournalAudioState } from '../journalAudio';
@@ -28,6 +33,8 @@ beforeEach(() => {
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
 });
 afterEach(() => {
+  focusManager.setFocused(undefined);
+  onlineManager.setOnline(true);
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -125,7 +132,7 @@ it('uses the server default for an entry without generated audio', async () => {
   expect(getJournalAudio).not.toHaveBeenCalled();
 });
 
-it('keeps loaded audio usable without a preference refetch after playback', async () => {
+it('keeps loaded audio usable after playback, tab focus, and reconnect', async () => {
   vi.mocked(getJournalAudioState)
     .mockResolvedValueOnce({ data: { voiceId: haru, hasAudio: false } })
     .mockRejectedValue(new Error('Offline'));
@@ -135,8 +142,15 @@ it('keeps loaded audio usable without a preference refetch after playback', asyn
   );
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   await screen.findByLabelText('Corrected version audio');
+  await act(async () => {
+    focusManager.setFocused(false);
+    onlineManager.setOnline(false);
+    focusManager.setFocused(true);
+    onlineManager.setOnline(true);
+  });
   expect(screen.getByRole('combobox')).toBeEnabled();
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.queryByText('Loading saved voice…')).toBeNull();
   expect(getJournalAudioState).toHaveBeenCalledTimes(1);
+  expect(getJournalVoices).toHaveBeenCalledTimes(1);
 });

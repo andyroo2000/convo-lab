@@ -31,6 +31,8 @@ export default function useJournalVoice({
     queryFn: getJournalVoices,
     select: (response) => response.data,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: false,
   });
   const saved = useQuery({
@@ -38,6 +40,8 @@ export default function useJournalVoice({
     queryFn: ({ signal }) =>
       getJournalAudioState({ entryId, analysisId, expectedReplyRevision, signal }),
     refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: false,
   });
   const options = voices.data ?? [];
@@ -47,6 +51,7 @@ export default function useJournalVoice({
   const ready = Boolean(voiceId) && saved.isSuccess && !loading && !error;
 
   function refreshAfterAudio() {
+    // Reload on the next entry mount without changing the voice of loaded audio.
     client
       .invalidateQueries({ queryKey: ['journal-audio-state', ownerId], refetchType: 'none' })
       .catch(() => undefined);
