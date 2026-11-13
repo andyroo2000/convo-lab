@@ -7,10 +7,10 @@ import JournalSuggestionFooter from './JournalSuggestionFooter';
 import type { JournalSegment } from './types';
 
 const editDescription = (segment: JournalSegment) => {
-  if (segment.suggestion === null) return segment.text;
-  if (segment.suggestion === '') return `Remove ${segment.text}`;
-  if (segment.text === '') return `Insert ${segment.suggestion}`;
-  return `Replace ${segment.text} with ${segment.suggestion}`;
+  if (segment.replacement == null) return segment.text;
+  if (segment.replacement === '') return `Remove ${segment.text}`;
+  if (segment.text === '') return `Insert ${segment.replacement}`;
+  return `Replace ${segment.text} with ${segment.replacement}`;
 };
 
 const labels = {

@@ -9,8 +9,10 @@ const segment: JournalSegment = {
   text: '映画を見ますた。',
   reading: '映画[えいが]を見[み]ますた。',
   kind: 'correction',
-  suggestion: '映画を見ました。',
-  suggestionReading: '映画[えいが]を見[み]ました。',
+  suggestion: '昨日は映画を見ました。',
+  suggestionReading: '昨日[きのう]は映画[えいが]を見[み]ました。',
+  replacement: '映画を見ました。',
+  replacementReading: '映画[えいが]を見[み]ました。',
   explanation: 'Use 見ました for the past tense.',
   explanationReading: 'Use 見[み]ました for the past tense.',
 };
@@ -20,6 +22,7 @@ it('shows an editor replacement with separate original and corrected readings', 
   const edit = screen.getByRole('button', {
     name: 'Correction: Replace 映画を見ますた。 with 映画を見ました。',
   });
+  expect(edit).not.toHaveTextContent('昨日');
   expect(within(edit).getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
     '映画えいがを見みますた。'
   );
@@ -28,23 +31,23 @@ it('shows an editor replacement with separate original and corrected readings', 
   );
 });
 
-it('distinguishes deletion from unavailable suggestion data', () => {
+it('distinguishes deletion from unavailable replacement data', () => {
   const { rerender } = render(
-    <JournalHighlight segment={{ ...segment, suggestion: '', suggestionReading: '' }} />
+    <JournalHighlight segment={{ ...segment, replacement: '', replacementReading: '' }} />
   );
   expect(screen.getByRole('button', { name: 'Correction: Remove 映画を見ますた。' })).toBeVisible();
   expect(screen.getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
     '映画えいがを見みますた。'
   );
   expect(screen.queryByText('', { selector: 'ins' })).not.toBeInTheDocument();
-  rerender(<JournalHighlight segment={{ ...segment, suggestion: null }} />);
+  rerender(<JournalHighlight segment={{ ...segment, replacement: null }} />);
   expect(screen.queryByText(/ますた。/, { selector: 'del' })).not.toBeInTheDocument();
   expect(screen.queryByText(/ました。/, { selector: 'ins' })).not.toBeInTheDocument();
   expect(screen.getByRole('button')).toHaveTextContent('映画えいがを見みますた。');
 });
 
-it('shows optional replacements and falls back to suggestion text without a reading', () => {
-  render(<JournalHighlight segment={{ ...segment, kind: 'optional', suggestionReading: null }} />);
+it('shows optional replacements and falls back to replacement text without a reading', () => {
+  render(<JournalHighlight segment={{ ...segment, kind: 'optional', replacementReading: null }} />);
   expect(screen.getByText(/ました。/, { selector: 'ins' })).toHaveTextContent('映画を見ました。');
   expect(screen.getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
     '映画えいがを見みますた。'
@@ -172,4 +175,42 @@ it('keeps a failed change open and displays the error next to its action', async
   fireEvent.click(screen.getByRole('button', { name: 'Reject correction' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Please try again.');
   expect(screen.getByRole('dialog')).toBeInTheDocument();
+});
+
+it('never inserts a full-sentence suggestion for legacy segments without replacement fields', () => {
+  const { replacement: _replacement, replacementReading: _reading, ...legacy } = segment;
+  const { container } = render(<JournalHighlight segment={legacy} />);
+  expect(screen.queryByText(/ますた。/, { selector: 'del' })).not.toBeInTheDocument();
+  expect(screen.queryByText(/ました。/, { selector: 'ins' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button')).toHaveAccessibleName('Correction: 映画を見ますた。');
+  expect(container).not.toHaveTextContent('昨日');
+});
+
+it('highlights only the exact phrase inside surrounding unchanged text', () => {
+  render(
+    <p>
+      先々日の夜は
+      <JournalHighlight
+        segment={{
+          ...segment,
+          text: '辺りしい',
+          reading: '辺りしい',
+          suggestion: '先々日の夜は新しい映画を見た。',
+          suggestionReading:
+            '先々日[さきおととい]の夜[よる]は新[あたら]しい映画[えいが]を見[み]た。',
+          replacement: '新しい',
+          replacementReading: '新[あたら]しい',
+        }}
+      />
+      映画を見た。
+    </p>
+  );
+  expect(screen.getByText('辺りしい', { selector: 'del' })).toHaveTextContent('辺りしい');
+  expect(screen.getByText(/しい/, { selector: 'ins' })).toHaveTextContent('新あたらしい');
+  expect(
+    screen.getByText(/先々日の夜は/, { selector: 'p' }).textContent?.match(/先々日の夜は/g)
+  ).toHaveLength(1);
+  expect(
+    screen.getByText(/先々日の夜は/, { selector: 'p' }).textContent?.match(/映画を見た。/g)
+  ).toHaveLength(1);
 });

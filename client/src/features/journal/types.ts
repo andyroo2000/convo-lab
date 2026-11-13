@@ -19,6 +19,9 @@ export interface JournalSegment {
   kind: 'plain' | 'correction' | 'optional' | 'keep';
   suggestion: string | null;
   suggestionReading: string | null;
+  // Exact inline edit; suggestion may contain a complete sentence. Missing on legacy feedback.
+  replacement?: string | null;
+  replacementReading?: string | null;
   explanation: string | null;
   explanationReading: string | null;
 }
