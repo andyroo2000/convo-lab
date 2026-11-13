@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { SquarePen } from 'lucide-react';
+import JournalRowActions from './JournalRowActions';
 import JournalArchiveRow from './JournalArchiveRow';
 import type useJournalArchive from './useJournalArchive';
 
@@ -9,9 +10,18 @@ interface ArchiveProps {
   selectedId?: string;
   onCreate: () => void;
   appearance?: ReactNode;
+  busyId?: string;
+  onDeleted: (id: string) => void;
+  onRenamed: (id: string) => void;
 }
 
-const ArchiveContents = ({ archive, selectedId }: Pick<ArchiveProps, 'archive' | 'selectedId'>) => (
+const ArchiveContents = ({
+  archive,
+  selectedId,
+  busyId,
+  onDeleted,
+  onRenamed,
+}: Omit<ArchiveProps, 'onCreate' | 'appearance'>) => (
   <>
     {archive.error && (
       <p role="alert" className="text-sm text-rose-700">
@@ -34,7 +44,22 @@ const ArchiveContents = ({ archive, selectedId }: Pick<ArchiveProps, 'archive' |
     )}
     <ul className="space-y-2">
       {archive.entries.map((entry) => (
-        <JournalArchiveRow key={entry.id} entry={entry} selected={selectedId === entry.id} />
+        <JournalArchiveRow
+          key={entry.id}
+          entry={entry}
+          selected={selectedId === entry.id}
+          actions={
+            <JournalRowActions
+              entry={entry}
+              disabled={busyId === entry.id}
+              remove={archive.remove}
+              rename={archive.rename}
+              snapshot={archive.snapshot}
+              onDeleted={onDeleted}
+              onRenamed={onRenamed}
+            />
+          }
+        />
       ))}
     </ul>
     {archive.query.isLoading && (
@@ -60,7 +85,13 @@ const ArchiveContents = ({ archive, selectedId }: Pick<ArchiveProps, 'archive' |
   </>
 );
 
-const JournalArchive = ({ archive, selectedId, onCreate, appearance }: ArchiveProps) => (
+const JournalArchive = ({
+  archive,
+  selectedId,
+  onCreate,
+  appearance,
+  ...actions
+}: ArchiveProps) => (
   <div className="space-y-4 p-5">
     <div className="flex items-center justify-between">
       <h1 className="text-2xl font-semibold text-navy">Journal</h1>
@@ -78,7 +109,7 @@ const JournalArchive = ({ archive, selectedId, onCreate, appearance }: ArchivePr
       </div>
     </div>
     <div className={selectedId ? 'hidden space-y-4 md:block' : 'space-y-4'}>
-      <ArchiveContents archive={archive} selectedId={selectedId} />
+      <ArchiveContents archive={archive} selectedId={selectedId} {...actions} />
     </div>
   </div>
 );

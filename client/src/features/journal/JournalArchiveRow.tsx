@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type useJournalArchive from './useJournalArchive';
 
@@ -5,9 +6,10 @@ type Archive = ReturnType<typeof useJournalArchive>;
 interface RowProps {
   entry: Archive['entries'][number];
   selected: boolean;
+  actions: ReactNode;
 }
 
-const JournalArchiveRow = ({ entry, selected }: RowProps) => {
+const JournalArchiveRow = ({ entry, selected, actions }: RowProps) => {
   const title = entry.title || 'Untitled entry';
   return (
     <li
@@ -22,6 +24,7 @@ const JournalArchiveRow = ({ entry, selected }: RowProps) => {
           <span className="block truncate font-medium text-navy">{title}</span>
           <span className="mt-1 block text-xs text-gray-500">{entry.entryDate}</span>
         </Link>
+        {actions}
       </div>
     </li>
   );

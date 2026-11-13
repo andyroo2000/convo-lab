@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { deleteJournalEntry, listJournalEntries } from '../journalApi';
 import { JournalDraftStore, newJournalDraft } from '../journalDrafts';
-import JournalDeleteAction from '../JournalDeleteAction';
+import JournalRowActions from '../JournalRowActions';
 import useJournalArchive from '../useJournalArchive';
 
 vi.mock('../journalApi', () => ({ listJournalEntries: vi.fn(), deleteJournalEntry: vi.fn() }));
@@ -68,6 +68,13 @@ it('merges local titles over server entries without losing the server delete ver
   expect(new JournalDraftStore('a').get(draft.id)).not.toBeNull();
 });
 
+function openDelete(title: string) {
+  const trigger = screen.getByRole('button', { name: `Actions for ${title}` });
+  fireEvent.click(trigger);
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+  return trigger;
+}
+
 it('requires confirmation and preserves the row when deletion fails', async () => {
   const remove = vi.fn().mockResolvedValue(false);
   const onDeleted = vi.fn();
@@ -80,18 +87,21 @@ it('requires confirmation and preserves the row when deletion fails', async () =
   };
   render(
     <MemoryRouter>
-      <JournalDeleteAction
-        draft={{ ...entry, expectedVersion: entry.version, editId: 'test' }}
+      <JournalRowActions
+        entry={entry}
+        rename={vi.fn()}
+        snapshot={(value) => value}
+        onRenamed={vi.fn()}
         remove={remove}
         onDeleted={onDeleted}
       />
     </MemoryRouter>
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }));
+  openDelete('Movie night');
   expect(remove).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Keep entry' }));
   expect(screen.queryByText('Delete this entry?')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }));
+  openDelete('Movie night');
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete entry' }));
   await waitFor(() => expect(remove).toHaveBeenCalledWith(expect.objectContaining(entry)));
   expect(onDeleted).not.toHaveBeenCalled();
@@ -110,16 +120,17 @@ function renderDraftRow(remove = vi.fn().mockResolvedValue(true)) {
   };
   render(
     <MemoryRouter>
-      <JournalDeleteAction
-        draft={{ ...entry, expectedVersion: entry.version, editId: 'test' }}
+      <JournalRowActions
+        entry={entry}
+        rename={vi.fn()}
+        snapshot={(value) => value}
+        onRenamed={vi.fn()}
         remove={remove}
         onDeleted={onDeleted}
       />
     </MemoryRouter>
   );
-  const trigger = screen.getByRole('button', { name: 'Delete entry' });
-  trigger.focus();
-  fireEvent.click(trigger);
+  const trigger = openDelete('Untitled entry');
   return { remove, onDeleted, trigger, entry };
 }
 

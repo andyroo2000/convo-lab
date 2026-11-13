@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import { journalTextStyle } from './journalTypography';
 import type useJournalEditor from './useJournalEditor';
@@ -25,12 +24,10 @@ const DraftSaveStatus = ({ editor }: { editor: Editor }) => (
 const JournalEditorForm = ({
   editor,
   processing,
-  deleteAction,
   onSubmitted = () => undefined,
 }: {
   editor: Editor;
   processing: boolean;
-  deleteAction?: ReactNode;
   onSubmitted?: () => void;
 }) => {
   const { draft, busy } = editor;
@@ -64,7 +61,6 @@ const JournalEditorForm = ({
         />
       </label>
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <div className="mr-auto">{deleteAction}</div>
         <DraftSaveStatus editor={editor} />
         <button
           type="button"
