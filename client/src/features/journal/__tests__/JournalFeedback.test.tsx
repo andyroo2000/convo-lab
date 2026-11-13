@@ -17,50 +17,43 @@ const segment: JournalSegment = {
   explanationReading: 'Use 見[み]ました for the past tense.',
 };
 
-it('shows an editor replacement with separate original and corrected readings', () => {
+it('highlights only the original words and preserves their readings', () => {
   render(<JournalHighlight segment={segment} />);
-  const edit = screen.getByRole('button', {
+  const anchor = screen.getByRole('button', {
     name: 'Correction: Replace 映画を見ますた。 with 映画を見ました。',
   });
-  expect(edit).not.toHaveTextContent('昨日');
-  expect(within(edit).getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
-    '映画えいがを見みますた。'
-  );
-  expect(within(edit).getByText(/ました。/, { selector: 'ins' })).toHaveTextContent(
-    '映画えいがを見みました。'
-  );
+  expect(anchor).toHaveTextContent('映画えいがを見みますた。');
+  expect(anchor).not.toHaveTextContent('ました。');
+  expect(anchor).not.toHaveTextContent('昨日');
+  expect(within(anchor).getByText('えいが').tagName).toBe('RT');
 });
 
-it('distinguishes deletion from unavailable replacement data', () => {
-  const { rerender } = render(
-    <JournalHighlight segment={{ ...segment, replacement: '', replacementReading: '' }} />
-  );
-  expect(screen.getByRole('button', { name: 'Correction: Remove 映画を見ますた。' })).toBeVisible();
-  expect(screen.getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
-    '映画えいがを見みますた。'
-  );
-  expect(screen.queryByText('', { selector: 'ins' })).not.toBeInTheDocument();
-  rerender(<JournalHighlight segment={{ ...segment, replacement: null }} />);
-  expect(screen.queryByText(/ますた。/, { selector: 'del' })).not.toBeInTheDocument();
-  expect(screen.queryByText(/ました。/, { selector: 'ins' })).not.toBeInTheDocument();
+it.each(['', null])(
+  'keeps the original visible for a deleted or unavailable replacement: %s',
+  (replacement) => {
+    render(<JournalHighlight segment={{ ...segment, replacement }} />);
+    expect(screen.getByRole('button')).toHaveTextContent('映画えいがを見みますた。');
+  }
+);
+
+it('leaves an optional change out of the original passage even after applying it', () => {
+  const optional = { ...segment, kind: 'optional' as const, replacementReading: null };
+  const action = { applied: false, disabled: false, toggle: vi.fn() };
+  const { rerender } = render(<JournalHighlight segment={optional} action={action} />);
   expect(screen.getByRole('button')).toHaveTextContent('映画えいがを見みますた。');
+  rerender(<JournalHighlight segment={optional} action={{ ...action, applied: true }} />);
+  expect(screen.getByRole('button')).toHaveTextContent('映画えいがを見みますた。');
+  expect(screen.getByRole('button')).not.toHaveTextContent('ました。');
 });
 
-it('shows optional replacements and falls back to replacement text without a reading', () => {
-  render(<JournalHighlight segment={{ ...segment, kind: 'optional', replacementReading: null }} />);
-  expect(screen.getByText(/ました。/, { selector: 'ins' })).toHaveTextContent('映画を見ました。');
-  expect(screen.getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
-    '映画えいがを見みますた。'
-  );
-});
-
-it('renders an insertion without inventing original text', () => {
+it('gives an insertion a visible anchor without inserting the replacement into the original', () => {
   render(<JournalHighlight segment={{ ...segment, text: '', reading: '' }} />);
-  expect(screen.getByRole('button', { name: 'Correction: Insert 映画を見ました。' })).toBeVisible();
-  expect(screen.queryByText('', { selector: 'del' })).not.toBeInTheDocument();
-  expect(screen.getByText(/ました。/, { selector: 'ins' })).toHaveTextContent(
-    '映画えいがを見みました。'
-  );
+  const anchor = screen.getByRole('button', { name: 'Correction: Insert 映画を見ました。' });
+  expect(anchor).toBeVisible();
+  expect(anchor).toHaveTextContent('＋');
+  expect(anchor).not.toHaveTextContent('映画');
+  fireEvent.click(anchor);
+  expect(screen.getByRole('dialog')).toHaveTextContent('past tense');
 });
 
 it('renders older praise segments as ordinary text with readings and no popover', () => {
@@ -205,8 +198,8 @@ it('highlights only the exact phrase inside surrounding unchanged text', () => {
       映画を見た。
     </p>
   );
-  expect(screen.getByText('辺りしい', { selector: 'del' })).toHaveTextContent('辺りしい');
-  expect(screen.getByText(/しい/, { selector: 'ins' })).toHaveTextContent('新あたらしい');
+  expect(screen.getByRole('button')).toHaveTextContent('辺りしい');
+  expect(screen.getByRole('button')).not.toHaveTextContent('新');
   expect(
     screen.getByText(/先々日の夜は/, { selector: 'p' }).textContent?.match(/先々日の夜は/g)
   ).toHaveLength(1);

@@ -49,7 +49,7 @@ it('keeps one corrected section across repeated saved Apply/Reject revisions', (
   }
 });
 
-it('shows editor markup above clean corrected text and audio without a legend or picker', () => {
+it('shows original highlights above clean corrected text, audio, and a two-kind legend', () => {
   render(
     <JournalFeedback
       ownerId="owner"
@@ -75,12 +75,12 @@ it('shows editor markup above clean corrected text and audio without a legend or
       }}
     />
   );
-  const original = screen.getByText('ていう', { selector: 'del' });
+  const original = screen.getByRole('button', { name: 'Correction: Replace ていう with っていう' });
   const corrected = screen.getByRole('region', { name: 'Corrected Version' });
   expect(original.compareDocumentPosition(corrected)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   expect(corrected).toHaveTextContent('っていう');
   expect(corrected).toContainElement(screen.getByText('Audio player'));
-  expect(screen.queryByLabelText('Highlight meanings')).not.toBeInTheDocument();
-  expect(screen.queryByText('Optional change')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Highlight meanings')).toBeVisible();
+  expect(screen.getByText('Optional change')).toBeVisible();
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 });
