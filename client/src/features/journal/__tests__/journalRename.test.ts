@@ -79,13 +79,22 @@ it('rejects a changed saved entry without changing local writing', async () => {
   expect(store.get(server.id)).toEqual(local);
 });
 
-it('retries an already saved title without saving the body again', async () => {
+it('keeps body conflict protection when a newer server title already matches', async () => {
   const server = serverEntry();
   store.put(draftFromEntry(server));
-  vi.mocked(getJournalEntry).mockResolvedValue({ ...server, title: 'New title', version: 4 });
+  vi.mocked(getJournalEntry).mockResolvedValue({
+    ...server,
+    title: 'New title',
+    body: 'Changed on another device',
+    version: 4,
+  });
   await renameJournalEntry(store, server, 'New title');
   expect(saveJournalDraft).not.toHaveBeenCalled();
-  expect(store.get(server.id)).toMatchObject({ title: 'New title', expectedVersion: 4 });
+  expect(store.get(server.id)).toMatchObject({
+    title: 'New title',
+    expectedVersion: 3,
+    body: server.body,
+  });
 });
 
 it('preserves the local draft after a failed online save and rejects blank titles', async () => {

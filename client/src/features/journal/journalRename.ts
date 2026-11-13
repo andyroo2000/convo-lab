@@ -17,9 +17,7 @@ function reconcileLocalTitle(
     ...current,
     title: current.title === previousTitle ? saved.title : current.title,
     expectedVersion:
-      current.expectedVersion === entry.version && saved.version <= entry.version + 1
-        ? saved.version
-        : current.expectedVersion,
+      current.expectedVersion === entry.version ? saved.version : current.expectedVersion,
     editId: ulid().toLowerCase(),
   });
 }
@@ -30,7 +28,9 @@ async function saveRemoteTitle(entry: EntryVersion, title: string) {
   if (server.version !== entry.version && server.title !== title) {
     throw new Error('This entry changed elsewhere. Refresh the journal and try again.');
   }
-  return server.title === title ? server : saveJournalDraft({ ...draftFromEntry(server), title });
+  const saved =
+    server.title === title ? server : await saveJournalDraft({ ...draftFromEntry(server), title });
+  return { saved, previousVersion: server.version };
 }
 
 function validatedTitle(input: string) {
@@ -50,9 +50,9 @@ export default async function renameJournalEntry(
     store.put({ ...local, title, editId: ulid().toLowerCase() });
     return;
   }
-  const saved = await saveRemoteTitle(entry, title);
+  const { saved, previousVersion } = await saveRemoteTitle(entry, title);
   try {
-    reconcileLocalTitle(store, entry, local?.title, saved);
+    reconcileLocalTitle(store, { id: entry.id, version: previousVersion }, local?.title, saved);
   } catch {
     throw new Error(
       'The title was saved online, but the device draft could not be updated. Try Save again.'
