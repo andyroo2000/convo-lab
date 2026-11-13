@@ -1,3 +1,4 @@
+import { journalTextStyle } from './journalTypography';
 import type useJournalReplies from './useJournalReplies';
 
 type Reply = ReturnType<typeof useJournalReplies>;
@@ -38,6 +39,7 @@ const JournalAnswerForm = ({ reply }: { reply: Reply }) => {
           {reply.draft.replace ? 'Edit your last answer' : 'Your answer (optional)'}
         </span>
         <textarea
+          style={journalTextStyle}
           id="journal-answer"
           value={reply.draft.answer}
           onChange={(event) => reply.change(event.target.value)}

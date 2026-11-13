@@ -1,3 +1,4 @@
+import { journalTextStyle } from './journalTypography';
 import type useJournalEditor from './useJournalEditor';
 
 type Editor = ReturnType<typeof useJournalEditor>;
@@ -50,6 +51,7 @@ const JournalEditorForm = ({
       <label htmlFor="journal-body" className="block">
         <span className="sr-only">Journal entry in Japanese</span>
         <textarea
+          style={journalTextStyle}
           id="journal-body"
           lang="ja"
           className="min-h-64 w-full resize-y rounded-2xl border border-gray-200 bg-white p-5 text-xl leading-loose text-navy focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/20"

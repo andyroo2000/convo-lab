@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pencil } from 'lucide-react';
+import { journalTextStyle } from './journalTypography';
 import JournalCopyButton from './JournalCopyButton';
 import JournalAudioPlayer from './JournalAudioPlayer';
 import JournalRuby from './JournalRuby';
@@ -64,6 +65,7 @@ const JournalCorrected = ({ ownerId, entryId, analysis, controls }: Props) => {
           }}
         >
           <textarea
+            style={journalTextStyle}
             id="corrected-entry-editor"
             aria-label="Corrected entry text"
             lang="ja"
@@ -104,7 +106,11 @@ const JournalCorrected = ({ ownerId, entryId, analysis, controls }: Props) => {
             analysisId={analysis.id}
             expectedReplyRevision={analysis.replyRevision ?? 0}
           />
-          <p lang="ja" className="whitespace-pre-wrap text-xl leading-[2.7] text-navy">
+          <p
+            style={journalTextStyle}
+            lang="ja"
+            className="whitespace-pre-wrap text-xl leading-[2.7] text-navy"
+          >
             <JournalRuby text={reading} />
           </p>
         </>

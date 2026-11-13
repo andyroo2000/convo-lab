@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { journalTextStyle } from './journalTypography';
 import JournalRuby from './JournalRuby';
 import type { JournalFeedback } from './types';
 
@@ -6,7 +7,7 @@ const JournalQuestion = ({ feedback }: { feedback: JournalFeedback }) => {
   const [showEnglish, setShowEnglish] = useState(false);
   return (
     <div className="space-y-3">
-      <p lang="ja" className="text-xl leading-loose text-navy">
+      <p style={journalTextStyle} lang="ja" className="text-xl leading-loose text-navy">
         <JournalRuby text={feedback.questionReading} />
       </p>
       <button
