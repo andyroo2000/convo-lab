@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import useJournalModal from './useJournalModal';
 import type useJournalArchive from './useJournalArchive';
 
 type Archive = ReturnType<typeof useJournalArchive>;
@@ -36,27 +37,9 @@ function useDeletion({ entry, remove, onCancel, onDeleted }: Props) {
   return { pending, busy, error, confirm };
 }
 
-function useModalFocus() {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const element = dialog.current;
-    const previousFocus = document.activeElement;
-    const { overflow } = document.body.style;
-    element?.showModal();
-    document.body.style.overflow = 'hidden';
-    return () => {
-      element?.close();
-      document.body.style.overflow = overflow;
-      if (previousFocus instanceof HTMLElement) previousFocus.focus();
-    };
-  }, []);
-
-  return dialog;
-}
-
 const JournalDeleteDialog = ({ entry, remove, onCancel, onDeleted }: Props) => {
   const { pending, busy, error, confirm } = useDeletion({ entry, remove, onCancel, onDeleted });
-  const dialog = useModalFocus();
+  const dialog = useJournalModal();
   const labelId = useId();
   const descriptionId = useId();
   const kind = entry.version === 0 ? 'draft' : 'entry';

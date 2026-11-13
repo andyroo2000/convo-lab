@@ -1,9 +1,7 @@
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import useJournalEditor from './useJournalEditor';
 import useJournalAnalysis from './useJournalAnalysis';
 import JournalEntryHeading from './JournalEntryHeading';
-import JournalDeleteAction from './JournalDeleteAction';
-import type useJournalArchive from './useJournalArchive';
 import JournalEditorForm from './JournalEditorForm';
 import { EditorMessages, FeedbackStatus } from './JournalEditorMessages';
 import type { JournalAnalysis, JournalEntry } from './types';
@@ -14,8 +12,7 @@ interface JournalEditorProps {
   onSaved: (entry: JournalEntry) => void;
   onOpen: (id: string) => void;
   nested?: boolean;
-  remove?: ReturnType<typeof useJournalArchive>['remove'];
-  onDeleted?: (id: string) => void;
+  onBusyChange?: (busy: boolean) => void;
   initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
   renderFeedback?: (analysis: JournalAnalysis) => ReactNode;
 }
@@ -47,24 +44,16 @@ function useEditorFeedback({ ownerId, entryId, onSaved, initial }: JournalEditor
   return { editor, analysis, current, processing };
 }
 
-function entryDeleteAction(
+function useEditorBusy(
   editor: Editor,
   processing: boolean,
-  remove: JournalEditorProps['remove'],
-  onDeleted: JournalEditorProps['onDeleted']
+  notify: JournalEditorProps['onBusyChange']
 ) {
-  return (
-    editor.draft &&
-    remove &&
-    onDeleted && (
-      <JournalDeleteAction
-        draft={editor.draft}
-        disabled={editor.busy || processing}
-        remove={remove}
-        onDeleted={onDeleted}
-      />
-    )
-  );
+  const busy = editor.busy || processing || Boolean(editor.error && !editor.locallySaved);
+  useEffect(() => {
+    notify?.(busy);
+    return () => notify?.(false);
+  }, [busy, notify]);
 }
 
 const JournalEditor = ({
@@ -73,8 +62,7 @@ const JournalEditor = ({
   onSaved,
   onOpen,
   renderFeedback,
-  remove,
-  onDeleted,
+  onBusyChange,
   nested = false,
   initial,
 }: JournalEditorProps) => {
@@ -86,7 +74,7 @@ const JournalEditor = ({
     initial,
   });
   const reviewing = current?.status === 'ready';
-  const deleteAction = entryDeleteAction(editor, processing, remove, onDeleted);
+  useEditorBusy(editor, processing, onBusyChange);
 
   return (
     <article className={nested ? 'space-y-6' : 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8'}>
@@ -94,7 +82,7 @@ const JournalEditor = ({
       {reviewing ? (
         <JournalEntryHeading draft={editor.draft} nested={nested} />
       ) : (
-        <JournalEditorForm editor={editor} processing={processing} deleteAction={deleteAction} />
+        <JournalEditorForm editor={editor} processing={processing} />
       )}
 
       <FeedbackStatus
@@ -105,7 +93,6 @@ const JournalEditor = ({
         }}
       />
       {reviewing && current && renderFeedback?.(current)}
-      {reviewing && deleteAction}
     </article>
   );
 };

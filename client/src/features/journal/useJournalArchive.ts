@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteJournalEntry, listJournalEntries } from './journalApi';
 import { JournalDraftStore, newJournalDraft } from './journalDrafts';
+import renameJournalEntry from './journalRename';
 import { removeJournalDeviceData } from './journalDeviceCleanup';
 import type { JournalDraft, JournalEntry } from './types';
 
@@ -91,5 +92,15 @@ export default function useJournalArchive(ownerId: string) {
     }
   }
 
-  return { query, entries, error, create, saved, remove, refresh };
+  async function rename(entry: Pick<JournalEntry, 'id' | 'version'>, title: string) {
+    await renameJournalEntry(store, entry, title);
+    saved();
+  }
+
+  function snapshot(entry: (typeof entries)[number]) {
+    const local = store.get(entry.id);
+    return local ? { ...entry, title: local.title, body: local.body } : entry;
+  }
+
+  return { query, entries, error, create, saved, remove, rename, snapshot, refresh };
 }

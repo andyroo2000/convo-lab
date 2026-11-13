@@ -36,6 +36,8 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   const [appearanceSaved, setAppearanceSaved] = useState(true);
   const navigate = useNavigate();
   const archive = useJournalArchive(ownerId);
+  const [editorRevision, setEditorRevision] = useState(0);
+  const [editorBusy, setEditorBusy] = useState(false);
   const { refresh } = archive;
   useEffect(() => {
     refresh();
@@ -57,6 +59,13 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
           archive={archive}
           selectedId={entryId}
           onCreate={create}
+          busyId={editorBusy ? entryId : undefined}
+          onDeleted={(id) => {
+            if (id === entryId) navigate('/app/journal');
+          }}
+          onRenamed={(id) => {
+            if (id === entryId) setEditorRevision((value) => value + 1);
+          }}
           appearance={
             <JournalAppearance
               value={typography}
@@ -88,11 +97,10 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
               <ChevronLeft size={18} aria-hidden="true" /> Journal
             </Link>
             <JournalEditor
-              key={`${ownerId}:${entryId}`}
+              key={`${ownerId}:${entryId}:${editorRevision}`}
               ownerId={ownerId}
               entryId={entryId}
-              remove={archive.remove}
-              onDeleted={() => navigate('/app/journal')}
+              onBusyChange={setEditorBusy}
               onSaved={archive.saved}
               onOpen={open}
               renderFeedback={(analysis) => (
