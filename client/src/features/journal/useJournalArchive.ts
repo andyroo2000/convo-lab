@@ -93,8 +93,11 @@ export default function useJournalArchive(ownerId: string) {
   }
 
   async function rename(entry: Pick<JournalEntry, 'id' | 'version'>, title: string) {
-    await renameJournalEntry(store, entry, title);
-    saved();
+    try {
+      await renameJournalEntry(store, entry, title);
+    } finally {
+      saved();
+    }
   }
 
   function snapshot(entry: (typeof entries)[number]) {
