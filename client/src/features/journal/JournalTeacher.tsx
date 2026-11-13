@@ -4,6 +4,7 @@ import { Settings2 } from 'lucide-react';
 import { retrySavedQuestion } from './journalConversationApi';
 import JournalAvatar from './JournalAvatar';
 import JournalQuestion from './JournalQuestion';
+import JournalPlaybackProvider from './JournalPlaybackContext';
 import JournalQuestionAudio from './JournalQuestionAudio';
 import JournalTutorPicker from './JournalTutorPicker';
 import { prepareTutorQuestion, tutorAvatar } from './journalTutor';
@@ -26,6 +27,10 @@ function displayedFeedback(source: JournalFeedback | null, saved?: TutorQuestion
   };
 }
 
+function questionPlaybackKey(question?: TutorQuestion) {
+  return question?.id ?? 'pending';
+}
+
 function useTeacherQuestion({ ownerId, entryId, analysis, savedQuestion }: Props) {
   const replyId = analysis.currentReply?.id;
   const question = useQuery({
@@ -41,12 +46,16 @@ function useTeacherQuestion({ ownerId, entryId, analysis, savedQuestion }: Props
     retry: false,
     staleTime: Infinity,
   });
-  const feedback = displayedFeedback(
-    analysis.currentReply?.result ?? analysis.result,
-    question.data?.data
-  );
-  const tutor = question.data?.data.tutor;
-  return { question, feedback, tutor, unassigned: tutor === null };
+  const prepared = question.data?.data;
+  const feedback = displayedFeedback(analysis.currentReply?.result ?? analysis.result, prepared);
+  const tutor = prepared?.tutor;
+  return {
+    question,
+    feedback,
+    tutor,
+    unassigned: tutor === null,
+    playbackKey: questionPlaybackKey(prepared),
+  };
 }
 
 const TeacherBubble = ({
@@ -92,7 +101,7 @@ const TeacherBubble = ({
 
 const JournalTeacher = ({ ownerId, entryId, analysis, savedQuestion }: Props) => {
   const [choosing, setChoosing] = useState(false);
-  const { question, feedback, tutor, unassigned } = useTeacherQuestion({
+  const { question, feedback, tutor, unassigned, playbackKey } = useTeacherQuestion({
     ownerId,
     entryId,
     analysis,
@@ -112,20 +121,21 @@ const JournalTeacher = ({ ownerId, entryId, analysis, savedQuestion }: Props) =>
           }}
         />
       )}
-      <TeacherBubble
-        tutor={tutor}
-        feedback={feedback}
-        choosing={pickerOpen}
-        choose={() => setChoosing(!choosing)}
-        audio={
-          <JournalQuestionAudio
-            ownerId={ownerId}
-            entryId={entryId}
-            question={question.data?.data}
-            prepare={() => question.refetch({ throwOnError: true })}
-          />
-        }
-      />
+      <JournalPlaybackProvider key={playbackKey}>
+        <TeacherBubble
+          tutor={tutor}
+          feedback={feedback}
+          choosing={pickerOpen}
+          choose={() => setChoosing(!choosing)}
+          audio={
+            <JournalQuestionAudio
+              ownerId={ownerId}
+              entryId={entryId}
+              question={question.data?.data}
+            />
+          }
+        />
+      </JournalPlaybackProvider>
       {question.error && (
         <p role="alert" className="text-sm text-rose-700">
           Your tutor could not be loaded.{' '}

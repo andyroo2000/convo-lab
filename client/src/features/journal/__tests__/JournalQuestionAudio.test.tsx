@@ -1,14 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import JournalQuestionAudio from '../JournalQuestionAudio';
-import { requestJson } from '../../../lib/apiClient';
-import { fetchWithCsrf } from '../../../lib/csrf';
+import { timedQuestionAudio } from '../journalTimedAudio';
 import type { TutorQuestion } from '../journalTutor';
 
-vi.mock('../../../lib/apiClient', () => ({ requestJson: vi.fn() }));
-vi.mock('../../../lib/csrf', () => ({ fetchWithCsrf: vi.fn() }));
-vi.mock('../../../lib/authSession', () => ({ notifyAuthSessionExpired: vi.fn() }));
+vi.mock('../journalTimedAudio', async (original) => ({
+  ...(await original<typeof import('../journalTimedAudio')>()),
+  timedQuestionAudio: vi.fn(),
+}));
 const question: TutorQuestion = {
   id: 'q',
   text: 'どうでしたか。',
@@ -21,96 +20,57 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:question');
   vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
-  vi.mocked(requestJson).mockResolvedValue({ data: question });
-  vi.mocked(fetchWithCsrf).mockResolvedValue(
-    new Response(new Blob(['ID3question']), { status: 200 })
-  );
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  vi.mocked(timedQuestionAudio).mockResolvedValue({ data: { audioBase64: 'SUQz', sentences: [] } });
 });
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-function mount(value = question, prepare = vi.fn().mockResolvedValue(undefined)) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return {
-    ...render(
-      <QueryClientProvider client={client}>
-        <JournalQuestionAudio ownerId="a" entryId="e" question={value} prepare={prepare} />
-      </QueryClientProvider>
-    ),
-    prepare,
-  };
+afterEach(() => vi.restoreAllMocks());
+function mount(value = question) {
+  return render(<JournalQuestionAudio ownerId="a" entryId="e" question={value} />);
 }
-it('loads saved audio without autoplay or another generation and releases the recording on exit', async () => {
+async function start() {
+  fireEvent.click(screen.getByRole('button', { name: "Play Hana's question" }));
+  return screen.findByLabelText("Hana's question audio");
+}
+it('requests timed audio only on demand and releases the recording on exit', async () => {
   const view = mount();
-  const audio = await screen.findByLabelText("Hana's question");
+  expect(timedQuestionAudio).not.toHaveBeenCalled();
+  const audio = await start();
   expect(audio).toHaveAttribute('src', 'blob:question');
-  expect(audio).not.toHaveAttribute('autoplay');
-  expect(view.prepare).not.toHaveBeenCalled();
-  expect(fetchWithCsrf).toHaveBeenCalledWith(
-    '/api/journal/entries/e/questions/q/audio',
-    expect.objectContaining({ method: 'GET' })
-  );
+  expect(timedQuestionAudio).toHaveBeenCalledWith('e', 'q', expect.any(AbortSignal));
   view.unmount();
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:question');
 });
-it('shows preparation progress without downloading audio before it is ready', async () => {
-  const queued = { ...question, audio: { status: 'queued', error: null } };
-  vi.mocked(requestJson).mockResolvedValue({ data: queued });
-  mount(queued);
-  expect(await screen.findByRole('status')).toHaveTextContent('Preparing question audio');
-  expect(fetchWithCsrf).not.toHaveBeenCalled();
+it('retries a failed timed recording without depending on legacy audio status', async () => {
+  vi.mocked(timedQuestionAudio).mockRejectedValueOnce(new Error('Offline'));
+  mount({ ...question, audio: { status: 'failed', error: 'Old audio failed' } });
+  fireEvent.click(screen.getByRole('button', { name: "Play Hana's question" }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Try again');
+  await start();
+  expect(timedQuestionAudio).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole('alert')).toBeNull();
 });
-it('re-prepares missing recordings after a download failure', async () => {
-  vi.mocked(fetchWithCsrf).mockResolvedValueOnce(new Response('', { status: 409 }));
-  const view = mount();
-  fireEvent.click(await screen.findByRole('button', { name: 'Retry audio' }));
-  await screen.findByLabelText("Hana's question");
-  await waitFor(() => expect(view.prepare).toHaveBeenCalledOnce());
-  expect(fetchWithCsrf).toHaveBeenCalledTimes(2);
-});
-
-it('pauses the diary recording when the question starts playing', async () => {
+it('pauses other journal audio when the question starts', async () => {
   const other = document.createElement('audio');
   other.dataset.journalAudio = '';
   other.pause = vi.fn();
   document.body.append(other);
   const view = mount();
-  fireEvent.play(await screen.findByLabelText("Hana's question"));
-  expect(other.pause).toHaveBeenCalledOnce();
+  fireEvent.play(await start());
+  expect(other.pause).toHaveBeenCalled();
   view.unmount();
   other.remove();
 });
-
-it('offers retry for failed status without an error message', async () => {
-  const failed = { ...question, audio: { status: 'failed', error: null } };
-  vi.mocked(requestJson).mockResolvedValue({ data: failed });
-  mount(failed);
-  expect(await screen.findByRole('button', { name: 'Retry audio' })).toBeEnabled();
-  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+it('aborts pending audio when the question unmounts', async () => {
+  vi.mocked(timedQuestionAudio).mockReturnValue(new Promise(() => {}));
+  const view = mount();
+  fireEvent.click(screen.getByRole('button', { name: "Play Hana's question" }));
+  await waitFor(() => expect(timedQuestionAudio).toHaveBeenCalledOnce());
+  const [, , signal] = vi.mocked(timedQuestionAudio).mock.calls[0];
+  view.unmount();
+  expect(signal.aborted).toBe(true);
 });
-it('ignores a stale server error after audio becomes ready', async () => {
-  const ready = { ...question, audio: { status: 'ready', error: 'Previous attempt failed' } };
-  vi.mocked(requestJson).mockResolvedValue({ data: ready });
-  mount(ready);
-  await screen.findByLabelText("Hana's question");
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-});
-it('polls a queued recording until ready, then downloads it without autoplay', async () => {
-  const queued = { ...question, audio: { status: 'queued', error: null } };
-  vi.mocked(requestJson)
-    .mockResolvedValueOnce({ data: queued })
-    .mockResolvedValue({ data: question });
-  mount(queued);
-  const player = await screen.findByLabelText("Hana's question", {}, { timeout: 4000 });
-  expect(player).not.toHaveAttribute('autoplay');
-  expect(fetchWithCsrf).toHaveBeenCalledOnce();
-});
-it('shows a recoverable error when preparing audio fails', async () => {
-  const failed = { ...question, audio: { status: 'failed', error: null } };
-  vi.mocked(requestJson).mockResolvedValue({ data: failed });
-  const prepare = vi.fn().mockRejectedValue(new Error('Offline'));
-  mount(failed, prepare);
-  fireEvent.click(await screen.findByRole('button', { name: 'Retry audio' }));
-  await waitFor(() => expect(prepare).toHaveBeenCalledOnce());
-  expect(await screen.findByRole('button', { name: 'Retry audio' })).toBeEnabled();
+it('does not show a player before a tutor is assigned', () => {
+  mount({ ...question, tutor: null });
+  expect(screen.queryByRole('button')).toBeNull();
 });

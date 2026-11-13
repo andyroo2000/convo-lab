@@ -1,112 +1,40 @@
-import { useEffect, useRef, useState } from 'react';
-import { Play } from 'lucide-react';
 import JournalVoicePicker from './JournalVoicePicker';
-import focusJournalAudio from './journalPlayback';
-import { getJournalAudio } from './journalAudio';
+import JournalMinimalPlayer from './JournalMinimalPlayer';
+import { JournalPlaybackBoundary } from './JournalPlaybackContext';
+import { timedEntryAudio } from './journalTimedAudio';
 import useJournalVoice, { type JournalAudioProps } from './useJournalVoice';
 
-const JournalAudioSession = ({
-  ownerId,
-  entryId,
-  analysisId,
-  expectedReplyRevision = 0,
-}: JournalAudioProps) => {
-  const voice = useJournalVoice({ ownerId, entryId, analysisId, expectedReplyRevision });
-  const [url, setUrl] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const request = useRef<AbortController>();
-  const player = useRef<HTMLAudioElement>(null);
-
-  useEffect(
-    () => () => {
-      request.current?.abort();
-    },
-    []
-  );
-  useEffect(() => {
-    if (url) player.current?.play().catch(() => undefined);
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [url]);
-
-  async function prepare() {
-    if (!voice.ready) return;
-    request.current?.abort();
-    const controller = new AbortController();
-    request.current = controller;
-    setBusy(true);
-    setError('');
-    try {
-      const blob = await getJournalAudio({
-        entryId,
-        analysisId,
-        expectedReplyRevision,
-        voiceId: voice.voiceId,
-        signal: controller.signal,
-      });
-      if (!controller.signal.aborted) {
-        setUrl(URL.createObjectURL(blob));
-        voice.refreshAfterAudio();
-      }
-    } catch {
-      if (!controller.signal.aborted) setError('Audio could not be prepared. Try again.');
-    } finally {
-      if (!controller.signal.aborted) setBusy(false);
-    }
-  }
-
-  const changeVoice = (value: string) => {
-    request.current?.abort();
-    player.current?.pause();
-    voice.choose(value);
-    setUrl('');
-    setBusy(false);
-    setError('');
-  };
-
+const JournalAudioSession = (props: JournalAudioProps) => {
+  const voice = useJournalVoice(props);
+  const { entryId, analysisId, expectedReplyRevision = 0 } = props;
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-gray-50 p-2">
-        {url ? (
-          <audio
-            data-journal-audio
-            onPlay={(event) => focusJournalAudio(event.currentTarget)}
-            ref={player}
-            controls
-            src={url}
-            aria-label="Corrected version audio"
-            className="h-10 min-w-0 flex-1"
-          />
-        ) : (
-          <button
-            type="button"
-            aria-label="Play corrected version"
-            disabled={busy || !voice.ready}
-            onClick={() => {
-              prepare().catch(() => undefined);
-            }}
-            className="flex h-10 flex-1 items-center gap-3 rounded-lg px-3 text-sm text-navy disabled:opacity-50"
-          >
-            <Play size={18} aria-hidden="true" />
-            {busy ? 'Preparing audio…' : '0:00'}
-            <span className="h-1 flex-1 rounded bg-gray-200" />
-          </button>
-        )}
-
+      <JournalMinimalPlayer
+        key={voice.voiceId}
+        label="corrected version"
+        disabled={!voice.ready}
+        load={async (signal) => {
+          const result = await timedEntryAudio(
+            entryId,
+            {
+              analysisId,
+              voiceId: voice.voiceId,
+              expectedReplyRevision,
+            },
+            signal
+          );
+          if (!signal.aborted) voice.refreshAfterAudio();
+          return result;
+        }}
+      />
+      <div className="flex justify-end">
         <JournalVoicePicker
           voices={voice.voices}
           selected={voice.voiceId}
           disabled={voice.loading || voice.error}
-          onChoose={changeVoice}
+          onChoose={voice.choose}
         />
       </div>
-      {error && (
-        <p role="alert" className="text-sm text-rose-700">
-          {error}
-        </p>
-      )}
       {voice.loading && (
         <p role="status" className="text-sm text-gray-500">
           Loading saved voice…
@@ -123,20 +51,20 @@ const JournalAudioSession = ({
     </div>
   );
 };
-
 const JournalAudioPlayer = ({
   ownerId,
   entryId,
   analysisId,
   expectedReplyRevision = 0,
 }: JournalAudioProps) => (
-  <JournalAudioSession
-    key={`${ownerId}:${entryId}:${analysisId}:${expectedReplyRevision}`}
-    ownerId={ownerId}
-    entryId={entryId}
-    analysisId={analysisId}
-    expectedReplyRevision={expectedReplyRevision}
-  />
+  <JournalPlaybackBoundary>
+    <JournalAudioSession
+      key={`${ownerId}:${entryId}:${analysisId}:${expectedReplyRevision}`}
+      ownerId={ownerId}
+      entryId={entryId}
+      analysisId={analysisId}
+      expectedReplyRevision={expectedReplyRevision}
+    />
+  </JournalPlaybackBoundary>
 );
-
 export default JournalAudioPlayer;
