@@ -11,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { KnownKanjiProvider } from '../contexts/KnownKanjiContext';
 import JournalArchive from '../features/journal/JournalArchive';
 import JournalEditor from '../features/journal/JournalEditor';
-import JournalFeedback from '../features/journal/JournalFeedback';
+import JournalConversation from '../features/journal/JournalConversation';
 import useJournalArchive from '../features/journal/useJournalArchive';
 
 function useJournalListScroll(entryId?: string) {
@@ -98,11 +98,12 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
               onSaved={archive.saved}
               onOpen={open}
               renderFeedback={(analysis) => (
-                <JournalFeedback
+                <JournalConversation
                   key={analysis.id}
                   ownerId={ownerId}
                   entryId={entryId}
                   analysis={analysis}
+                  onOpen={open}
                 />
               )}
             />

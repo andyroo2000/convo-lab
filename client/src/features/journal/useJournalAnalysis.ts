@@ -8,6 +8,7 @@ interface AnalysisOptions {
   entryId: string;
   enabled: boolean;
   submitted: number;
+  initial?: { data: JournalAnalysis | null; entry: JournalEntry };
   submission?: { data: JournalAnalysis; entry: JournalEntry };
   onEntry: (entry: JournalEntry) => void;
 }
@@ -28,7 +29,8 @@ export default function useJournalAnalysis(options: AnalysisOptions) {
     queryKey: ['journal-analysis', ownerId, entryId, submitted],
     queryFn: ({ signal }) => getJournalAnalysis({ id: entryId, signal }),
     enabled,
-    initialData: options.submission,
+    initialData: options.submission ?? options.initial,
+    staleTime: options.initial ? 30000 : 0,
     retry: false,
     refetchInterval: (state) => (shouldPoll(state.state.data?.data) ? 2000 : false),
   });

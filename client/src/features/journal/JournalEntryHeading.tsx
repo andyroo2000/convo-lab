@@ -4,9 +4,11 @@ import type { JournalDraft } from './types';
 const JournalEntryHeading = ({
   draft,
   onEdit,
+  nested = false,
 }: {
   draft: JournalDraft | null;
   onEdit: () => void;
+  nested?: boolean;
 }) => {
   if (!draft) return null;
   return (
@@ -23,7 +25,9 @@ const JournalEntryHeading = ({
           <Pencil size={18} aria-hidden="true" />
         </button>
       </div>
-      <h1 className="text-3xl font-semibold text-navy">{draft.title || 'Untitled entry'}</h1>
+      <h1 className="text-3xl font-semibold text-navy">
+        {nested ? 'Your reply' : draft.title || 'Untitled entry'}
+      </h1>
     </header>
   );
 };

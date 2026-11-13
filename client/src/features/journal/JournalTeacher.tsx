@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2 } from 'lucide-react';
+import { retrySavedQuestion } from './journalConversationApi';
 import JournalAvatar from './JournalAvatar';
 import JournalQuestion from './JournalQuestion';
 import JournalQuestionAudio from './JournalQuestionAudio';
@@ -13,6 +14,7 @@ interface Props {
   ownerId: string;
   entryId: string;
   analysis: JournalAnalysis;
+  savedQuestion?: TutorQuestion;
 }
 function displayedFeedback(source: JournalFeedback | null, saved?: TutorQuestion) {
   if (!source || !saved) return source;
@@ -24,12 +26,18 @@ function displayedFeedback(source: JournalFeedback | null, saved?: TutorQuestion
   };
 }
 
-function useTeacherQuestion({ ownerId, entryId, analysis }: Props) {
+function useTeacherQuestion({ ownerId, entryId, analysis, savedQuestion }: Props) {
   const replyId = analysis.currentReply?.id;
   const question = useQuery({
-    queryKey: ['journal-question', ownerId, entryId, analysis.id, replyId],
-    queryFn: () => prepareTutorQuestion(entryId, analysis.id, replyId),
-    enabled: !analysis.pendingReplyId,
+    queryKey: savedQuestion
+      ? ['journal-saved-question', ownerId, savedQuestion.id]
+      : ['journal-question', ownerId, entryId, analysis.id, replyId],
+    queryFn: () =>
+      savedQuestion
+        ? retrySavedQuestion(entryId, savedQuestion.id)
+        : prepareTutorQuestion(entryId, analysis.id, replyId),
+    initialData: savedQuestion ? { data: savedQuestion } : undefined,
+    enabled: !savedQuestion && !analysis.pendingReplyId,
     retry: false,
     staleTime: Infinity,
   });
@@ -80,12 +88,13 @@ const TeacherBubble = ({
   </div>
 );
 
-const JournalTeacher = ({ ownerId, entryId, analysis }: Props) => {
+const JournalTeacher = ({ ownerId, entryId, analysis, savedQuestion }: Props) => {
   const [choosing, setChoosing] = useState(false);
   const { question, feedback, tutor, unassigned } = useTeacherQuestion({
     ownerId,
     entryId,
     analysis,
+    savedQuestion,
   });
   const pickerOpen = choosing || unassigned;
   if (!feedback) return null;
