@@ -34,9 +34,9 @@ const JournalCorrected = ({ ownerId, entryId, analysis, controls }: Props) => {
     }
   }
   return (
-    <section aria-label="Corrected Version" className="space-y-4 border-t border-gray-200 pt-6">
+    <section aria-label="Corrected Version" className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-navy">Corrected Version</h2>
+        <h2 className="sr-only">Corrected Version</h2>
         <div className="flex items-center">
           {!draft && (
             <button
@@ -66,7 +66,7 @@ const JournalCorrected = ({ ownerId, entryId, analysis, controls }: Props) => {
         >
           <textarea
             style={journalTextStyle}
-            id="corrected-entry-editor"
+            id={`corrected-entry-editor-${entryId}`}
             aria-label="Corrected entry text"
             lang="ja"
             value={draft.text}

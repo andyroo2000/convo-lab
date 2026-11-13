@@ -62,13 +62,12 @@ const TeacherBubble = ({
         className="h-14 w-14 shrink-0 rounded-full object-cover sm:h-16 sm:w-16"
       />
     )}
-    <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm border border-sky-100 bg-sky-50/60 p-4 sm:p-5">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-navy">{tutor?.name ?? 'Tutor'}</span>
+    <div className="relative min-w-0 flex-1 rounded-2xl bg-[#edf5ff] p-4 before:absolute before:-left-2 before:top-6 before:h-4 before:w-4 before:rotate-45 before:bg-[#edf5ff] sm:p-5">
+      <div className="mb-2 flex items-center justify-end gap-3">
         <button
           type="button"
           onClick={choose}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-indigo hover:bg-white"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-indigo hover:bg-white"
           aria-label="Choose tutor"
           aria-expanded={choosing}
         >

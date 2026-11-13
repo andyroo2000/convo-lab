@@ -12,11 +12,12 @@ const JournalQuestion = ({ feedback }: { feedback: JournalFeedback }) => {
       </p>
       <button
         type="button"
-        className="text-sm text-indigo"
+        className="min-h-11 min-w-11 rounded-lg px-2 text-xs font-semibold tracking-wide text-indigo hover:bg-white/70"
+        aria-label={showEnglish ? 'Hide English' : 'Show English'}
         aria-expanded={showEnglish}
         onClick={() => setShowEnglish(!showEnglish)}
       >
-        {showEnglish ? 'Hide English' : 'Show English'}
+        EN
       </button>
       {showEnglish && <p className="text-sm text-gray-600">{feedback.questionTranslation}</p>}
     </div>
