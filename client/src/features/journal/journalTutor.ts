@@ -5,6 +5,7 @@ export interface JournalTutor {
   name: string;
   gender: 'F' | 'M';
   avatar: string;
+  avatarUrl?: string;
 }
 export interface TutorPreferences {
   selectedId: string | null;
@@ -18,12 +19,7 @@ export interface TutorQuestion {
   translation: string;
   tutor: JournalTutor | null;
 }
-const tutorAvatars: Record<string, string> = {
-  'hana-v1': '/images/journal/hana-v1.png',
-  'ren-v1': '/images/journal/ren-v1.png',
-};
-export const tutorAvatar = (tutor: JournalTutor) =>
-  tutorAvatars[tutor.avatar] ?? tutorAvatars[`${tutor.id}-v1`];
+export const tutorAvatar = (tutor: JournalTutor) => tutor.avatarUrl;
 export const getTutorPreferences = () =>
   requestJson<{ data: TutorPreferences }>('/api/journal/tutor');
 export const saveTutorPreference = (tutorId: string) =>
