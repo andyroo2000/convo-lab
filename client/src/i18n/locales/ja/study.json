@@ -530,7 +530,7 @@
     "title": "学習時間",
     "description": "カード復習、リスニング、カード作成、イマージョン、会話、WaniKaniなど、日本語学習の時間配分を確認できます。",
     "totals": {
-      "writing": "Writing",
+      "writing": "ライティング",
       "total": "合計",
       "review": "カード復習",
       "listen": "リスニング",
@@ -593,7 +593,7 @@
       "dailyAudio": "デイリー音声",
       "tv": "テレビ・映画",
       "podcast": "ポッドキャスト",
-      "journal": "Journal",
+      "journal": "日記",
       "reading": "読書",
       "conversation": "会話",
       "wanikaniReview": "WaniKani 復習",

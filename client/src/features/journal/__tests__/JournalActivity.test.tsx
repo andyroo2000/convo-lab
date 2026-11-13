@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { StudyActivityProvider } from '../../../contexts/StudyActivityContext';
+import useReadingActivity from '../../readings/useReadingActivity';
 import useJournalActivity from '../useJournalActivity';
 
-const categories = { journal: 'writing' };
+const categories = { journal: 'writing', reading: 'immerse' };
 
 vi.mock('../../../hooks/useStudyCapabilities', () => ({
   useStudyCapabilities: () => ({
@@ -18,7 +19,7 @@ vi.mock('../../../lib/csrf', () => ({
 const Journal = () => {
   useJournalActivity('42');
   return null;
-}
+};
 
 afterEach(() => {
   vi.useRealTimers();
@@ -68,5 +69,56 @@ it('records writing while visible and excludes hidden time, retaining offline se
     name: 'Journal',
   });
   expect(localStorage.getItem('convolab.studyActivity.active.v1.42')).toBeNull();
+  client.clear();
+});
+
+const Reading = () => {
+  useReadingActivity('story', 'Story', '42');
+  return null;
+};
+
+it('switches reading to Journal without stale reading cleanup stopping writing', async () => {
+  localStorage.clear();
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const tree = (journal: boolean) => (
+    <QueryClientProvider client={client}>
+      <StudyActivityProvider userId="42">
+        {journal ? <Journal /> : <Reading />}
+      </StudyActivityProvider>
+    </QueryClientProvider>
+  );
+  const view = render(tree(false));
+  view.rerender(tree(true));
+  const active = JSON.parse(localStorage.getItem('convolab.studyActivity.active.v1.42') ?? 'null');
+  expect(active).toMatchObject({ activity: 'journal', category: 'writing' });
+  view.unmount();
+  client.clear();
+});
+
+it('preserves an active manual timer when Journal opens and closes', async () => {
+  localStorage.clear();
+  const manual = {
+    clientSessionId: 'manual',
+    activity: 'reading',
+    category: 'immerse',
+    source: 'manual',
+    name: 'Book',
+    startedAt: new Date().toISOString(),
+    cardsCreated: 0,
+  };
+  const key = 'convolab.studyActivity.active.v1.42';
+  localStorage.setItem(key, JSON.stringify(manual));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = render(
+    <QueryClientProvider client={client}>
+      <StudyActivityProvider userId="42">
+        <Journal />
+      </StudyActivityProvider>
+    </QueryClientProvider>
+  );
+  expect(JSON.parse(localStorage.getItem(key) ?? 'null')).toEqual(manual);
+  view.unmount();
+  expect(JSON.parse(localStorage.getItem(key) ?? 'null')).toEqual(manual);
   client.clear();
 });
