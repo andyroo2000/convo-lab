@@ -132,3 +132,17 @@ it('root deletion also clears its locally edited replies', () => {
   removeJournalDeviceData('a', 'root');
   expect(store.get(entry.id)).toBeNull();
 });
+
+it('distinguishes a saved answer from a failed conversation reload', async () => {
+  vi.mocked(createConversationAnswer).mockResolvedValue({ data: entry });
+  const saved = vi.fn().mockRejectedValue(new Error('Offline'));
+  const { result } = renderHook(() =>
+    useConversationAnswer('draft-key', 'root', 'question', saved)
+  );
+  act(() => result.current.change(entry.body));
+  await act(() => result.current.submit());
+  expect(result.current.error).toBe('Your answer is saved. Reload the conversation to see it.');
+  expect(result.current.draft.request).toEqual(
+    JSON.parse(localStorage.getItem('draft-key')!).request
+  );
+});

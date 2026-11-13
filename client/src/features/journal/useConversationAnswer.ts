@@ -63,7 +63,12 @@ export default function useConversationAnswer(
       } catch {
         /* The saved answer remains editable and can be submitted again. */
       }
-      if (live.current) await onSaved();
+      try {
+        if (live.current) await onSaved();
+      } catch {
+        if (live.current) setError('Your answer is saved. Reload the conversation to see it.');
+        return;
+      }
       localStorage.removeItem(key);
     } catch (reason) {
       reportFailure(reason);
