@@ -1,12 +1,25 @@
+import { Check } from 'lucide-react';
 import { journalTextStyle } from './journalTypography';
 import type useJournalEditor from './useJournalEditor';
 
 type Editor = ReturnType<typeof useJournalEditor>;
 
 function saveStatus(editor: Editor): string {
+  if (editor.busy) return 'Saving…';
+  if (editor.error) return 'Check save status';
   if (editor.locallySaved) return 'Draft saved on this device';
-  return editor.error ? 'Check save status' : 'Saved';
+  return 'Draft saved';
 }
+
+const DraftSaveStatus = ({ editor }: { editor: Editor }) => (
+  <span
+    role="status"
+    className="flex w-full items-center justify-end gap-1.5 text-xs text-gray-500 sm:w-auto"
+  >
+    {!editor.busy && !editor.error && <Check className="h-4 w-4" aria-hidden="true" />}
+    {saveStatus(editor)}
+  </span>
+);
 
 const JournalEditorForm = ({
   editor,
@@ -21,21 +34,6 @@ const JournalEditorForm = ({
   if (!draft) return null;
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label htmlFor="journal-date" className="text-sm text-gray-600">
-          Date
-          <input
-            id="journal-date"
-            aria-label="Entry date"
-            type="date"
-            className="ml-2 rounded-lg border border-gray-200 p-2"
-            value={draft.entryDate}
-            disabled={busy}
-            onChange={(event) => editor.change({ entryDate: event.target.value })}
-          />
-        </label>
-        <span className="text-xs text-gray-500">{saveStatus(editor)}</span>
-      </div>
       <label htmlFor="journal-title" className="block">
         <span className="sr-only">Title (optional)</span>
         <input
@@ -62,7 +60,8 @@ const JournalEditorForm = ({
           onChange={(event) => editor.change({ body: event.target.value })}
         />
       </label>
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <DraftSaveStatus editor={editor} />
         <button
           type="button"
           className="btn-secondary"
