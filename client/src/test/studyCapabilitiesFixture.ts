@@ -46,6 +46,7 @@ const studyCapabilitiesFixture: StudyClientCapabilities = {
       tv: 'immerse',
       podcast: 'immerse',
       reading: 'immerse',
+      journal: 'writing',
       conversation: 'conversation',
       wanikani_review: 'wanikani',
       other: 'immerse',

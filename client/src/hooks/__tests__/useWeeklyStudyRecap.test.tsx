@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createWrapper } from '../../__tests__/hooks/test-utils';
 import { weeklyRecapCompatibilityFixture } from '../../test/fixtures/learningOsCompatibility';
-import { useWeeklyStudyRecap } from '../useWeeklyStudyRecap';
+import { useWeeklyStudyRecap, type WeeklyStudyRecap } from '../useWeeklyStudyRecap';
 
 const { fetchWithCsrfMock } = vi.hoisted(() => ({ fetchWithCsrfMock: vi.fn() }));
 
 vi.mock('../../lib/csrf', () => ({ fetchWithCsrf: fetchWithCsrfMock }));
 
-const recap = weeklyRecapCompatibilityFixture.cases[1].payload;
+const recap = weeklyRecapCompatibilityFixture.cases[1].payload as WeeklyStudyRecap;
 
 describe('useWeeklyStudyRecap', () => {
   beforeEach(() => fetchWithCsrfMock.mockReset());
@@ -18,7 +18,12 @@ describe('useWeeklyStudyRecap', () => {
     fetchWithCsrfMock.mockResolvedValue(new Response(JSON.stringify(recap), { status: 200 }));
     const { result } = renderHook(() => useWeeklyStudyRecap(), { wrapper: createWrapper() });
 
-    await waitFor(() => expect(result.current.data).toEqual(recap));
+    await waitFor(() =>
+      expect(result.current.data).toEqual({
+        ...recap,
+        week: { ...recap.week, categories: { ...recap.week.categories, writing: 0 } },
+      })
+    );
     expect(fetchWithCsrfMock).toHaveBeenCalledWith(
       expect.stringMatching(/^\/api\/study\/weekly-recap\?timezone=.+&weekStartsOn=2$/),
       expect.objectContaining({ credentials: 'include' })
