@@ -65,6 +65,8 @@ it('shows editor markup above clean corrected text and audio without a legend or
               kind: 'correction',
               suggestion: 'っていう',
               suggestionReading: 'っていう',
+              replacement: 'っていう',
+              replacementReading: 'っていう',
               explanation: 'Add っ.',
               explanationReading: null,
             },

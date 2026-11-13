@@ -2,7 +2,7 @@ import JournalRuby from './JournalRuby';
 import type { JournalSegment } from './types';
 
 const JournalEditText = ({ segment }: { segment: JournalSegment }) => {
-  if (segment.suggestion === null) return <JournalRuby text={segment.reading} />;
+  if (segment.replacement == null) return <JournalRuby text={segment.reading} />;
   return (
     <>
       {segment.text !== '' && (
@@ -10,9 +10,9 @@ const JournalEditText = ({ segment }: { segment: JournalSegment }) => {
           <JournalRuby text={segment.reading} />
         </del>
       )}
-      {segment.suggestion !== '' && (
+      {segment.replacement !== '' && (
         <ins className="rounded bg-emerald-100 px-0.5 text-inherit underline decoration-1 underline-offset-4 dark:bg-emerald-900/50">
-          <JournalRuby text={segment.suggestionReading ?? segment.suggestion} />
+          <JournalRuby text={segment.replacementReading ?? segment.replacement} />
         </ins>
       )}
     </>
