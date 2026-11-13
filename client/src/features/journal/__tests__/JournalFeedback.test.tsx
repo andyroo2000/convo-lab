@@ -15,6 +15,51 @@ const segment: JournalSegment = {
   explanationReading: 'Use 見[み]ました for the past tense.',
 };
 
+it('shows an editor replacement with separate original and corrected readings', () => {
+  render(<JournalHighlight segment={segment} />);
+  const edit = screen.getByRole('button', {
+    name: 'Correction: Replace 映画を見ますた。 with 映画を見ました。',
+  });
+  expect(within(edit).getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
+    '映画えいがを見みますた。'
+  );
+  expect(within(edit).getByText(/ました。/, { selector: 'ins' })).toHaveTextContent(
+    '映画えいがを見みました。'
+  );
+});
+
+it('distinguishes deletion from unavailable suggestion data', () => {
+  const { rerender } = render(
+    <JournalHighlight segment={{ ...segment, suggestion: '', suggestionReading: '' }} />
+  );
+  expect(screen.getByRole('button', { name: 'Correction: Remove 映画を見ますた。' })).toBeVisible();
+  expect(screen.getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
+    '映画えいがを見みますた。'
+  );
+  expect(screen.getByText('', { selector: 'ins' })).toBeEmptyDOMElement();
+  rerender(<JournalHighlight segment={{ ...segment, suggestion: null }} />);
+  expect(screen.queryByText(/ますた。/, { selector: 'del' })).not.toBeInTheDocument();
+  expect(screen.queryByText(/ました。/, { selector: 'ins' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button')).toHaveTextContent('映画えいがを見みますた。');
+});
+
+it('shows optional replacements and falls back to suggestion text without a reading', () => {
+  render(<JournalHighlight segment={{ ...segment, kind: 'optional', suggestionReading: null }} />);
+  expect(screen.getByText(/ました。/, { selector: 'ins' })).toHaveTextContent('映画を見ました。');
+  expect(screen.getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
+    '映画えいがを見みますた。'
+  );
+});
+
+it('renders an insertion without inventing original text', () => {
+  render(<JournalHighlight segment={{ ...segment, text: '', reading: '' }} />);
+  expect(screen.getByRole('button', { name: 'Correction: Insert 映画を見ました。' })).toBeVisible();
+  expect(screen.getByText('', { selector: 'del' })).toBeEmptyDOMElement();
+  expect(screen.getByText(/ました。/, { selector: 'ins' })).toHaveTextContent(
+    '映画えいがを見みました。'
+  );
+});
+
 it('renders older praise segments as ordinary text with readings and no popover', () => {
   const { container } = render(<JournalHighlight segment={{ ...segment, kind: 'keep' }} />);
   expect(container.textContent).toContain('映画えいがを見みますた。');

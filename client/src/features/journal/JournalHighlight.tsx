@@ -2,15 +2,17 @@ import { useId } from 'react';
 import { createPortal } from 'react-dom';
 import useJournalActionPopover from './useJournalActionPopover';
 import JournalRuby from './JournalRuby';
+import JournalEditText from './JournalEditText';
 import JournalSuggestionFooter from './JournalSuggestionFooter';
 import type { JournalSegment } from './types';
 
-const styles = {
-  correction: 'bg-rose-50 decoration-rose-400 decoration-solid',
-  optional: 'bg-amber-50 decoration-amber-500 decoration-dashed',
-  keep: '',
-  plain: '',
+const editDescription = (segment: JournalSegment) => {
+  if (segment.suggestion === null) return segment.text;
+  if (segment.suggestion === '') return `Remove ${segment.text}`;
+  if (segment.text === '') return `Insert ${segment.suggestion}`;
+  return `Replace ${segment.text} with ${segment.suggestion}`;
 };
+
 const labels = {
   correction: 'Correction',
   optional: 'Optional change',
@@ -54,8 +56,8 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
       <button
         ref={anchor}
         type="button"
-        className={`inline rounded px-0.5 leading-normal text-left text-inherit underline decoration-2 underline-offset-4 [box-decoration-break:clone] ${styles[segment.kind]}`}
-        aria-label={`${labels[segment.kind]}: ${segment.text}`}
+        className="inline rounded leading-normal text-left text-inherit [box-decoration-break:clone]"
+        aria-label={`${labels[segment.kind]}: ${editDescription(segment)}`}
         aria-controls={open ? id : undefined}
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -67,7 +69,7 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
         }}
         {...trigger}
       >
-        <JournalRuby text={segment.reading} />
+        <JournalEditText segment={segment} />
       </button>
       {open &&
         createPortal(
