@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import JournalFeedback from '../JournalFeedback';
 import type { JournalAnalysis } from '../types';
@@ -30,6 +30,7 @@ it('keeps one corrected section across repeated saved Apply/Reject revisions', (
   const { rerender } = render(
     <JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Final' }));
   for (let revision = 1; revision <= 6; revision += 1) {
     const text = revision % 2 === 0 ? 'っていう' : 'ていう';
     rerender(
@@ -49,7 +50,7 @@ it('keeps one corrected section across repeated saved Apply/Reject revisions', (
   }
 });
 
-it('shows original highlights above clean corrected text, audio, and a two-kind legend', () => {
+it('switches between highlighted draft and final without showing both', () => {
   render(
     <JournalFeedback
       ownerId="owner"
@@ -76,11 +77,17 @@ it('shows original highlights above clean corrected text, audio, and a two-kind 
     />
   );
   const original = screen.getByRole('button', { name: 'Correction: Replace ていう with っていう' });
+  expect(screen.queryByRole('region', { name: 'Corrected Version' })).not.toBeInTheDocument();
+  expect(screen.getByRole('group', { name: 'Highlight meanings' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Final' }));
   const corrected = screen.getByRole('region', { name: 'Corrected Version' });
   expect(original.compareDocumentPosition(corrected)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   expect(corrected).toHaveTextContent('っていう');
   expect(corrected).toContainElement(screen.getByText('Audio player'));
-  expect(screen.getByRole('group', { name: 'Highlight meanings' })).toBeVisible();
+  expect(original).not.toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Draft' }));
+  expect(original).toBeVisible();
+  expect(corrected).not.toBeVisible();
   expect(screen.getByText('Optional change')).toBeVisible();
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 });
