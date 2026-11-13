@@ -95,3 +95,22 @@ it('ignores a stale server error after audio becomes ready', async () => {
   await screen.findByLabelText("Hana's question");
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
+it('polls a queued recording until ready, then downloads it without autoplay', async () => {
+  const queued = { ...question, audio: { status: 'queued', error: null } };
+  vi.mocked(requestJson)
+    .mockResolvedValueOnce({ data: queued })
+    .mockResolvedValue({ data: question });
+  mount(queued);
+  const player = await screen.findByLabelText("Hana's question", {}, { timeout: 4000 });
+  expect(player).not.toHaveAttribute('autoplay');
+  expect(fetchWithCsrf).toHaveBeenCalledOnce();
+});
+it('shows a recoverable error when preparing audio fails', async () => {
+  const failed = { ...question, audio: { status: 'failed', error: null } };
+  vi.mocked(requestJson).mockResolvedValue({ data: failed });
+  const prepare = vi.fn().mockRejectedValue(new Error('Offline'));
+  mount(failed, prepare);
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry audio' }));
+  await waitFor(() => expect(prepare).toHaveBeenCalledOnce());
+  expect(await screen.findByRole('button', { name: 'Retry audio' })).toBeEnabled();
+});
