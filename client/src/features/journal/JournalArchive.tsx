@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { SquarePen } from 'lucide-react';
 import JournalArchiveRow from './JournalArchiveRow';
 import type useJournalArchive from './useJournalArchive';
 
@@ -14,9 +14,14 @@ const JournalArchive = ({ archive, selectedId, onCreate, onDeleted }: ArchivePro
   <div className="space-y-4 p-5">
     <div className="flex items-center justify-between">
       <h1 className="text-2xl font-semibold text-navy">Journal</h1>
-      <button type="button" className="btn-primary flex items-center gap-1" onClick={onCreate}>
-        <Plus size={18} aria-hidden="true" />
-        New entry
+      <button
+        type="button"
+        aria-label="New entry"
+        title="New entry"
+        className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-indigo/5 text-indigo hover:bg-indigo/10"
+        onClick={onCreate}
+      >
+        <SquarePen size={23} strokeWidth={1.7} aria-hidden="true" />
       </button>
     </div>
     {archive.error && (

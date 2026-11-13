@@ -76,9 +76,13 @@ it('switches between highlighted draft and final without showing both', () => {
       }}
     />
   );
+  expect(screen.getByRole('button', { name: 'Final' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('region', { name: 'Corrected Version' })).toBeVisible();
+  expect(screen.getByText('Audio player')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Draft' }));
   const original = screen.getByRole('button', { name: 'Correction: Replace ていう with っていう' });
   expect(screen.queryByRole('region', { name: 'Corrected Version' })).not.toBeInTheDocument();
-  expect(screen.getByRole('group', { name: 'Highlight meanings' })).toBeVisible();
+  expect(screen.queryByRole('group', { name: 'Highlight meanings' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Final' }));
   const corrected = screen.getByRole('region', { name: 'Corrected Version' });
   expect(original.compareDocumentPosition(corrected)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
@@ -88,6 +92,17 @@ it('switches between highlighted draft and final without showing both', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Draft' }));
   expect(original).toBeVisible();
   expect(corrected).not.toBeVisible();
-  expect(screen.getByText('Optional change')).toBeVisible();
+  expect(screen.queryByText('Optional change')).not.toBeInTheDocument();
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+});
+
+it('opens Final again after remounting even when the previous visit showed Draft', () => {
+  const { unmount } = render(
+    <JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Draft' }));
+  unmount();
+  render(<JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />);
+  expect(screen.getByRole('button', { name: 'Final' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByText('Audio player')).toBeVisible();
 });

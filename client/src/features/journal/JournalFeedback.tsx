@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import JournalVersionPicker from './JournalVersionPicker';
 import JournalAnnotatedText from './JournalAnnotatedText';
-import JournalHighlightLegend from './JournalHighlightLegend';
 import JournalCorrected from './JournalCorrected';
 import { versionText } from './journalVersionText';
 import JournalCopyButton from './JournalCopyButton';
@@ -17,7 +16,9 @@ interface FeedbackProps {
 }
 const JournalFeedback = (props: FeedbackProps) => {
   const { ownerId, entryId, analysis, followUp = true } = props;
-  const [version, setVersion] = useState<'draft' | 'final'>('draft');
+  const [version, setVersion] = useState<'draft' | 'final'>(() =>
+    analysis.result && versionText(analysis, 'final').trim() ? 'final' : 'draft'
+  );
   const controls = useJournalDocument(props);
   const feedback = analysis.result;
   if (!feedback) return null;
@@ -51,9 +52,6 @@ const JournalFeedback = (props: FeedbackProps) => {
             />
           </section>
         )}
-        {[...feedback.segments, ...(reply?.result?.segments ?? [])].some(
-          (segment) => segment.kind === 'correction' || segment.kind === 'optional'
-        ) && <JournalHighlightLegend />}
       </div>
       <div hidden={version !== 'final'}>
         <JournalCorrected key={`corrected:${analysis.id}`} {...props} controls={controls} />
