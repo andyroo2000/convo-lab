@@ -17,6 +17,11 @@ function restore(key: string): Draft {
     return { body: '' };
   }
 }
+function permanentRejection(reason: unknown) {
+  if (!(reason instanceof JsonRequestError)) return false;
+  if ([408, 429].includes(reason.status)) return false;
+  return reason.status >= 400 && reason.status < 500;
+}
 export default function useConversationAnswer(
   key: string,
   entryId: string,
@@ -42,7 +47,7 @@ export default function useConversationAnswer(
     }
   }
   function reportFailure(reason: unknown) {
-    if (reason instanceof JsonRequestError && reason.status === 422) persist({ body: draft.body });
+    if (permanentRejection(reason)) persist({ body: draft.body });
     if (live.current)
       setError(
         reason instanceof Error

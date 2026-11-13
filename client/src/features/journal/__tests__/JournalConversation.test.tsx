@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
 import JournalConversation from '../JournalConversation';
 import useConversationAnswer from '../useConversationAnswer';
+import { JsonRequestError } from '../../../lib/apiClient';
 import { createConversationAnswer, getJournalConversation } from '../journalConversationApi';
 import { getJournalEntry, submitJournalEntry } from '../journalApi';
 import { removeJournalDeviceData } from '../journalDeviceCleanup';
@@ -145,4 +146,15 @@ it('distinguishes a saved answer from a failed conversation reload', async () =>
   expect(result.current.draft.request).toEqual(
     JSON.parse(localStorage.getItem('draft-key')!).request
   );
+});
+
+it.each([404, 409, 422])('keeps rejected answers editable after HTTP %s', async (status) => {
+  vi.mocked(createConversationAnswer).mockRejectedValue(new JsonRequestError('Rejected', status, null));
+  const { result } = renderHook(() =>
+    useConversationAnswer('draft-key', 'root', 'question', vi.fn())
+  );
+  act(() => result.current.change(entry.body));
+  await act(() => result.current.submit());
+  expect(result.current.draft.request).toBeUndefined();
+  expect(result.current.draft.body).toBe(entry.body);
 });
