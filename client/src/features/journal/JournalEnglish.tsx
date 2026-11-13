@@ -13,7 +13,7 @@ const JournalEnglish = ({ translation }: { translation: string }) => {
         className="flex h-11 w-11 items-center justify-center rounded-lg text-xs font-semibold text-indigo hover:bg-white/70"
         aria-label={popover.open ? 'Hide English' : 'Show English'}
         aria-expanded={popover.open}
-        aria-controls={popover.open ? id : undefined}
+        aria-describedby={popover.open ? id : undefined}
         onClick={popover.open ? popover.close : popover.show}
       >
         En
@@ -23,7 +23,7 @@ const JournalEnglish = ({ translation }: { translation: string }) => {
           <div
             id={id}
             ref={popover.popup}
-            role="region"
+            role="tooltip"
             aria-label="English translation"
             style={popover.position}
             className="fixed z-50 w-72 max-w-[calc(100vw-24px)] rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed text-gray-600 shadow-lg"
