@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { createPortal } from 'react-dom';
 import useJournalActionPopover from './useJournalActionPopover';
 import JournalRuby from './JournalRuby';
+import JournalSuggestionFooter from './JournalSuggestionFooter';
 import type { JournalSegment } from './types';
 
 const styles = {
@@ -17,18 +18,13 @@ const labels = {
   plain: '',
 };
 
-function actionLabel(kind: JournalSegment['kind'], applied: boolean) {
-  if (kind === 'correction') return applied ? 'Reject correction' : 'Apply correction';
-  return applied ? 'Undo suggestion' : 'Apply suggestion';
-}
-
 interface HighlightProps {
   segment: JournalSegment;
   action?: { applied: boolean; disabled: boolean; error?: string; toggle: () => Promise<boolean> };
 }
 const JournalNote = ({ segment, action, close }: HighlightProps & { close: () => void }) => (
   <>
-    <p className="text-sm leading-relaxed text-gray-600">
+    <p className="text-sm leading-relaxed">
       <JournalRuby text={segment.explanationReading ?? segment.explanation ?? ''} />
     </p>
     {action?.error && (
@@ -37,27 +33,7 @@ const JournalNote = ({ segment, action, close }: HighlightProps & { close: () =>
       </p>
     )}
     {action ? (
-      <button
-        type="button"
-        disabled={action.disabled}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation();
-            close();
-          }
-        }}
-        className="mt-3 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-indigo hover:bg-indigo/5 disabled:opacity-40"
-        onClick={() => {
-          action
-            .toggle()
-            .then((saved) => {
-              if (saved) close();
-            })
-            .catch(() => undefined);
-        }}
-      >
-        {actionLabel(segment.kind, action.applied)}
-      </button>
+      <JournalSuggestionFooter kind={segment.kind} action={action} close={close} />
     ) : (
       <p className="mt-2 text-xs text-gray-500">
         To change this passage, edit the corrected version.
@@ -101,7 +77,7 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
             role="dialog"
             aria-label={labels[segment.kind]}
             style={position}
-            className="fixed z-50 max-h-[calc(100dvh-24px)] overflow-y-auto w-max max-w-[min(24rem,calc(100vw-24px))] rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
+            className="fixed z-50 max-h-[calc(100dvh-24px)] overflow-y-auto w-max max-w-[min(24rem,calc(100vw-24px))] rounded-[14px] border border-[#e5e7e5] bg-[#fffefa] p-3.5 text-[#173b56] shadow-lg dark:border-[#455055] dark:bg-[#2a3338] dark:text-[#e2e9ee]"
             onPointerEnter={show}
             onPointerLeave={(event) => {
               if (event.pointerType === 'mouse') hide();

@@ -31,7 +31,7 @@ it('opens a compact correction on tap or keyboard focus and closes with Escape',
   expect(popup.textContent).toContain('Use 見みました for the past tense.');
   expect(within(popup).getAllByText('み')).toHaveLength(1);
   expect(within(popup).queryByText('えいが')).not.toBeInTheDocument();
-  expect(popup.className).toContain('p-3');
+  expect(popup.className).toContain('p-3.5');
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   fireEvent.focus(screen.getByRole('button'));
@@ -82,13 +82,14 @@ it('applies optional changes only on request and lets corrections be rejected', 
   );
   expect(toggle).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button'));
+  expect(screen.getByRole('status')).toHaveTextContent('Original kept');
   fireEvent.click(screen.getByRole('button', { name: 'Apply suggestion' }));
   await waitFor(() => expect(toggle).toHaveBeenCalledTimes(1));
-  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
   rerender(
     <JournalHighlight segment={segment} action={{ applied: true, disabled: false, toggle }} />
   );
-  fireEvent.click(screen.getByRole('button'));
+  expect(screen.getByRole('status')).toHaveTextContent('Applied');
   fireEvent.click(screen.getByRole('button', { name: 'Reject correction' }));
   await waitFor(() => expect(toggle).toHaveBeenCalledTimes(2));
 });
