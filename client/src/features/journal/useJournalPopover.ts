@@ -57,9 +57,16 @@ export default function useJournalPopover() {
   useEffect(() => () => clearTimeout(timeout.current), []);
 
   useLayoutEffect(() => {
-    if (!open) return;
-    const placement = positionPopover(anchor.current, popup.current);
-    if (placement) setPosition(placement);
+    if (!open) return undefined;
+    const reposition = () => {
+      const placement = positionPopover(anchor.current, popup.current);
+      if (placement) setPosition(placement);
+    };
+    reposition();
+    if (!popup.current || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(reposition);
+    observer.observe(popup.current);
+    return () => observer.disconnect();
   }, [open]);
 
   useEffect(() => {
