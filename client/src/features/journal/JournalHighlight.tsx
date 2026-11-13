@@ -28,14 +28,14 @@ const JournalNote = ({ segment, action, close }: HighlightProps & { close: () =>
       <JournalRuby text={segment.explanationReading ?? segment.explanation ?? ''} />
     </p>
     {action?.error && (
-      <p role="alert" className="mt-2 text-sm text-rose-700">
+      <p role="alert" className="mt-2 text-sm text-rose-700 dark:text-rose-300">
         {action.error}
       </p>
     )}
     {action ? (
       <JournalSuggestionFooter kind={segment.kind} action={action} close={close} />
     ) : (
-      <p className="mt-2 text-xs text-gray-500">
+      <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
         To change this passage, edit the corrected version.
       </p>
     )}
