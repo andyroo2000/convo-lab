@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Play, Speech } from 'lucide-react';
+import { Play } from 'lucide-react';
+import JournalVoicePicker from './JournalVoicePicker';
 import focusJournalAudio from './journalPlayback';
 import { getJournalAudio } from './journalAudio';
 import useJournalVoice, { type JournalAudioProps } from './useJournalVoice';
@@ -56,14 +57,14 @@ const JournalAudioSession = ({
     }
   }
 
-  function changeVoice(value: string) {
+  const changeVoice = (value: string) => {
     request.current?.abort();
     player.current?.pause();
     voice.choose(value);
     setUrl('');
     setBusy(false);
     setError('');
-  }
+  };
 
   return (
     <div className="space-y-2">
@@ -93,28 +94,13 @@ const JournalAudioSession = ({
             <span className="h-1 flex-1 rounded bg-gray-200" />
           </button>
         )}
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-navy focus-within:ring-2 focus-within:ring-indigo has-[:disabled]:opacity-50">
-          <Speech size={20} aria-hidden="true" />
-          <select
-            aria-label="Narration voice"
-            title="Change narration voice"
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-wait"
-            value={voice.voiceId}
-            onChange={(event) => changeVoice(event.target.value)}
-            disabled={voice.loading || voice.error}
-          >
-            {!voice.voiceId && (
-              <option value="" disabled>
-                Select voice
-              </option>
-            )}
-            {voice.voices.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </div>
+
+        <JournalVoicePicker
+          voices={voice.voices}
+          selected={voice.voiceId}
+          disabled={voice.loading || voice.error}
+          onChoose={changeVoice}
+        />
       </div>
       {error && (
         <p role="alert" className="text-sm text-rose-700">

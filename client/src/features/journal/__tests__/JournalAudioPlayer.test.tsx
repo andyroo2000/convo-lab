@@ -64,7 +64,8 @@ it('downloads corrected audio on demand and releases it when the voice changes',
   expect(getJournalAudio).toHaveBeenCalledWith(
     expect.objectContaining({ entryId: 'entry', analysisId: 'analysis', voiceId: haru })
   );
-  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'yua' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Yua (F)' }));
   expect(screen.queryByLabelText('Corrected version audio')).toBeNull();
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:journal');
 });
@@ -85,9 +86,12 @@ it('keeps a failed download retryable and aborts when leaving the entry', async 
 it('requires an explicit choice when the saved voice is unavailable', async () => {
   vi.mocked(getJournalVoices).mockResolvedValue({ data: [{ id: 'yua', name: 'Yua (F)' }] });
   setup();
-  await waitFor(() => expect(screen.getByRole('combobox')).toBeEnabled());
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Narration voice' })).toBeEnabled()
+  );
   expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeDisabled();
-  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'yua' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Yua (F)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   await waitFor(() =>
     expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'yua' }))
@@ -103,10 +107,14 @@ it('waits for the entry voice before enabling playback, even when the catalog is
       })
   );
   setup();
-  await screen.findByRole('option', { name: 'Yua (F)' });
+  expect(screen.getByRole('button', { name: 'Narration voice' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeDisabled();
   finish({ data: { voiceId: 'yua', hasAudio: true } });
-  await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('yua'));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Narration voice' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
+  expect(screen.getByRole('button', { name: 'Yua (F)' })).toHaveAttribute('aria-pressed', 'true');
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   await waitFor(() =>
     expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'yua' }))
@@ -128,7 +136,11 @@ it('does not guess a voice when preferences fail and supports retry', async () =
 it('uses the server default for an entry without generated audio', async () => {
   vi.mocked(getJournalAudioState).mockResolvedValue({ data: { voiceId: 'yua', hasAudio: false } });
   setup();
-  await waitFor(() => expect(screen.getByRole('combobox')).toHaveValue('yua'));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Narration voice' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
+  expect(screen.getByRole('button', { name: 'Yua (F)' })).toHaveAttribute('aria-pressed', 'true');
   expect(getJournalAudio).not.toHaveBeenCalled();
 });
 
@@ -148,9 +160,24 @@ it('keeps loaded audio usable after playback, tab focus, and reconnect', async (
     focusManager.setFocused(true);
     onlineManager.setOnline(true);
   });
-  expect(screen.getByRole('combobox')).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Narration voice' })).toBeEnabled();
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.queryByText('Loading saved voice…')).toBeNull();
   expect(getJournalAudioState).toHaveBeenCalledTimes(1);
   expect(getJournalVoices).toHaveBeenCalledTimes(1);
+});
+
+it('shows the avatar picker and cancels without changing the saved voice', async () => {
+  setup();
+  const trigger = screen.getByRole('button', { name: 'Narration voice' });
+  await waitFor(() => expect(trigger).toBeEnabled());
+  fireEvent.click(trigger);
+  expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getByRole('button', { name: 'Haru (M)' })).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(screen.queryByRole('region', { name: 'Choose your narration voice' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
+  await waitFor(() =>
+    expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: haru }))
+  );
 });

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2 } from 'lucide-react';
+import JournalAvatar from './JournalAvatar';
 import JournalQuestion from './JournalQuestion';
 import JournalQuestionAudio from './JournalQuestionAudio';
 import JournalTutorPicker from './JournalTutorPicker';
@@ -55,7 +56,7 @@ const TeacherBubble = ({
 }) => (
   <div className="flex items-start gap-3 sm:gap-4">
     {tutor && (
-      <img
+      <JournalAvatar
         src={tutorAvatar(tutor)}
         alt={`${tutor.name}, your tutor`}
         className="h-14 w-14 shrink-0 rounded-full object-cover sm:h-16 sm:w-16"

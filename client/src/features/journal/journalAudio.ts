@@ -5,6 +5,7 @@ import { notifyAuthSessionExpired } from '../../lib/authSession';
 export interface JournalVoice {
   id: string;
   name: string;
+  avatarUrl?: string;
 }
 export const getJournalVoices = () => requestJson<{ data: JournalVoice[] }>('/api/journal/voices');
 
