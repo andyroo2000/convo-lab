@@ -4,6 +4,7 @@ import useJournalActionPopover from './useJournalActionPopover';
 import JournalRuby from './JournalRuby';
 import JournalEditText from './JournalEditText';
 import JournalSuggestionFooter from './JournalSuggestionFooter';
+import { journalHighlightLayout, journalHighlightStyles } from './journalHighlightStyles';
 import type { JournalSegment } from './types';
 
 const editDescription = (segment: JournalSegment) => {
@@ -51,17 +52,14 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
   if (segment.kind === 'plain' || segment.kind === 'keep')
     return <JournalRuby text={segment.reading} />;
 
-  const highlight =
-    segment.kind === 'correction'
-      ? 'border-solid border-[#c76870] bg-[#fbe9e9] dark:border-[#d28c94] dark:bg-[#482c31]'
-      : 'border-dashed border-[#caa33e] bg-[#fff2c5] dark:border-[#cfad55] dark:bg-[#443b25]';
+  const layout = journalHighlightLayout(segment);
 
   return (
     <>
       <button
         ref={anchor}
         type="button"
-        className={`inline rounded border-b px-0.5 py-0.5 leading-normal text-left text-inherit [box-decoration-break:clone] ${highlight}`}
+        className={`${layout} rounded border-b-2 px-0.5 py-0.5 leading-normal text-left text-inherit [box-decoration-break:clone] ${journalHighlightStyles[segment.kind]}`}
         aria-label={`${labels[segment.kind]}: ${editDescription(segment)}`}
         aria-controls={open ? id : undefined}
         aria-expanded={open}

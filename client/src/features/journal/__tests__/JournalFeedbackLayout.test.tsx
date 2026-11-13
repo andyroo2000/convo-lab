@@ -80,7 +80,7 @@ it('shows original highlights above clean corrected text, audio, and a two-kind 
   expect(original.compareDocumentPosition(corrected)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   expect(corrected).toHaveTextContent('っていう');
   expect(corrected).toContainElement(screen.getByText('Audio player'));
-  expect(screen.getByLabelText('Highlight meanings')).toBeVisible();
+  expect(screen.getByRole('group', { name: 'Highlight meanings' })).toBeVisible();
   expect(screen.getByText('Optional change')).toBeVisible();
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 });
