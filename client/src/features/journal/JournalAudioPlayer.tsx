@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Play, Speech } from 'lucide-react';
+import focusJournalAudio from './journalPlayback';
 import { getJournalAudio } from './journalAudio';
 import useJournalVoice, { type JournalAudioProps } from './useJournalVoice';
 
@@ -69,6 +70,8 @@ const JournalAudioSession = ({
       <div className="flex flex-wrap items-center gap-3 rounded-xl bg-gray-50 p-2">
         {url ? (
           <audio
+            data-journal-audio
+            onPlay={(event) => focusJournalAudio(event.currentTarget)}
             ref={player}
             controls
             src={url}

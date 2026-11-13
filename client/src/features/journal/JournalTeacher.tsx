@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2 } from 'lucide-react';
 import JournalQuestion from './JournalQuestion';
+import JournalQuestionAudio from './JournalQuestionAudio';
 import JournalTutorPicker from './JournalTutorPicker';
 import { prepareTutorQuestion, tutorAvatar } from './journalTutor';
 import type { JournalAnalysis, JournalFeedback } from './types';
@@ -44,11 +45,13 @@ const TeacherBubble = ({
   feedback,
   choosing,
   choose,
+  audio,
 }: {
   tutor: JournalTutor | null | undefined;
   feedback: JournalFeedback;
   choosing: boolean;
   choose: () => void;
+  audio: ReactNode;
 }) => (
   <div className="flex items-start gap-3 sm:gap-4">
     {tutor && (
@@ -72,6 +75,7 @@ const TeacherBubble = ({
         </button>
       </div>
       <JournalQuestion feedback={feedback} />
+      {audio}
     </div>
   </div>
 );
@@ -83,10 +87,11 @@ const JournalTeacher = ({ ownerId, entryId, analysis }: Props) => {
     entryId,
     analysis,
   });
+  const pickerOpen = choosing || unassigned;
   if (!feedback) return null;
   return (
     <div className="space-y-3">
-      {(choosing || unassigned) && (
+      {pickerOpen && (
         <JournalTutorPicker
           ownerId={ownerId}
           onClose={unassigned ? undefined : () => setChoosing(false)}
@@ -99,8 +104,16 @@ const JournalTeacher = ({ ownerId, entryId, analysis }: Props) => {
       <TeacherBubble
         tutor={tutor}
         feedback={feedback}
-        choosing={choosing}
+        choosing={pickerOpen}
         choose={() => setChoosing(!choosing)}
+        audio={
+          <JournalQuestionAudio
+            ownerId={ownerId}
+            entryId={entryId}
+            question={question.data?.data}
+            prepare={() => question.refetch({ throwOnError: true })}
+          />
+        }
       />
       {question.error && (
         <p role="alert" className="text-sm text-rose-700">
