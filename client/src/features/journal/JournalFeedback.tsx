@@ -47,8 +47,13 @@ const JournalFeedback = (props: FeedbackProps) => {
           />
         </section>
       )}
-      <JournalCorrected key={analysis.id} {...props} controls={controls} />
-      <JournalFollowUp key={analysis.id} ownerId={ownerId} entryId={entryId} analysis={analysis} />
+      <JournalCorrected key={`corrected:${analysis.id}`} {...props} controls={controls} />
+      <JournalFollowUp
+        key={`follow-up:${analysis.id}`}
+        ownerId={ownerId}
+        entryId={entryId}
+        analysis={analysis}
+      />
     </div>
   );
 };
