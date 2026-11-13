@@ -13,6 +13,12 @@ interface Props {
 }
 const waiting = (question?: TutorQuestion) =>
   ['queued', 'processing'].includes(question?.audio?.status ?? '');
+function audioFailure(question: TutorQuestion) {
+  const { audio } = question;
+  if (!audio) return '';
+  if (['ready', 'queued', 'processing'].includes(audio.status)) return '';
+  return audio.error || 'Audio could not be prepared.';
+}
 function useQuestionAudio({ ownerId, entryId, question, prepare }: Props) {
   const [attempt, setAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
@@ -32,7 +38,7 @@ function useQuestionAudio({ ownerId, entryId, question, prepare }: Props) {
   const recording = useQuestionRecording(entryId, question.id, audio?.status === 'ready', attempt);
   const error =
     recording.error ||
-    audio?.error ||
+    audioFailure(state.data.data) ||
     retryError ||
     (state.error ? 'Audio status is unavailable.' : '');
   async function retry() {

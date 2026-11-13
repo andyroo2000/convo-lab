@@ -19,14 +19,15 @@ const question: TutorQuestion = {
 };
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:question'), revokeObjectURL: vi.fn() });
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:question');
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
   vi.mocked(requestJson).mockResolvedValue({ data: question });
   vi.mocked(fetchWithCsrf).mockResolvedValue(
     new Response(new Blob(['ID3question']), { status: 200 })
   );
 });
 afterEach(() => {
-  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 function mount(value = question, prepare = vi.fn().mockResolvedValue(undefined)) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -78,4 +79,19 @@ it('pauses the diary recording when the question starts playing', async () => {
   expect(other.pause).toHaveBeenCalledOnce();
   view.unmount();
   other.remove();
+});
+
+it('offers retry for failed status without an error message', async () => {
+  const failed = { ...question, audio: { status: 'failed', error: null } };
+  vi.mocked(requestJson).mockResolvedValue({ data: failed });
+  mount(failed);
+  expect(await screen.findByRole('button', { name: 'Retry audio' })).toBeEnabled();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+it('ignores a stale server error after audio becomes ready', async () => {
+  const ready = { ...question, audio: { status: 'ready', error: 'Previous attempt failed' } };
+  vi.mocked(requestJson).mockResolvedValue({ data: ready });
+  mount(ready);
+  await screen.findByLabelText("Hana's question");
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
