@@ -149,7 +149,9 @@ it('distinguishes a saved answer from a failed conversation reload', async () =>
 });
 
 it.each([404, 409, 422])('keeps rejected answers editable after HTTP %s', async (status) => {
-  vi.mocked(createConversationAnswer).mockRejectedValue(new JsonRequestError('Rejected', status, null));
+  vi.mocked(createConversationAnswer).mockRejectedValue(
+    new JsonRequestError('Rejected', status, null)
+  );
   const { result } = renderHook(() =>
     useConversationAnswer('draft-key', 'root', 'question', vi.fn())
   );
