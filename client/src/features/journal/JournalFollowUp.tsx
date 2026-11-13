@@ -1,4 +1,4 @@
-import JournalQuestion from './JournalQuestion';
+import JournalTeacher from './JournalTeacher';
 import JournalAnswerForm from './JournalAnswerForm';
 import useJournalReplies from './useJournalReplies';
 import type { JournalAnalysis } from './types';
@@ -31,7 +31,14 @@ const JournalFollowUp = ({ ownerId, entryId, analysis }: FollowUpProps) => {
           </button>
         </div>
       )}
-      {!reply.draft.replace && <JournalQuestion key={feedback.question} feedback={feedback} />}
+      {!reply.draft.replace && (
+        <JournalTeacher
+          key={analysis.currentReply?.id ?? analysis.id}
+          ownerId={ownerId}
+          entryId={entryId}
+          analysis={analysis}
+        />
+      )}
       <JournalAnswerForm reply={reply} />
     </section>
   );

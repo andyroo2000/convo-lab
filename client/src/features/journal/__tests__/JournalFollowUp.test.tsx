@@ -7,6 +7,13 @@ import useJournalReplies from '../useJournalReplies';
 import { getJournalReply, sendJournalAnswer, undoJournalAnswer } from '../journalReplies';
 import type { JournalAnalysis } from '../types';
 
+vi.mock('../journalTutor', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../journalTutor')>();
+  return {
+    ...original,
+    prepareTutorQuestion: vi.fn().mockImplementation(() => new Promise(() => {})),
+  };
+});
 vi.mock('../journalReplies', () => ({
   getJournalReply: vi.fn(),
   sendJournalAnswer: vi.fn(),
