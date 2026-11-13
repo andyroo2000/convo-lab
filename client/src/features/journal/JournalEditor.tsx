@@ -2,6 +2,8 @@ import { type ReactNode } from 'react';
 import useJournalEditor from './useJournalEditor';
 import useJournalAnalysis from './useJournalAnalysis';
 import JournalEntryHeading from './JournalEntryHeading';
+import JournalDeleteAction from './JournalDeleteAction';
+import type useJournalArchive from './useJournalArchive';
 import JournalEditorForm from './JournalEditorForm';
 import { EditorMessages, FeedbackStatus } from './JournalEditorMessages';
 import type { JournalAnalysis, JournalEntry } from './types';
@@ -12,6 +14,8 @@ interface JournalEditorProps {
   onSaved: (entry: JournalEntry) => void;
   onOpen: (id: string) => void;
   nested?: boolean;
+  remove?: ReturnType<typeof useJournalArchive>['remove'];
+  onDeleted?: (id: string) => void;
   initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
   renderFeedback?: (analysis: JournalAnalysis) => ReactNode;
 }
@@ -43,12 +47,34 @@ function useEditorFeedback({ ownerId, entryId, onSaved, initial }: JournalEditor
   return { editor, analysis, current, processing };
 }
 
+function entryDeleteAction(
+  editor: Editor,
+  processing: boolean,
+  remove: JournalEditorProps['remove'],
+  onDeleted: JournalEditorProps['onDeleted']
+) {
+  return (
+    editor.draft &&
+    remove &&
+    onDeleted && (
+      <JournalDeleteAction
+        draft={editor.draft}
+        disabled={editor.busy || processing}
+        remove={remove}
+        onDeleted={onDeleted}
+      />
+    )
+  );
+}
+
 const JournalEditor = ({
   ownerId,
   entryId,
   onSaved,
   onOpen,
   renderFeedback,
+  remove,
+  onDeleted,
   nested = false,
   initial,
 }: JournalEditorProps) => {
@@ -60,6 +86,7 @@ const JournalEditor = ({
     initial,
   });
   const reviewing = current?.status === 'ready';
+  const deleteAction = entryDeleteAction(editor, processing, remove, onDeleted);
 
   return (
     <article className={nested ? 'space-y-6' : 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8'}>
@@ -67,7 +94,7 @@ const JournalEditor = ({
       {reviewing ? (
         <JournalEntryHeading draft={editor.draft} nested={nested} />
       ) : (
-        <JournalEditorForm editor={editor} processing={processing} />
+        <JournalEditorForm editor={editor} processing={processing} deleteAction={deleteAction} />
       )}
 
       <FeedbackStatus
@@ -78,6 +105,7 @@ const JournalEditor = ({
         }}
       />
       {reviewing && current && renderFeedback?.(current)}
+      {reviewing && deleteAction}
     </article>
   );
 };

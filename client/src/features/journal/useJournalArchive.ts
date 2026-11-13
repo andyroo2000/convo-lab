@@ -35,7 +35,10 @@ export default function useJournalArchive(ownerId: string) {
   }, [refresh]);
 
   const entries = useMemo(() => {
-    const items = new Map<string, Pick<JournalEntry, 'id' | 'title' | 'entryDate' | 'version'>>();
+    const items = new Map<
+      string,
+      Pick<JournalEntry, 'id' | 'title' | 'entryDate' | 'version' | 'body'>
+    >();
     query.data?.pages.forEach((page) => page.data.forEach((entry) => items.set(entry.id, entry)));
     drafts.forEach((draft) =>
       items.set(draft.id, {

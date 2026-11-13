@@ -50,16 +50,23 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   return (
     <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-gray-200 bg-white md:grid md:grid-cols-[20rem_minmax(0,1fr)]">
       <aside
-        className={`${entryId ? 'hidden md:block' : ''} border-r border-gray-100 bg-gray-50/60 md:max-h-[calc(100dvh-8rem)] md:overflow-y-auto`}
+        className="border-gray-100 bg-gray-50/60 md:border-r md:max-h-[calc(100dvh-8rem)] md:overflow-y-auto"
         aria-label="Journal entries"
       >
         <JournalArchive
           archive={archive}
           selectedId={entryId}
           onCreate={create}
-          onDeleted={(id) => {
-            if (entryId === id) navigate('/app/journal');
-          }}
+          appearance={
+            <JournalAppearance
+              value={typography}
+              saved={appearanceSaved}
+              onChange={(value) => {
+                setTypography(value);
+                setAppearanceSaved(saveTypography(value));
+              }}
+            />
+          }
         />
       </aside>
       <section
@@ -74,29 +81,18 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
       >
         {entryId ? (
           <>
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
-              <Link
-                to="/app/journal"
-                className="m-4 inline-flex items-center gap-1 text-sm text-indigo md:hidden"
-              >
-                <ChevronLeft size={18} aria-hidden="true" />
-                Journal
-              </Link>
-              <div className="ml-auto">
-                <JournalAppearance
-                  value={typography}
-                  saved={appearanceSaved}
-                  onChange={(value) => {
-                    setTypography(value);
-                    setAppearanceSaved(saveTypography(value));
-                  }}
-                />
-              </div>
-            </div>
+            <Link
+              to="/app/journal"
+              className="mx-5 mt-3 inline-flex items-center gap-1 text-sm text-indigo md:hidden"
+            >
+              <ChevronLeft size={18} aria-hidden="true" /> Journal
+            </Link>
             <JournalEditor
               key={`${ownerId}:${entryId}`}
               ownerId={ownerId}
               entryId={entryId}
+              remove={archive.remove}
+              onDeleted={() => navigate('/app/journal')}
               onSaved={archive.saved}
               onOpen={open}
               renderFeedback={(analysis) => (
