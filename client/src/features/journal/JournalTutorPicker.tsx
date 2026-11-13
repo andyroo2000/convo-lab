@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check } from 'lucide-react';
+import JournalAvatar from './JournalAvatar';
 import { getTutorPreferences, saveTutorPreference, tutorAvatar } from './journalTutor';
 
 interface Props {
@@ -58,7 +59,11 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
             aria-pressed={preferences.data.data.selectedId === tutor.id}
             className="relative flex flex-col items-center gap-2 rounded-xl border border-gray-200 p-3 text-navy hover:border-indigo hover:bg-indigo/5 focus-visible:outline-indigo disabled:opacity-50"
           >
-            <img src={tutorAvatar(tutor)} alt="" className="h-20 w-20 rounded-full object-cover" />
+            <JournalAvatar
+              src={tutorAvatar(tutor)}
+              alt=""
+              className="h-20 w-20 rounded-full object-cover"
+            />
             <span className="font-medium">
               {tutor.name} ({tutor.gender})
             </span>

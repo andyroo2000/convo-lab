@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Check, Settings2, UserRound } from 'lucide-react';
+import { Check, Settings2 } from 'lucide-react';
+import JournalAvatar from './JournalAvatar';
 import type { JournalVoice } from './journalAudio';
 
 interface Props {
@@ -53,15 +54,10 @@ const JournalVoicePicker = ({ voices, selected, disabled, onChoose }: Props) => 
                 }}
                 className="relative flex flex-col items-center gap-2 rounded-xl border border-gray-200 p-3 text-navy hover:border-indigo hover:bg-indigo/5 focus-visible:outline-indigo disabled:opacity-50"
               >
-                {voice.avatarUrl ? (
-                  <img
-                    src={voice.avatarUrl}
-                    alt=""
-                    className="h-20 w-20 rounded-full object-cover"
-                  />
-                ) : (
-                  <UserRound className="h-20 w-20" aria-hidden="true" />
-                )}
+                <JournalAvatar
+                  src={voice.avatarUrl}
+                  className="h-20 w-20 rounded-full object-cover"
+                />
                 <span className="font-medium">{voice.name}</span>
                 {selected === voice.id && (
                   <Check
