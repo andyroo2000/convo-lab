@@ -1,4 +1,5 @@
 export interface JournalEntry {
+  rootEntryId?: string | null;
   id: string;
   title: string | null;
   body: string;
@@ -8,7 +9,10 @@ export interface JournalEntry {
   updatedAt: string;
 }
 
-export type JournalDraft = Pick<JournalEntry, 'id' | 'title' | 'body' | 'entryDate'> & {
+export type JournalDraft = Pick<
+  JournalEntry,
+  'id' | 'title' | 'body' | 'entryDate' | 'rootEntryId'
+> & {
   expectedVersion: number;
   editId: string;
 };

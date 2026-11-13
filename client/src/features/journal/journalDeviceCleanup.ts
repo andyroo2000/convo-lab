@@ -6,11 +6,23 @@ function keys(storage: Storage): string[] {
   );
 }
 
+function isConversationDraft(storage: Storage, key: string, rootId: string) {
+  try {
+    return JSON.parse(storage.getItem(key) ?? 'null')?.rootEntryId === rootId;
+  } catch {
+    return false;
+  }
+}
+
 export function removeJournalDeviceData(ownerId: string, entryId?: string, storage = localStorage) {
   const draftPrefix = `convolab:journal:v1:${encodeURIComponent(ownerId)}:`;
   const answerPrefix = `convolab:journal-answer:${ownerId}:`;
   keys(storage).forEach((key) => {
-    const isDraft = entryId ? key === `${draftPrefix}${entryId}` : key.startsWith(draftPrefix);
+    const isDraft =
+      key.startsWith(draftPrefix) &&
+      (!entryId ||
+        key === `${draftPrefix}${entryId}` ||
+        isConversationDraft(storage, key, entryId));
     const isAnswer = key.startsWith(entryId ? `${answerPrefix}${entryId}:` : answerPrefix);
     if (isDraft || isAnswer) storage.removeItem(key);
   });

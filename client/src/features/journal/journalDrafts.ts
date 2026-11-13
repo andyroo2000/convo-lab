@@ -5,6 +5,7 @@ import type { JournalDraft, JournalEntry } from './types';
 const draftSchema = z.object({
   id: z.string().regex(/^[0-9a-hjkmnp-tv-z]{26}$/),
   title: z.string().nullable(),
+  rootEntryId: z.string().nullable().optional(),
   body: z.string(),
   entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   expectedVersion: z.number().int().nonnegative(),
@@ -85,6 +86,7 @@ export class JournalDraftStore {
 export function draftFromEntry(entry: JournalEntry): JournalDraft {
   return {
     id: entry.id,
+    rootEntryId: entry.rootEntryId,
     title: entry.title,
     body: entry.body,
     entryDate: entry.entryDate,

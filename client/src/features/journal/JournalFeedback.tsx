@@ -11,9 +11,10 @@ interface FeedbackProps {
   ownerId: string;
   entryId: string;
   analysis: JournalAnalysis;
+  followUp?: boolean;
 }
 const JournalFeedback = (props: FeedbackProps) => {
-  const { ownerId, entryId, analysis } = props;
+  const { ownerId, entryId, analysis, followUp = true } = props;
   const [version, setVersion] = useState<'draft' | 'final'>('draft');
   const controls = useJournalDocument(props);
   const feedback = analysis.result;
@@ -47,12 +48,14 @@ const JournalFeedback = (props: FeedbackProps) => {
       <div hidden={version !== 'final'}>
         <JournalCorrected key={`corrected:${analysis.id}`} {...props} controls={controls} />
       </div>
-      <JournalFollowUp
-        key={`follow-up:${analysis.id}`}
-        ownerId={ownerId}
-        entryId={entryId}
-        analysis={analysis}
-      />
+      {followUp && (
+        <JournalFollowUp
+          key={`follow-up:${analysis.id}`}
+          ownerId={ownerId}
+          entryId={entryId}
+          analysis={analysis}
+        />
+      )}
     </div>
   );
 };

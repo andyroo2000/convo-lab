@@ -11,6 +11,8 @@ interface JournalEditorProps {
   entryId: string;
   onSaved: (entry: JournalEntry) => void;
   onOpen: (id: string) => void;
+  nested?: boolean;
+  initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
   renderFeedback?: (analysis: JournalAnalysis) => ReactNode;
 }
 
@@ -25,32 +27,46 @@ function isProcessing(analysis: JournalAnalysis | null | undefined) {
   return analysis?.status === 'queued' || analysis?.status === 'processing';
 }
 
+function useEditorFeedback({ ownerId, entryId, onSaved, initial }: JournalEditorProps) {
+  const editor = useJournalEditor({ ownerId, entryId, onSaved, initialEntry: initial?.entry });
+  const analysis = useJournalAnalysis({
+    ownerId,
+    entryId,
+    submitted: editor.submitted,
+    submission: editor.submission,
+    initial: initial ? { data: initial.analysis, entry: initial.entry } : undefined,
+    enabled: Boolean(editor.draft?.expectedVersion),
+    onEntry: editor.acceptGeneratedEntry,
+  });
+  const current = currentFeedback(editor, analysis);
+  const processing = isProcessing(current);
+  return { editor, analysis, current, processing };
+}
+
 const JournalEditor = ({
   ownerId,
   entryId,
   onSaved,
   onOpen,
   renderFeedback,
+  nested = false,
+  initial,
 }: JournalEditorProps) => {
   const [editing, setEditing] = useState(false);
-  const editor = useJournalEditor({ ownerId, entryId, onSaved });
-  const analysis = useJournalAnalysis({
+  const { editor, analysis, current, processing } = useEditorFeedback({
     ownerId,
     entryId,
-    submitted: editor.submitted,
-    submission: editor.submission,
-    enabled: Boolean(editor.draft?.expectedVersion),
-    onEntry: editor.acceptGeneratedEntry,
+    onSaved,
+    onOpen,
+    initial,
   });
-  const current = currentFeedback(editor, analysis);
-  const processing = isProcessing(current);
   const reviewing = current?.status === 'ready' && !editing;
 
   return (
-    <article className="mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8">
+    <article className={nested ? 'space-y-6' : 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8'}>
       <EditorMessages editor={editor} onOpen={onOpen} />
       {reviewing ? (
-        <JournalEntryHeading draft={editor.draft} onEdit={() => setEditing(true)} />
+        <JournalEntryHeading draft={editor.draft} nested={nested} onEdit={() => setEditing(true)} />
       ) : (
         <JournalEditorForm
           editor={editor}

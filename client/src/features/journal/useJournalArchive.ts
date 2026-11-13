@@ -19,7 +19,7 @@ export default function useJournalArchive(ownerId: string) {
   });
   const refresh = useCallback(() => {
     try {
-      setDrafts(store.list());
+      setDrafts(store.list().filter((draft) => !draft.rootEntryId));
     } catch {
       setError('Device drafts could not be read. Keep open entries on screen.');
     }

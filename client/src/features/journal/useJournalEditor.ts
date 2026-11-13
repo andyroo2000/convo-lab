@@ -9,9 +9,20 @@ interface EditorOptions {
   ownerId: string;
   entryId: string;
   onSaved: (entry: JournalEntry) => void;
+  initialEntry?: JournalEntry;
 }
 
-export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOptions) {
+function loadEntry(initial: JournalEntry | undefined, id: string, signal: AbortSignal) {
+  return initial?.id === id ? Promise.resolve(initial) : getJournalEntry({ id, signal });
+}
+
+export default function useJournalEditor({
+  ownerId,
+  entryId,
+  onSaved,
+  initialEntry,
+}: EditorOptions) {
+  const initialRef = useRef(initialEntry);
   const store = useMemo(() => new JournalDraftStore(ownerId), [ownerId]);
   const [draft, setDraft] = useState<JournalDraft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +56,7 @@ export default function useJournalEditor({ ownerId, entryId, onSaved }: EditorOp
       setError('Device storage is unavailable. Keep this page open to preserve your writing.');
     }
     if (!local) {
-      getJournalEntry({ id: entryId, signal: controller.signal })
+      loadEntry(initialRef.current, entryId, controller.signal)
         .then((entry) => {
           if (scope.current !== epoch || entry.version <= acceptedVersion.current) return;
           acceptedVersion.current = entry.version;
