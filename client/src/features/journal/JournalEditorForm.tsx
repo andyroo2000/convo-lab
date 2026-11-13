@@ -21,19 +21,7 @@ const JournalEditorForm = ({
   if (!draft) return null;
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label htmlFor="journal-date" className="text-sm text-gray-600">
-          Date
-          <input
-            id="journal-date"
-            aria-label="Entry date"
-            type="date"
-            className="ml-2 rounded-lg border border-gray-200 p-2"
-            value={draft.entryDate}
-            disabled={busy}
-            onChange={(event) => editor.change({ entryDate: event.target.value })}
-          />
-        </label>
+      <div className="flex justify-end">
         <span className="text-xs text-gray-500">{saveStatus(editor)}</span>
       </div>
       <label htmlFor="journal-title" className="block">
