@@ -5,13 +5,23 @@ import JournalQuestion from './JournalQuestion';
 import JournalTutorPicker from './JournalTutorPicker';
 import { prepareTutorQuestion, tutorAvatar } from './journalTutor';
 import type { JournalAnalysis, JournalFeedback } from './types';
-import type { JournalTutor } from './journalTutor';
+import type { JournalTutor, TutorQuestion } from './journalTutor';
 
 interface Props {
   ownerId: string;
   entryId: string;
   analysis: JournalAnalysis;
 }
+function displayedFeedback(source: JournalFeedback | null, saved?: TutorQuestion) {
+  if (!source || !saved) return source;
+  return {
+    ...source,
+    question: saved.text,
+    questionReading: saved.reading,
+    questionTranslation: saved.translation,
+  };
+}
+
 function useTeacherQuestion({ ownerId, entryId, analysis }: Props) {
   const replyId = analysis.currentReply?.id;
   const question = useQuery({
@@ -21,7 +31,10 @@ function useTeacherQuestion({ ownerId, entryId, analysis }: Props) {
     retry: false,
     staleTime: Infinity,
   });
-  const feedback = analysis.currentReply?.result ?? analysis.result;
+  const feedback = displayedFeedback(
+    analysis.currentReply?.result ?? analysis.result,
+    question.data?.data
+  );
   const tutor = question.data?.data.tutor;
   return { question, feedback, tutor, unassigned: tutor === null };
 }
@@ -76,7 +89,7 @@ const JournalTeacher = ({ ownerId, entryId, analysis }: Props) => {
       {(choosing || unassigned) && (
         <JournalTutorPicker
           ownerId={ownerId}
-          onClose={tutor ? () => setChoosing(false) : undefined}
+          onClose={unassigned ? undefined : () => setChoosing(false)}
           onSelected={() => {
             setChoosing(false);
             question.refetch().catch(() => undefined);

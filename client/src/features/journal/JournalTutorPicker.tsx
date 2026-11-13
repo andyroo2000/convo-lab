@@ -7,7 +7,7 @@ interface Props {
   onSelected: () => void;
   onClose?: () => void;
 }
-const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
+function useTutorChoice(ownerId: string, onSelected: () => void) {
   const client = useQueryClient();
   const key = ['journal-tutor', ownerId];
   const preferences = useQuery({ queryKey: key, queryFn: getTutorPreferences, retry: false });
@@ -18,6 +18,15 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
       onSelected();
     },
   });
+  const retry = () => {
+    if (save.error && save.variables) save.mutate(save.variables);
+    else preferences.refetch().catch(() => undefined);
+  };
+  return { preferences, save, retry };
+}
+
+const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
+  const { preferences, save, retry } = useTutorChoice(ownerId, onSelected);
   return (
     <section
       aria-label="Choose your tutor"
@@ -54,11 +63,7 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
               {tutor.name} ({tutor.gender})
             </span>
             {preferences.data.data.selectedId === tutor.id && (
-              <Check
-                size={16}
-                className="absolute right-2 top-2 text-indigo"
-                aria-label="Current default"
-              />
+              <Check size={16} className="absolute right-2 top-2 text-indigo" aria-hidden="true" />
             )}
           </button>
         ))}
@@ -76,13 +81,7 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
       {(preferences.error || save.error) && (
         <p role="alert" className="mt-2 text-sm text-rose-700">
           Your tutor could not be saved or loaded.{' '}
-          <button
-            type="button"
-            className="underline"
-            onClick={() => {
-              preferences.refetch().catch(() => undefined);
-            }}
-          >
+          <button type="button" className="underline" onClick={retry}>
             Try again
           </button>
         </p>

@@ -97,4 +97,7 @@ it('keeps the chooser available when the preference cannot be saved', async () =
   expect(await screen.findByRole('alert')).toHaveTextContent('could not be saved');
   expect(screen.getByRole('button', { name: 'Hana (F)' })).toBeEnabled();
   expect(selected).toBeNull();
+  vi.mocked(saveTutorPreference).mockResolvedValue({ data: { selectedId: 'hana', tutors } });
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await waitFor(() => expect(saveTutorPreference).toHaveBeenCalledTimes(2));
 });

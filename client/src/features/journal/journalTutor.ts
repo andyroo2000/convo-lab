@@ -17,8 +17,12 @@ export interface TutorQuestion {
   translation: string;
   tutor: JournalTutor | null;
 }
+const tutorAvatars: Record<string, string> = {
+  'hana-v1': '/images/journal/hana-v1.png',
+  'ren-v1': '/images/journal/ren-v1.png',
+};
 export const tutorAvatar = (tutor: JournalTutor) =>
-  tutor.id === 'hana' ? '/images/journal/hana-v1.png' : '/images/journal/ren-v1.png';
+  tutorAvatars[tutor.avatar] ?? tutorAvatars[`${tutor.id}-v1`];
 export const getTutorPreferences = () =>
   requestJson<{ data: TutorPreferences }>('/api/journal/tutor');
 export const saveTutorPreference = (tutorId: string) =>
