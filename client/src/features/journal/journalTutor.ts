@@ -11,6 +11,7 @@ export interface TutorPreferences {
   tutors: JournalTutor[];
 }
 export interface TutorQuestion {
+  audio?: { status: string; error: string | null };
   id: string;
   text: string;
   reading: string;
