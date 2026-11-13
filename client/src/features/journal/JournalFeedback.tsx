@@ -18,17 +18,6 @@ const JournalFeedback = (props: FeedbackProps) => {
   return (
     <div className="space-y-8">
       <div>
-        <div
-          className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600"
-          aria-label="Highlight meanings"
-        >
-          <span className="underline decoration-rose-400 decoration-2 underline-offset-4">
-            Correction
-          </span>
-          <span className="underline decoration-dashed decoration-amber-500 decoration-2 underline-offset-4">
-            Optional change
-          </span>
-        </div>
         <JournalAnnotatedText
           sourceId={analysis.id}
           feedback={feedback}
