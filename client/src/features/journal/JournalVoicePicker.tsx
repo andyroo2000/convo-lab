@@ -47,6 +47,7 @@ const JournalVoicePicker = ({ voices, selected, disabled, onChoose }: Props) => 
                 key={voice.id}
                 type="button"
                 disabled={disabled}
+                aria-label={voice.name}
                 aria-pressed={selected === voice.id}
                 onClick={() => {
                   onChoose(voice.id);
@@ -58,7 +59,6 @@ const JournalVoicePicker = ({ voices, selected, disabled, onChoose }: Props) => 
                   src={voice.avatarUrl}
                   className="h-20 w-20 rounded-full object-cover"
                 />
-                <span className="font-medium">{voice.name}</span>
                 {selected === voice.id && (
                   <Check
                     size={16}

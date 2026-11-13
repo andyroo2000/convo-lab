@@ -56,6 +56,7 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
             type="button"
             disabled={save.isPending}
             onClick={() => save.mutate(tutor.id)}
+            aria-label={`${tutor.name} (${tutor.gender})`}
             aria-pressed={preferences.data.data.selectedId === tutor.id}
             className="relative flex flex-col items-center gap-2 rounded-xl border border-gray-200 p-3 text-navy hover:border-indigo hover:bg-indigo/5 focus-visible:outline-indigo disabled:opacity-50"
           >
@@ -64,9 +65,6 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
               alt=""
               className="h-20 w-20 rounded-full object-cover"
             />
-            <span className="font-medium">
-              {tutor.name} ({tutor.gender})
-            </span>
             {preferences.data.data.selectedId === tutor.id && (
               <Check size={16} className="absolute right-2 top-2 text-indigo" aria-hidden="true" />
             )}
