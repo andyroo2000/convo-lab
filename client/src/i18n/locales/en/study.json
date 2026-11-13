@@ -554,6 +554,7 @@
     "title": "Study Time",
     "description": "See where your Japanese time goes across card reviews, listening, card making, immersion, conversation, and WaniKani.",
     "totals": {
+      "writing": "Writing",
       "total": "Total",
       "review": "Card review",
       "listen": "Listen",
@@ -616,6 +617,7 @@
       "dailyAudio": "Daily audio",
       "tv": "TV or film",
       "podcast": "Podcast",
+      "journal": "Journal",
       "reading": "Reading",
       "conversation": "Conversation",
       "wanikaniReview": "WaniKani reviews",

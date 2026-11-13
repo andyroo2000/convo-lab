@@ -45,7 +45,7 @@ type PersistCompleted = (session: StudyActivitySessionDraft) => Promise<void>;
 
 interface StudyActivityActionsContextValue {
   start: (options: StartOptions) => void;
-  trackReading: (name: string) => () => void;
+  trackReading: (name: string, activity?: 'reading' | 'journal') => () => void;
   stop: (activity?: StudyActivityKind, name?: string) => void;
   stopAndWait: (activity?: StudyActivityKind, name?: string) => Promise<void>;
   addCreatedCards: (count?: number) => void;
@@ -360,7 +360,7 @@ function recoveryLimitFor(source: StudyActivitySource) {
 }
 
 function isAutomaticReading(activity: ActiveStudyActivity) {
-  return activity.activity === 'reading' && activity.source === 'automatic';
+  return ['reading', 'journal'].includes(activity.activity) && activity.source === 'automatic';
 }
 
 function useTrackReading(
@@ -371,7 +371,7 @@ function useTrackReading(
   enabled: boolean
 ) {
   return useCallback(
-    (name: string) => {
+    (name: string, activity: 'reading' | 'journal' = 'reading') => {
       const previous = activeRef.current;
       if (!enabled || previous?.source === 'manual') return () => undefined;
       if (previous) {
@@ -383,7 +383,7 @@ function useTrackReading(
         const { current } = activeRef;
         if (current || document.visibilityState !== 'visible') return;
         start({
-          activity: 'reading',
+          activity,
           source: 'automatic',
           name: Array.from(name).slice(0, 120).join(''),
         });

@@ -111,6 +111,7 @@ function studyActivityCategories(
   value: unknown
 ): StudyClientCapabilities['studyActivity']['categoriesByActivity'] {
   const categories = record(value, 'study capabilities.studyActivity.categoriesByActivity');
+  if (categories.journal === undefined) categories.journal = 'writing';
 
   return Object.fromEntries(
     STUDY_ACTIVITY_KINDS.map((activity) => {
@@ -357,6 +358,7 @@ function decodeStudyCardPresentationPayload(value: JsonRecord) {
 
 function numericCategories(value: unknown, { path }: DecoderLocation) {
   const categories = record(value, path);
+  if (categories.writing === undefined) categories.writing = 0;
   STUDY_ACTIVITY_CATEGORIES.forEach((category) =>
     number(categories[category], `${path}.${category}`)
   );
