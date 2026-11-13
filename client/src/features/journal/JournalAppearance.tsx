@@ -16,13 +16,12 @@ const JournalAppearance = ({ value, onChange, saved }: Props) => {
         type="button"
         aria-label="Journal appearance"
         aria-haspopup="dialog"
-        className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-indigo hover:bg-indigo/5"
+        className="flex h-11 w-[52px] items-center justify-center rounded-[10px] border border-indigo/60 text-indigo hover:border-indigo hover:bg-indigo/5"
         onClick={() => dialog.current?.showModal()}
       >
         <span aria-hidden="true" className="text-lg">
           Aa
-        </span>{' '}
-        Appearance
+        </span>
       </button>
       <dialog
         ref={dialog}

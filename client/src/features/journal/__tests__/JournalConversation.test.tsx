@@ -80,14 +80,24 @@ it('keeps independent Draft/Final controls without appending the child to the ro
   );
   await screen.findByText('Your reply');
   expect(screen.getAllByRole('button', { name: 'Draft' })).toHaveLength(2);
-  fireEvent.click(screen.getAllByRole('button', { name: 'Final' })[1]);
-  expect(screen.getByRole('region', { name: 'Corrected Version' })).toHaveTextContent(
+  expect(screen.getAllByRole('button', { name: 'Final' })[1]).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  expect(screen.getAllByRole('region', { name: 'Corrected Version' })[1]).toHaveTextContent(
     '友達と見ました。'
   );
-  fireEvent.click(screen.getAllByRole('button', { name: 'Final' })[0]);
+  expect(screen.getAllByRole('button', { name: 'Final' })[0]).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
   const root = screen.getAllByRole('region', { name: 'Corrected Version' })[0];
   expect(root).toHaveTextContent('映画を見ました。');
   expect(root).not.toHaveTextContent('友達');
+  fireEvent.click(screen.getAllByRole('button', { name: 'Draft' })[1]);
+  expect(screen.getAllByRole('region', { name: 'Corrected Version' })).toEqual([root]);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Final' })[1]);
+  expect(screen.getAllByRole('region', { name: 'Corrected Version' })).toHaveLength(2);
   expect(getJournalEntry).not.toHaveBeenCalled();
   expect(screen.getAllByText('Answer composer')).toHaveLength(1);
 });

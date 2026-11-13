@@ -42,6 +42,7 @@ it('copies the selected version and follows saved correction changes without fur
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
   const { rerender } = render(<JournalFeedback {...props} followUp={false} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Draft' }));
   fireEvent.click(screen.getByRole('button', { name: 'Copy draft text' }));
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('映画を見ますた。'));
   fireEvent.click(screen.getByRole('button', { name: 'Final' }));
