@@ -36,7 +36,7 @@ it('distinguishes deletion from unavailable suggestion data', () => {
   expect(screen.getByText(/ますた。/, { selector: 'del' })).toHaveTextContent(
     '映画えいがを見みますた。'
   );
-  expect(screen.getByText('', { selector: 'ins' })).toBeEmptyDOMElement();
+  expect(screen.queryByText('', { selector: 'ins' })).not.toBeInTheDocument();
   rerender(<JournalHighlight segment={{ ...segment, suggestion: null }} />);
   expect(screen.queryByText(/ますた。/, { selector: 'del' })).not.toBeInTheDocument();
   expect(screen.queryByText(/ました。/, { selector: 'ins' })).not.toBeInTheDocument();
@@ -54,7 +54,7 @@ it('shows optional replacements and falls back to suggestion text without a read
 it('renders an insertion without inventing original text', () => {
   render(<JournalHighlight segment={{ ...segment, text: '', reading: '' }} />);
   expect(screen.getByRole('button', { name: 'Correction: Insert 映画を見ました。' })).toBeVisible();
-  expect(screen.getByText('', { selector: 'del' })).toBeEmptyDOMElement();
+  expect(screen.queryByText('', { selector: 'del' })).not.toBeInTheDocument();
   expect(screen.getByText(/ました。/, { selector: 'ins' })).toHaveTextContent(
     '映画えいがを見みました。'
   );
