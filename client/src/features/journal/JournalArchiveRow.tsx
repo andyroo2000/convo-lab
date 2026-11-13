@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
+import JournalDeleteDialog from './JournalDeleteDialog';
 import type useJournalArchive from './useJournalArchive';
 
 type Archive = ReturnType<typeof useJournalArchive>;
@@ -13,19 +14,7 @@ interface RowProps {
 
 const JournalArchiveRow = ({ entry, selected, remove, onDeleted }: RowProps) => {
   const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
   const title = entry.title || 'Untitled entry';
-  async function deleteEntry() {
-    if (!confirming) {
-      setConfirming(true);
-      return;
-    }
-    setBusy(true);
-    const deleted = await remove(entry);
-    setBusy(false);
-    setConfirming(false);
-    if (deleted) onDeleted(entry.id);
-  }
   return (
     <li
       className={`group rounded-xl border ${selected ? 'border-indigo/30 bg-indigo/5' : 'border-gray-100 bg-white'}`}
@@ -41,33 +30,22 @@ const JournalArchiveRow = ({ entry, selected, remove, onDeleted }: RowProps) => 
         </Link>
         <button
           type="button"
-          aria-label={`${confirming ? 'Confirm delete' : 'Delete'} ${title}`}
+          aria-label={`Delete ${title}`}
+          aria-haspopup="dialog"
           aria-expanded={confirming}
-          disabled={busy}
           className="mr-2 rounded-lg focus-visible:ring-2 focus-visible:ring-indigo p-2 text-gray-400 hover:bg-rose-50 hover:text-rose-700"
-          onClick={() => {
-            deleteEntry().catch(() => setBusy(false));
-          }}
+          onClick={() => setConfirming(true)}
         >
-          {confirming ? (
-            <span className="text-sm text-rose-700">Confirm</span>
-          ) : (
-            <Trash2 size={16} aria-hidden="true" />
-          )}
+          <Trash2 size={16} aria-hidden="true" />
         </button>
       </div>
       {confirming && (
-        <div className="flex items-center justify-between px-4 pb-3 text-sm">
-          <span>Delete this entry?</span>
-          <button
-            type="button"
-            className="text-indigo"
-            onClick={() => setConfirming(false)}
-            disabled={busy}
-          >
-            Cancel
-          </button>
-        </div>
+        <JournalDeleteDialog
+          entry={entry}
+          remove={remove}
+          onDeleted={onDeleted}
+          onCancel={() => setConfirming(false)}
+        />
       )}
     </li>
   );
