@@ -45,6 +45,7 @@ describe('buildStudyTimeAnalyticsProjection', () => {
       { category: 'review', included: false, totalMs: 40 * 60_000 },
       { category: 'listen', included: true, totalMs: 15 * 60_000 },
       { category: 'create', included: false, totalMs: 0 },
+      { category: 'writing', included: false, totalMs: 0 },
       { category: 'immerse', included: false, totalMs: 0 },
       { category: 'conversation', included: false, totalMs: 60 * 60_000 },
       { category: 'wanikani', included: false, totalMs: 0 },

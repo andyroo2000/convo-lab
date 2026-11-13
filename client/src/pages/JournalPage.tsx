@@ -9,6 +9,7 @@ import {
 import JournalAppearance from '../features/journal/JournalAppearance';
 import { useAuth } from '../contexts/AuthContext';
 import { KnownKanjiProvider } from '../contexts/KnownKanjiContext';
+import useJournalActivity from '../features/journal/useJournalActivity';
 import JournalArchive from '../features/journal/JournalArchive';
 import JournalEditor from '../features/journal/JournalEditor';
 import JournalConversation from '../features/journal/JournalConversation';
@@ -30,6 +31,7 @@ function useJournalListScroll(entryId?: string) {
 
 const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   const { entryId } = useParams();
+  useJournalActivity(ownerId);
   const [typography, setTypography] = useState(readTypography);
   const [appearanceSaved, setAppearanceSaved] = useState(true);
   const navigate = useNavigate();

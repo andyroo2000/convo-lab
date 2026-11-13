@@ -30,6 +30,7 @@ export const studyActivityKeys = {
 async function activityRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers ?? {});
   headers.set('Accept', 'application/json');
+  headers.set('X-Study-Writing', '1');
   if (init?.body) headers.set('Content-Type', 'application/json');
   const response = await fetchWithCsrf(studyApiPath(path), {
     ...init,

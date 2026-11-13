@@ -16,6 +16,7 @@ export function studyCategoryTotals(
     review: 0,
     listen: 0,
     create: 0,
+    writing: 0,
     immerse: 0,
     conversation: 0,
     wanikani: 0,

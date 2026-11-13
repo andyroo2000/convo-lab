@@ -39,8 +39,8 @@ describe('ActiveStudyTimer', () => {
     expect(stopMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not show timer controls while card creation is tracked', () => {
-    activityState.activity = 'card_creation';
+  it.each(['card_creation', 'reading', 'journal'])('hides timer controls for %s', (activity) => {
+    activityState.activity = activity;
 
     render(
       <MemoryRouter>
