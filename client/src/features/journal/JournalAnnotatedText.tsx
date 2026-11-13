@@ -1,3 +1,4 @@
+import { journalTextStyle } from './journalTypography';
 import JournalHighlight from './JournalHighlight';
 import type { JournalAnalysis, JournalFeedback } from './types';
 import type { JournalDocumentControls } from './useJournalDocument';
@@ -9,7 +10,11 @@ interface Props {
   controls: JournalDocumentControls;
 }
 const JournalAnnotatedText = ({ sourceId, feedback, analysis, controls }: Props) => (
-  <div lang="ja" className="whitespace-pre-wrap text-xl leading-[2.7] text-navy">
+  <div
+    style={journalTextStyle}
+    lang="ja"
+    className="whitespace-pre-wrap text-xl leading-[2.7] text-navy"
+  >
     {feedback.segments.map((segment, index) => {
       // The API identifies replacements by their unchanged source segment index.
       const id = `${sourceId}:${index}`;

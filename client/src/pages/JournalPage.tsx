@@ -1,6 +1,12 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
+import {
+  journalFonts,
+  readTypography,
+  saveTypography,
+} from '../features/journal/journalTypography';
+import JournalAppearance from '../features/journal/JournalAppearance';
 import { useAuth } from '../contexts/AuthContext';
 import { KnownKanjiProvider } from '../contexts/KnownKanjiContext';
 import JournalArchive from '../features/journal/JournalArchive';
@@ -24,6 +30,8 @@ function useJournalListScroll(entryId?: string) {
 
 const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   const { entryId } = useParams();
+  const [typography, setTypography] = useState(readTypography);
+  const [appearanceSaved, setAppearanceSaved] = useState(true);
   const navigate = useNavigate();
   const archive = useJournalArchive(ownerId);
   const { refresh } = archive;
@@ -54,17 +62,35 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
       </aside>
       <section
         aria-label="Journal entry"
+        style={
+          {
+            '--journal-font': journalFonts[typography.font],
+            '--journal-size': `${typography.size}px`,
+          } as CSSProperties
+        }
         className={entryId ? 'min-w-0' : 'hidden md:flex md:items-center md:justify-center'}
       >
         {entryId ? (
           <>
-            <Link
-              to="/app/journal"
-              className="m-4 inline-flex items-center gap-1 text-sm text-indigo md:hidden"
-            >
-              <ChevronLeft size={18} aria-hidden="true" />
-              Journal
-            </Link>
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+              <Link
+                to="/app/journal"
+                className="m-4 inline-flex items-center gap-1 text-sm text-indigo md:hidden"
+              >
+                <ChevronLeft size={18} aria-hidden="true" />
+                Journal
+              </Link>
+              <div className="ml-auto">
+                <JournalAppearance
+                  value={typography}
+                  saved={appearanceSaved}
+                  onChange={(value) => {
+                    setTypography(value);
+                    setAppearanceSaved(saveTypography(value));
+                  }}
+                />
+              </div>
+            </div>
             <JournalEditor
               key={`${ownerId}:${entryId}`}
               ownerId={ownerId}
