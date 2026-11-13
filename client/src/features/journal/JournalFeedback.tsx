@@ -3,6 +3,8 @@ import JournalVersionPicker from './JournalVersionPicker';
 import JournalAnnotatedText from './JournalAnnotatedText';
 import JournalHighlightLegend from './JournalHighlightLegend';
 import JournalCorrected from './JournalCorrected';
+import { versionText } from './journalVersionText';
+import JournalCopyButton from './JournalCopyButton';
 import JournalFollowUp from './JournalFollowUp';
 import useJournalDocument from './useJournalDocument';
 import type { JournalAnalysis } from './types';
@@ -20,9 +22,17 @@ const JournalFeedback = (props: FeedbackProps) => {
   const feedback = analysis.result;
   if (!feedback) return null;
   const reply = analysis.currentReply;
+  const copyText = versionText(analysis, version);
   return (
     <div className="space-y-8">
-      <JournalVersionPicker value={version} onChange={setVersion} />
+      <div className="flex items-center gap-2">
+        <JournalVersionPicker value={version} onChange={setVersion} />
+        <JournalCopyButton
+          key={`${version}:${copyText}`}
+          text={copyText}
+          label={`Copy ${version} text`}
+        />
+      </div>
       <div hidden={version !== 'draft'} className="space-y-6">
         <JournalAnnotatedText
           sourceId={analysis.id}

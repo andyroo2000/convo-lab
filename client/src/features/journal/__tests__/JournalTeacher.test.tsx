@@ -77,7 +77,11 @@ it('asks for the first tutor, saves the choice, and shows their portrait with hi
   expect(screen.queryByText('Who did you watch it with?')).not.toBeInTheDocument();
   expect(screen.getByText('だれ')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Show English' }));
-  expect(screen.getByText('Who did you watch it with?')).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'English translation' })).toHaveTextContent(
+    'Who did you watch it with?'
+  );
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(screen.queryByRole('region', { name: 'English translation' })).not.toBeInTheDocument();
 });
 it('changes the account default while keeping the existing question with its original tutor', async () => {
   selected = 'hana';
