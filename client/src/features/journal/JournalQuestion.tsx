@@ -1,26 +1,24 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { journalTextStyle } from './journalTypography';
 import JournalRuby from './JournalRuby';
+import JournalEnglish from './JournalEnglish';
 import type { JournalFeedback } from './types';
 
-const JournalQuestion = ({ feedback }: { feedback: JournalFeedback }) => {
-  const [showEnglish, setShowEnglish] = useState(false);
-  return (
-    <div className="space-y-3">
-      <p style={journalTextStyle} lang="ja" className="text-xl leading-loose text-navy">
-        <JournalRuby text={feedback.questionReading} />
-      </p>
-      <button
-        type="button"
-        className="min-h-11 min-w-11 rounded-lg px-2 text-xs font-semibold tracking-wide text-indigo hover:bg-white/70"
-        aria-label={showEnglish ? 'Hide English' : 'Show English'}
-        aria-expanded={showEnglish}
-        onClick={() => setShowEnglish(!showEnglish)}
-      >
-        EN
-      </button>
-      {showEnglish && <p className="text-sm text-gray-600">{feedback.questionTranslation}</p>}
+const JournalQuestion = ({
+  feedback,
+  controls,
+}: {
+  feedback: JournalFeedback;
+  controls?: ReactNode;
+}) => (
+  <div className="flow-root">
+    <div className="relative z-10 -mr-1 -mt-1 ml-2 flex float-right">
+      <JournalEnglish translation={feedback.questionTranslation} />
+      {controls}
     </div>
-  );
-};
+    <p style={journalTextStyle} lang="ja" className="text-xl leading-[2.05] text-navy">
+      <JournalRuby text={feedback.questionReading} />
+    </p>
+  </div>
+);
 export default JournalQuestion;

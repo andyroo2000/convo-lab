@@ -70,19 +70,21 @@ const TeacherBubble = ({
         className="h-14 w-14 shrink-0 rounded-full object-cover sm:h-16 sm:w-16"
       />
     )}
-    <div className="relative min-w-0 flex-1 rounded-2xl bg-[#edf5ff] p-4 before:absolute before:-left-2 before:top-6 before:h-4 before:w-4 before:rotate-45 before:bg-[#edf5ff] sm:p-5">
-      <div className="mb-2 flex items-center justify-end gap-3">
-        <button
-          type="button"
-          onClick={choose}
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-indigo hover:bg-white"
-          aria-label="Choose tutor"
-          aria-expanded={choosing}
-        >
-          <Settings2 size={18} aria-hidden="true" />
-        </button>
-      </div>
-      <JournalQuestion feedback={feedback} />
+    <div className="relative min-w-0 flex-1 rounded-2xl bg-[#edf5ff] px-4 py-3 before:absolute before:-left-2 before:top-6 before:h-4 before:w-4 before:rotate-45 before:bg-[#edf5ff] sm:px-5 sm:py-3">
+      <JournalQuestion
+        feedback={feedback}
+        controls={
+          <button
+            type="button"
+            onClick={choose}
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-indigo hover:bg-white"
+            aria-label="Choose tutor"
+            aria-expanded={choosing}
+          >
+            <Settings2 size={18} aria-hidden="true" />
+          </button>
+        }
+      />
       {audio}
     </div>
   </div>

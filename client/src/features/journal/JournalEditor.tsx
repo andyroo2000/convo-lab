@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import useJournalEditor from './useJournalEditor';
 import useJournalAnalysis from './useJournalAnalysis';
 import JournalEntryHeading from './JournalEntryHeading';
@@ -52,7 +52,6 @@ const JournalEditor = ({
   nested = false,
   initial,
 }: JournalEditorProps) => {
-  const [editing, setEditing] = useState(false);
   const { editor, analysis, current, processing } = useEditorFeedback({
     ownerId,
     entryId,
@@ -60,19 +59,15 @@ const JournalEditor = ({
     onOpen,
     initial,
   });
-  const reviewing = current?.status === 'ready' && !editing;
+  const reviewing = current?.status === 'ready';
 
   return (
     <article className={nested ? 'space-y-6' : 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8'}>
       <EditorMessages editor={editor} onOpen={onOpen} />
       {reviewing ? (
-        <JournalEntryHeading draft={editor.draft} nested={nested} onEdit={() => setEditing(true)} />
+        <JournalEntryHeading draft={editor.draft} nested={nested} />
       ) : (
-        <JournalEditorForm
-          editor={editor}
-          processing={processing}
-          onSubmitted={() => setEditing(false)}
-        />
+        <JournalEditorForm editor={editor} processing={processing} />
       )}
 
       <FeedbackStatus

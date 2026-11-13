@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
-const JournalCopyButton = ({ text }: { text: string }) => {
+const JournalCopyButton = ({
+  text,
+  label: copyLabel = 'Copy corrected version',
+}: {
+  text: string;
+  label?: string;
+}) => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -18,7 +24,7 @@ const JournalCopyButton = ({ text }: { text: string }) => {
       setError(true);
     }
   }
-  const label = copied ? 'Copied' : 'Copy corrected version';
+  const label = copied ? 'Copied' : copyLabel;
   const Icon = copied ? Check : Copy;
   return (
     <div className="relative">
@@ -41,7 +47,7 @@ const JournalCopyButton = ({ text }: { text: string }) => {
           role="alert"
           className="absolute right-0 top-full z-10 w-64 rounded-lg border border-rose-100 bg-white p-3 text-sm text-rose-700 shadow-sm"
         >
-          Could not copy. Select the corrected text to copy it.
+          Could not copy. Select the text to copy it.
         </p>
       )}
     </div>
