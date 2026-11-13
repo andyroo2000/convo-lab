@@ -1,4 +1,5 @@
 import JournalAnnotatedText from './JournalAnnotatedText';
+import JournalHighlightLegend from './JournalHighlightLegend';
 import JournalCorrected from './JournalCorrected';
 import JournalFollowUp from './JournalFollowUp';
 import useJournalDocument from './useJournalDocument';
@@ -36,6 +37,9 @@ const JournalFeedback = (props: FeedbackProps) => {
           />
         </section>
       )}
+      {[...feedback.segments, ...(reply?.result?.segments ?? [])].some(
+        (segment) => segment.kind === 'correction' || segment.kind === 'optional'
+      ) && <JournalHighlightLegend />}
       <JournalCorrected key={`corrected:${analysis.id}`} {...props} controls={controls} />
       <JournalFollowUp
         key={`follow-up:${analysis.id}`}

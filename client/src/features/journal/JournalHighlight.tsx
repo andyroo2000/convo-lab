@@ -4,6 +4,7 @@ import useJournalActionPopover from './useJournalActionPopover';
 import JournalRuby from './JournalRuby';
 import JournalEditText from './JournalEditText';
 import JournalSuggestionFooter from './JournalSuggestionFooter';
+import { journalHighlightLayout, journalHighlightStyles } from './journalHighlightStyles';
 import type { JournalSegment } from './types';
 
 const editDescription = (segment: JournalSegment) => {
@@ -51,12 +52,14 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
   if (segment.kind === 'plain' || segment.kind === 'keep')
     return <JournalRuby text={segment.reading} />;
 
+  const layout = journalHighlightLayout(segment);
+
   return (
     <>
       <button
         ref={anchor}
         type="button"
-        className="inline rounded leading-normal text-left text-inherit [box-decoration-break:clone]"
+        className={`${layout} rounded border-b-2 px-0.5 py-0.5 leading-normal text-left text-inherit [box-decoration-break:clone] ${journalHighlightStyles[segment.kind]}`}
         aria-label={`${labels[segment.kind]}: ${editDescription(segment)}`}
         aria-controls={open ? id : undefined}
         aria-expanded={open}
@@ -79,7 +82,7 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
             role="dialog"
             aria-label={labels[segment.kind]}
             style={position}
-            className="fixed z-50 max-h-[calc(100dvh-24px)] overflow-y-auto w-max max-w-[min(24rem,calc(100vw-24px))] rounded-[14px] border border-[#e5e7e5] bg-[#fffefa] p-3.5 text-[#173b56] shadow-lg dark:border-[#455055] dark:bg-[#2a3338] dark:text-[#e2e9ee]"
+            className="fixed z-50 max-h-[calc(100dvh-24px)] overflow-y-auto w-max max-w-[min(24rem,calc(100vw-24px))] rounded-[14px] border border-[#e8ddd5] bg-white p-3.5 text-navy shadow-lg dark:border-[#455055] dark:bg-[#2a3338] dark:text-[#e2e9ee]"
             onPointerEnter={show}
             onPointerLeave={(event) => {
               if (event.pointerType === 'mouse') hide();
