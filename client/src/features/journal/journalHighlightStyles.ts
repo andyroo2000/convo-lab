@@ -1,8 +1,9 @@
 import type { JournalSegment } from './types';
 
 export const journalHighlightStyles = {
-  correction: 'border-solid border-[#c76870] bg-[#fbe9e9] dark:border-[#d28c94] dark:bg-[#482c31]',
-  optional: 'border-dashed border-[#caa33e] bg-[#fff2c5] dark:border-[#cfad55] dark:bg-[#443b25]',
+  // The journal page has a fixed white surface, even with an OS dark preference.
+  correction: 'border-solid border-[#c76870] bg-[#fbe9e9]',
+  optional: 'border-dashed border-[#caa33e] bg-[#fff2c5]',
 };
 
 export function journalHighlightLayout(segment: JournalSegment) {
