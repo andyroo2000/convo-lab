@@ -16,7 +16,7 @@ const JournalAppearance = ({ value, onChange, saved }: Props) => {
         type="button"
         aria-label="Journal appearance"
         aria-haspopup="dialog"
-        className="flex h-11 w-[52px] items-center justify-center rounded-[10px] border border-indigo/60 text-indigo hover:border-indigo hover:bg-indigo/5"
+        className="flex h-11 w-11 p-0 items-center justify-center rounded-[10px] border border-indigo/60 text-indigo hover:border-indigo hover:bg-indigo/5"
         onClick={() => dialog.current?.showModal()}
       >
         <span aria-hidden="true" className="text-lg">
@@ -85,11 +85,11 @@ const JournalAppearance = ({ value, onChange, saved }: Props) => {
           className="mt-2 h-11 w-full accent-indigo"
           onChange={(event) => onChange({ ...value, size: Number(event.target.value) })}
         />
-        <p className="mt-3 text-xs text-gray-500" role="status">
-          {saved
-            ? 'For all Journal entries on this device.'
-            : 'Changed for now. This browser could not save your preference.'}
-        </p>
+        {!saved && (
+          <p className="mt-3 text-xs text-gray-500" role="status">
+            Changed for now. This browser could not save your preference.
+          </p>
+        )}
       </dialog>
     </>
   );
