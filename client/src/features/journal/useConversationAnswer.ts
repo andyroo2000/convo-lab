@@ -19,7 +19,7 @@ function restore(key: string): Draft {
 }
 function permanentRejection(reason: unknown) {
   if (!(reason instanceof JsonRequestError)) return false;
-  if ([408, 429].includes(reason.status)) return false;
+  if ([401, 408, 429].includes(reason.status)) return false;
   return reason.status >= 400 && reason.status < 500;
 }
 export default function useConversationAnswer(
@@ -58,9 +58,9 @@ export default function useConversationAnswer(
   async function submit() {
     if (busy || !draft.body.trim()) return;
     const request = draft.request ?? { id: ulid().toLowerCase(), questionId, body: draft.body };
-    persist({ ...draft, request });
     setBusy(true);
     setError('');
+    persist({ ...draft, request });
     try {
       const { data: entry } = await createConversationAnswer(entryId, request);
       try {
@@ -74,7 +74,11 @@ export default function useConversationAnswer(
         if (live.current) setError('Your answer is saved. Reload the conversation to see it.');
         return;
       }
-      localStorage.removeItem(key);
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        /* The answer is saved; stale drafts retry the same id safely. */
+      }
     } catch (reason) {
       reportFailure(reason);
     } finally {
