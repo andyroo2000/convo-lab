@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2 } from 'lucide-react';
 import { retrySavedQuestion } from './journalConversationApi';
 import JournalAvatar from './JournalAvatar';
 import JournalQuestion from './JournalQuestion';
+import JournalEnglish from './JournalEnglish';
 import JournalPlaybackProvider from './JournalPlaybackContext';
 import JournalQuestionAudio from './JournalQuestionAudio';
 import JournalTutorPicker from './JournalTutorPicker';
@@ -58,45 +59,53 @@ function useTeacherQuestion({ ownerId, entryId, analysis, savedQuestion }: Props
   };
 }
 
-const TeacherBubble = ({
+const TeacherRibbon = ({
+  ownerId,
+  entryId,
+  question,
   tutor,
   feedback,
   choosing,
   choose,
-  audio,
 }: {
+  ownerId: string;
+  entryId: string;
+  question?: TutorQuestion;
   tutor: JournalTutor | null | undefined;
   feedback: JournalFeedback;
   choosing: boolean;
   choose: () => void;
-  audio: ReactNode;
 }) => (
-  <div className="flex items-start gap-3 sm:gap-4">
-    {tutor && (
-      <JournalAvatar
-        src={tutorAvatar(tutor)}
-        alt={`${tutor.name}, your tutor`}
-        className="h-14 w-14 shrink-0 rounded-full object-cover sm:h-16 sm:w-16"
-      />
-    )}
-    <div className="relative min-w-0 flex-1 rounded-2xl bg-[#edf5ff] px-4 py-3 before:absolute before:-left-2 before:top-6 before:h-4 before:w-4 before:rotate-45 before:bg-[#edf5ff] sm:px-5 sm:py-3">
-      <JournalQuestion
-        feedback={feedback}
-        controls={
-          <button
-            type="button"
-            onClick={choose}
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-indigo hover:bg-white"
-            aria-label="Choose tutor"
-            aria-expanded={choosing}
-          >
-            <Settings2 size={18} aria-hidden="true" />
-          </button>
-        }
-      />
-      {audio}
-    </div>
-  </div>
+  <JournalQuestionAudio
+    ownerId={ownerId}
+    entryId={entryId}
+    question={question}
+    portrait={
+      tutor && (
+        <JournalAvatar
+          src={tutorAvatar(tutor)}
+          alt={`${tutor.name}, your tutor`}
+          className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10"
+        />
+      )
+    }
+    controls={
+      <>
+        <JournalEnglish translation={feedback.questionTranslation} />
+        <button
+          type="button"
+          onClick={choose}
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-indigo hover:bg-white"
+          aria-label="Choose tutor"
+          aria-expanded={choosing}
+        >
+          <Settings2 size={18} aria-hidden="true" />
+        </button>
+      </>
+    }
+  >
+    <JournalQuestion feedback={feedback} />
+  </JournalQuestionAudio>
 );
 
 const JournalTeacher = ({ ownerId, entryId, analysis, savedQuestion }: Props) => {
@@ -122,18 +131,14 @@ const JournalTeacher = ({ ownerId, entryId, analysis, savedQuestion }: Props) =>
         />
       )}
       <JournalPlaybackProvider key={playbackKey}>
-        <TeacherBubble
+        <TeacherRibbon
+          ownerId={ownerId}
+          entryId={entryId}
+          question={question.data?.data}
           tutor={tutor}
           feedback={feedback}
           choosing={pickerOpen}
           choose={() => setChoosing(!choosing)}
-          audio={
-            <JournalQuestionAudio
-              ownerId={ownerId}
-              entryId={entryId}
-              question={question.data?.data}
-            />
-          }
         />
       </JournalPlaybackProvider>
       {question.error && (
