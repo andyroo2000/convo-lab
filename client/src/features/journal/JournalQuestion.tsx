@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { journalTextStyle } from './journalTypography';
-import JournalRuby from './JournalRuby';
+import JournalSentenceText from './JournalSentenceText';
 import JournalEnglish from './JournalEnglish';
 import type { JournalFeedback } from './types';
 
@@ -17,7 +17,7 @@ const JournalQuestion = ({
       {controls}
     </div>
     <p style={journalTextStyle} lang="ja" className="text-xl leading-[2.05] text-navy">
-      <JournalRuby text={feedback.questionReading} />
+      <JournalSentenceText text={feedback.questionReading} />
     </p>
   </div>
 );

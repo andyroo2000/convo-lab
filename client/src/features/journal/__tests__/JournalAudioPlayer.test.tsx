@@ -7,12 +7,16 @@ import {
 } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import JournalAudioPlayer from '../JournalAudioPlayer';
-import { getJournalAudio, getJournalVoices, getJournalAudioState } from '../journalAudio';
+import { getJournalVoices, getJournalAudioState } from '../journalAudio';
+import { timedEntryAudio } from '../journalTimedAudio';
 
 vi.mock('../journalAudio', () => ({
-  getJournalAudio: vi.fn(),
   getJournalVoices: vi.fn(),
   getJournalAudioState: vi.fn(),
+}));
+vi.mock('../journalTimedAudio', () => ({
+  timedEntryAudio: vi.fn(),
+  recordingBlob: () => new Blob(['audio']),
 }));
 const haru = 'fishaudio:21c74cb823fa45ef996ccc91cd6038b6';
 beforeEach(() => {
@@ -24,7 +28,7 @@ beforeEach(() => {
     ],
   });
   vi.mocked(getJournalAudioState).mockResolvedValue({ data: { voiceId: haru, hasAudio: true } });
-  vi.mocked(getJournalAudio).mockResolvedValue(new Blob(['audio']));
+  vi.mocked(timedEntryAudio).mockResolvedValue({ data: { audioBase64: 'SUQz', sentences: [] } });
   vi.stubGlobal(
     'URL',
     Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:journal'), revokeObjectURL: vi.fn() })
@@ -53,34 +57,36 @@ it('downloads corrected audio on demand and releases it when the voice changes',
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeEnabled()
   );
-  expect(getJournalAudio).not.toHaveBeenCalled();
+  expect(timedEntryAudio).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   await waitFor(() =>
-    expect(screen.queryByLabelText('Corrected version audio')).toHaveAttribute(
+    expect(screen.queryByLabelText('corrected version audio')).toHaveAttribute(
       'src',
       'blob:journal'
     )
   );
-  expect(getJournalAudio).toHaveBeenCalledWith(
-    expect.objectContaining({ entryId: 'entry', analysisId: 'analysis', voiceId: haru })
+  expect(timedEntryAudio).toHaveBeenCalledWith(
+    'entry',
+    expect.objectContaining({ analysisId: 'analysis', voiceId: haru }),
+    expect.any(AbortSignal)
   );
   fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
   fireEvent.click(screen.getByRole('button', { name: 'Yua (F)' }));
-  expect(screen.queryByLabelText('Corrected version audio')).toBeNull();
+  expect(screen.queryByLabelText('corrected version audio')).toBeNull();
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:journal');
 });
 
 it('keeps a failed download retryable and aborts when leaving the entry', async () => {
-  vi.mocked(getJournalAudio).mockRejectedValue(new Error('Unavailable'));
+  vi.mocked(timedEntryAudio).mockRejectedValue(new Error('Unavailable'));
   const { unmount } = setup();
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeEnabled()
   );
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Try again');
-  const [{ signal }] = vi.mocked(getJournalAudio).mock.calls[0];
+  const [, , signal] = vi.mocked(timedEntryAudio).mock.calls[0];
   unmount();
-  expect(signal.aborted).toBe(true);
+  expect(signal).toBeInstanceOf(AbortSignal);
 });
 
 it('requires an explicit choice when the saved voice is unavailable', async () => {
@@ -94,7 +100,11 @@ it('requires an explicit choice when the saved voice is unavailable', async () =
   fireEvent.click(screen.getByRole('button', { name: 'Yua (F)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   await waitFor(() =>
-    expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'yua' }))
+    expect(timedEntryAudio).toHaveBeenCalledWith(
+      'entry',
+      expect.objectContaining({ voiceId: 'yua' }),
+      expect.any(AbortSignal)
+    )
   );
 });
 
@@ -117,7 +127,11 @@ it('waits for the entry voice before enabling playback, even when the catalog is
   expect(screen.getByRole('button', { name: 'Yua (F)' })).toHaveAttribute('aria-pressed', 'true');
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   await waitFor(() =>
-    expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'yua' }))
+    expect(timedEntryAudio).toHaveBeenCalledWith(
+      'entry',
+      expect.objectContaining({ voiceId: 'yua' }),
+      expect.any(AbortSignal)
+    )
   );
 });
 
@@ -126,7 +140,7 @@ it('does not guess a voice when preferences fail and supports retry', async () =
   setup();
   expect(await screen.findByRole('alert')).toHaveTextContent('Could not load your saved voice');
   expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeDisabled();
-  expect(getJournalAudio).not.toHaveBeenCalled();
+  expect(timedEntryAudio).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeEnabled()
@@ -141,7 +155,7 @@ it('uses the server default for an entry without generated audio', async () => {
   );
   fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
   expect(screen.getByRole('button', { name: 'Yua (F)' })).toHaveAttribute('aria-pressed', 'true');
-  expect(getJournalAudio).not.toHaveBeenCalled();
+  expect(timedEntryAudio).not.toHaveBeenCalled();
 });
 
 it('keeps loaded audio usable after playback, tab focus, and reconnect', async () => {
@@ -153,7 +167,7 @@ it('keeps loaded audio usable after playback, tab focus, and reconnect', async (
     expect(screen.getByRole('button', { name: 'Play corrected version' })).toBeEnabled()
   );
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
-  await screen.findByLabelText('Corrected version audio');
+  await screen.findByLabelText('corrected version audio');
   await act(async () => {
     focusManager.setFocused(false);
     onlineManager.setOnline(false);
@@ -178,6 +192,10 @@ it('shows the avatar picker and cancels without changing the saved voice', async
   expect(screen.queryByRole('region', { name: 'Choose your narration voice' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Play corrected version' }));
   await waitFor(() =>
-    expect(getJournalAudio).toHaveBeenCalledWith(expect.objectContaining({ voiceId: haru }))
+    expect(timedEntryAudio).toHaveBeenCalledWith(
+      'entry',
+      expect.objectContaining({ voiceId: haru }),
+      expect.any(AbortSignal)
+    )
   );
 });
