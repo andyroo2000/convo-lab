@@ -106,3 +106,12 @@ it('opens Final again after remounting even when the previous visit showed Draft
   expect(screen.getByRole('button', { name: 'Final' })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getByText('Audio player')).toBeVisible();
 });
+
+it('keeps playback and version controls outside the notebook sheet', () => {
+  render(<JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />);
+  const sheet = screen.getByText('っていう');
+  expect(sheet).toHaveClass('journal-paper');
+  expect(sheet).not.toContainElement(screen.getByText('Audio player'));
+  expect(sheet).not.toContainElement(screen.getByRole('button', { name: 'Final' }));
+  expect(sheet).not.toContainElement(screen.getByRole('region', { name: 'Follow-up' }));
+});

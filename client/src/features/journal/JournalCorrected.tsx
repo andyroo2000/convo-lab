@@ -29,7 +29,7 @@ const JournalCorrected = ({ ownerId, entryId, analysis, controls, toolbarTarget 
         <p
           style={journalTextStyle}
           lang="ja"
-          className="whitespace-pre-wrap text-xl leading-[2.7] text-navy"
+          className="journal-paper whitespace-pre-wrap text-xl leading-[2.7] text-navy"
         >
           <JournalSentenceText text={reading} />
         </p>

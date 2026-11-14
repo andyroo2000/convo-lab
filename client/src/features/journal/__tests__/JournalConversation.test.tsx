@@ -94,6 +94,13 @@ it('keeps independent Draft/Final controls without appending the child to the ro
   const root = screen.getAllByRole('region', { name: 'Corrected Version' })[0];
   expect(root).toHaveTextContent('映画を見ました。');
   expect(root).not.toHaveTextContent('友達');
+  const rootSheet = screen.getByText('映画を見ました。');
+  const replySheet = screen.getByText('友達と見ました。');
+  expect(rootSheet).toHaveClass('journal-paper');
+  expect(replySheet).toHaveClass('journal-paper');
+  expect(rootSheet).not.toBe(replySheet);
+  expect(rootSheet).not.toContainElement(screen.getByText('Saved tutor question'));
+  expect(replySheet).not.toContainElement(screen.getByText('Saved tutor question'));
   fireEvent.click(screen.getAllByRole('button', { name: 'Draft' })[1]);
   expect(screen.getAllByRole('region', { name: 'Corrected Version' })).toEqual([root]);
   fireEvent.click(screen.getAllByRole('button', { name: 'Final' })[1]);

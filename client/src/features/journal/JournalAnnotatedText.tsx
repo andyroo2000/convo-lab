@@ -13,7 +13,7 @@ const JournalAnnotatedText = ({ sourceId, feedback, analysis, controls }: Props)
   <div
     style={journalTextStyle}
     lang="ja"
-    className="whitespace-pre-wrap text-xl leading-[2.7] text-navy"
+    className="journal-paper whitespace-pre-wrap text-xl leading-[2.7] text-navy"
   >
     {feedback.segments.map((segment, index) => {
       // The API identifies replacements by their unchanged source segment index.

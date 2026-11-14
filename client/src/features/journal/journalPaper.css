@@ -1,0 +1,36 @@
+.journal-paper {
+  --journal-rule: 2.7em;
+  padding: 0.75em 0.9em 0.75em 1.6em;
+  border: 1px solid #e6dfcc;
+  border-radius: 3px 10px 10px 3px;
+  background-color: #fffdf5;
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 0.85em,
+      #d99388 0.85em,
+      #d99388 calc(0.85em + 1px),
+      transparent calc(0.85em + 1px)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--journal-rule) - 1px),
+      rgba(118, 143, 157, 0.23) calc(var(--journal-rule) - 1px),
+      rgba(118, 143, 157, 0.23) var(--journal-rule)
+    ),
+    linear-gradient(#fffdf5, #fffdf5);
+  background-origin: padding-box, content-box, padding-box;
+  background-clip: padding-box, content-box, padding-box;
+  box-shadow:
+    0 5px 16px #44341d08,
+    2px 2px 0 #efeadd;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .journal-paper {
+    padding-right: 0.65em;
+    padding-left: 1.35em;
+  }
+}

@@ -6,6 +6,7 @@ import {
   readTypography,
   saveTypography,
 } from '../features/journal/journalTypography';
+import '../features/journal/journalPaper.css';
 import JournalAppearance from '../features/journal/JournalAppearance';
 import { useAuth } from '../contexts/AuthContext';
 import { KnownKanjiProvider } from '../contexts/KnownKanjiContext';
@@ -84,6 +85,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
           {
             '--journal-font': journalFonts[typography.font],
             '--journal-size': `${typography.size}px`,
+            '--journal-weight': typography.font === 'klee' ? 600 : 400,
           } as CSSProperties
         }
         className={entryId ? 'min-w-0' : 'hidden md:flex md:items-center md:justify-center'}
