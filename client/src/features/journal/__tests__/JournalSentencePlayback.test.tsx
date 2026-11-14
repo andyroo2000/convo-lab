@@ -113,3 +113,17 @@ it('preserves furigana and refuses a different text snapshot', () => {
   expect(sentenceAt(sentences, 4)).toBe(-1);
   expect(adjacentSentence([], 0, 1)).toBeUndefined();
 });
+
+it('keeps highlights and repeated arrows aligned when the media clock rounds down', () => {
+  const fractional = [
+    { text: '一。', start: 0, end: 1 },
+    { text: '二。', start: 1.6, end: 2.4 },
+    { text: '三。', start: 3.2, end: 4 },
+  ];
+  const rounded = 1.5999999;
+  expect(sentenceAt(fractional, rounded)).toBe(1);
+  expect(adjacentSentence(fractional, rounded, 1)).toBe(3.2);
+  expect(adjacentSentence(fractional, rounded, -1)).toBe(0);
+  expect(sentenceAt(fractional, 4)).toBe(-1);
+  expect(sentenceAt(sentences, 1.9999999)).toBe(1);
+});

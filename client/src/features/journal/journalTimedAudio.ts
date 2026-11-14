@@ -34,13 +34,18 @@ export function recordingBlob(recording: TimedRecording) {
 }
 
 export function sentenceAt(sentences: SentenceTiming[], position: number) {
-  return sentences.findIndex((sentence) => position >= sentence.start && position < sentence.end);
+  // Media clocks can round a requested seek a fraction below the boundary.
+  return sentences.reduce(
+    (current, sentence, index) =>
+      position + 0.001 >= sentence.start && position < sentence.end ? index : current,
+    -1
+  );
 }
 
 export function adjacentSentence(sentences: SentenceTiming[], position: number, direction: number) {
   if (!sentences.length) return undefined;
   const current = sentences.reduce(
-    (index, sentence, next) => (position >= sentence.start ? next : index),
+    (index, sentence, next) => (position + 0.001 >= sentence.start ? next : index),
     0
   );
   return sentences[Math.max(0, Math.min(sentences.length - 1, current + direction))].start;
