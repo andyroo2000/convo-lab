@@ -1,4 +1,5 @@
-import { journalTextStyle } from './journalTypography';
+import type { ReactNode } from 'react';
+import JournalPaper from './JournalPaper';
 import JournalHighlight from './JournalHighlight';
 import type { JournalAnalysis, JournalFeedback } from './types';
 import type { JournalDocumentControls } from './useJournalDocument';
@@ -8,13 +9,10 @@ interface Props {
   feedback: JournalFeedback;
   analysis: JournalAnalysis;
   controls: JournalDocumentControls;
+  heading?: ReactNode;
 }
-const JournalAnnotatedText = ({ sourceId, feedback, analysis, controls }: Props) => (
-  <div
-    style={journalTextStyle}
-    lang="ja"
-    className="journal-paper whitespace-pre-wrap text-xl leading-[2.7] text-navy"
-  >
+const JournalAnnotatedText = ({ sourceId, feedback, analysis, controls, heading }: Props) => (
+  <JournalPaper heading={heading}>
     {feedback.segments.map((segment, index) => {
       // The API identifies replacements by their unchanged source segment index.
       const id = `${sourceId}:${index}`;
@@ -36,6 +34,6 @@ const JournalAnnotatedText = ({ sourceId, feedback, analysis, controls }: Props)
         />
       );
     })}
-  </div>
+  </JournalPaper>
 );
 export default JournalAnnotatedText;

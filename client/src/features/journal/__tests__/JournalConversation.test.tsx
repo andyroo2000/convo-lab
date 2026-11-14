@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
 import JournalConversation from '../JournalConversation';
@@ -78,7 +78,10 @@ it('keeps independent Draft/Final controls without appending the child to the ro
     />,
     { wrapper }
   );
-  await screen.findByText('Your reply');
+  await screen.findByText('友達と見ました。');
+  const replySection = screen.getByRole('region', { name: 'Conversation reply' });
+  expect(within(replySection).queryByRole('heading')).not.toBeInTheDocument();
+  expect(within(replySection).queryByText('2026.11.13')).not.toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Draft' })).toHaveLength(2);
   expect(screen.getAllByRole('button', { name: 'Final' })[1]).toHaveAttribute(
     'aria-pressed',
@@ -94,8 +97,7 @@ it('keeps independent Draft/Final controls without appending the child to the ro
   const root = screen.getAllByRole('region', { name: 'Corrected Version' })[0];
   expect(root).toHaveTextContent('映画を見ました。');
   expect(root).not.toHaveTextContent('友達');
-  const rootSheet = screen.getByText('映画を見ました。');
-  const replySheet = screen.getByText('友達と見ました。');
+  const [rootSheet, replySheet] = screen.getAllByRole('article', { name: 'Notebook sheet' });
   expect(rootSheet).toHaveClass('journal-paper');
   expect(replySheet).toHaveClass('journal-paper');
   expect(rootSheet).not.toBe(replySheet);

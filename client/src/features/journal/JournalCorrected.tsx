@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react';
 import { correctedContent } from './journalVersionText';
-import { journalTextStyle } from './journalTypography';
+import JournalPaper from './JournalPaper';
 import JournalAudioPlayer from './JournalAudioPlayer';
 import JournalSentenceText from './JournalSentenceText';
 import JournalPlaybackProvider from './JournalPlaybackContext';
@@ -12,8 +13,16 @@ interface Props {
   analysis: JournalAnalysis;
   controls: JournalDocumentControls;
   toolbarTarget?: HTMLElement | null;
+  heading?: ReactNode;
 }
-const JournalCorrected = ({ ownerId, entryId, analysis, controls, toolbarTarget }: Props) => {
+const JournalCorrected = ({
+  ownerId,
+  entryId,
+  analysis,
+  controls,
+  toolbarTarget,
+  heading,
+}: Props) => {
   const { reading } = correctedContent(analysis);
   return (
     <JournalPlaybackProvider key={`${ownerId}:${entryId}:${analysis.id}:${analysis.replyRevision}`}>
@@ -26,13 +35,9 @@ const JournalCorrected = ({ ownerId, entryId, analysis, controls, toolbarTarget 
           analysisId={analysis.id}
           expectedReplyRevision={analysis.replyRevision ?? 0}
         />
-        <p
-          style={journalTextStyle}
-          lang="ja"
-          className="journal-paper whitespace-pre-wrap text-xl leading-[2.7] text-navy"
-        >
+        <JournalPaper heading={heading}>
           <JournalSentenceText text={reading} />
-        </p>
+        </JournalPaper>
         {controls.error && (
           <p role="alert" className="text-sm text-rose-700">
             {controls.error}

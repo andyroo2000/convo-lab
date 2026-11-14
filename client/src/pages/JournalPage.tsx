@@ -105,12 +105,13 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
               onBusyChange={setEditorBusy}
               onSaved={archive.saved}
               onOpen={open}
-              renderFeedback={(analysis) => (
+              renderFeedback={(analysis, heading) => (
                 <JournalConversation
                   key={analysis.id}
                   ownerId={ownerId}
                   entryId={entryId}
                   analysis={analysis}
+                  heading={heading}
                   onOpen={open}
                 />
               )}

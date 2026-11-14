@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import JournalFeedback from '../JournalFeedback';
+import JournalEntryHeading from '../JournalEntryHeading';
 import type { JournalAnalysis } from '../types';
 
 vi.mock('../JournalAudioPlayer', () => ({ default: () => <div>Audio player</div> }));
@@ -109,9 +110,39 @@ it('opens Final again after remounting even when the previous visit showed Draft
 
 it('keeps playback and version controls outside the notebook sheet', () => {
   render(<JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />);
-  const sheet = screen.getByText('っていう');
+  const sheet = screen.getByRole('article', { name: 'Notebook sheet' });
   expect(sheet).toHaveClass('journal-paper');
   expect(sheet).not.toContainElement(screen.getByText('Audio player'));
   expect(sheet).not.toContainElement(screen.getByRole('button', { name: 'Final' }));
   expect(sheet).not.toContainElement(screen.getByRole('region', { name: 'Follow-up' }));
+});
+
+it('keeps the title and Japanese date inside the first sheet in both versions', () => {
+  render(
+    <JournalFeedback
+      ownerId="owner"
+      entryId="entry"
+      analysis={analysis}
+      heading={
+        <JournalEntryHeading
+          draft={{
+            id: 'entry',
+            title: '映画の日記',
+            body: 'っていう',
+            entryDate: '2026-11-12',
+            expectedVersion: 1,
+            editId: 'edit',
+          }}
+        />
+      }
+    />
+  );
+  ['Final', 'Draft', 'Final'].forEach((version) => {
+    fireEvent.click(screen.getByRole('button', { name: version }));
+    const sheet = screen.getByRole('article', { name: 'Notebook sheet' });
+    expect(sheet).toContainElement(screen.getByRole('heading', { name: '映画の日記' }));
+    expect(sheet).toHaveTextContent('2026年11月12日（木）');
+    expect(sheet).not.toContainElement(screen.getByRole('button', { name: version }));
+    expect(sheet).not.toContainElement(screen.getByText('Audio player'));
+  });
 });

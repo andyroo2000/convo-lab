@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import JournalEditor from './JournalEditor';
 import JournalFeedback from './JournalFeedback';
@@ -68,7 +68,13 @@ const ConversationReply = ({
   </section>
 );
 
-const JournalConversation = ({ ownerId, entryId, analysis, onOpen }: Props) => {
+const JournalConversation = ({
+  ownerId,
+  entryId,
+  analysis,
+  onOpen,
+  heading,
+}: Props & { heading?: ReactNode }) => {
   const thread = useQuery({
     queryKey: ['journal-conversation', ownerId, entryId],
     queryFn: ({ signal }) => getJournalConversation(entryId, signal),
@@ -81,7 +87,13 @@ const JournalConversation = ({ ownerId, entryId, analysis, onOpen }: Props) => {
   }, [refetch]);
   return (
     <div className="space-y-8">
-      <JournalFeedback ownerId={ownerId} entryId={entryId} analysis={analysis} followUp={false} />
+      <JournalFeedback
+        ownerId={ownerId}
+        entryId={entryId}
+        analysis={analysis}
+        heading={heading}
+        followUp={false}
+      />
       {thread.isPending && (
         <p role="status" className="text-sm text-gray-500">
           Loading conversation…

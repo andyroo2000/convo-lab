@@ -14,7 +14,7 @@ interface JournalEditorProps {
   nested?: boolean;
   onBusyChange?: (busy: boolean) => void;
   initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
-  renderFeedback?: (analysis: JournalAnalysis) => ReactNode;
+  renderFeedback?: (analysis: JournalAnalysis, heading: ReactNode) => ReactNode;
 }
 
 type Editor = ReturnType<typeof useJournalEditor>;
@@ -83,11 +83,7 @@ const JournalEditor = ({
       }
     >
       <EditorMessages editor={editor} onOpen={onOpen} />
-      {reviewing ? (
-        <JournalEntryHeading draft={editor.draft} nested={nested} />
-      ) : (
-        <JournalEditorForm editor={editor} processing={processing} />
-      )}
+      {!reviewing && <JournalEditorForm editor={editor} processing={processing} />}
 
       <FeedbackStatus
         analysis={analysis}
@@ -96,7 +92,9 @@ const JournalEditor = ({
           analysis.refetch().catch(() => undefined);
         }}
       />
-      {reviewing && current && renderFeedback?.(current)}
+      {reviewing &&
+        current &&
+        renderFeedback?.(current, nested ? null : <JournalEntryHeading draft={editor.draft} />)}
     </article>
   );
 };
