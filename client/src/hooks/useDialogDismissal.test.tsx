@@ -64,3 +64,29 @@ it('dismisses overlay modals only when the click starts and ends on the backdrop
   clickAt(backdrop, 5);
   expect(dismiss).toHaveBeenCalledOnce();
 });
+
+it('clears an abandoned backdrop press before a later click without pointerdown', () => {
+  const { dialog, close } = setup();
+  fireEvent(dialog, new MouseEvent('pointerdown', { clientX: 5, clientY: 5, bubbles: true }));
+  fireEvent.click(dialog, { clientX: 50, clientY: 50 });
+  fireEvent.click(dialog, { clientX: 5, clientY: 5 });
+  expect(close).not.toHaveBeenCalled();
+});
+
+it('keeps a busy overlay open until dismissal is enabled again', () => {
+  const dismiss = vi.fn();
+  const view = render(
+    <DismissibleBackdrop className="" onDismiss={dismiss} dismissDisabled>
+      <span>Saving</span>
+    </DismissibleBackdrop>
+  );
+  clickAt(screen.getByRole('presentation'), 5);
+  expect(dismiss).not.toHaveBeenCalled();
+  view.rerender(
+    <DismissibleBackdrop className="" onDismiss={dismiss}>
+      <span>Saved</span>
+    </DismissibleBackdrop>
+  );
+  clickAt(screen.getByRole('presentation'), 5);
+  expect(dismiss).toHaveBeenCalledOnce();
+});

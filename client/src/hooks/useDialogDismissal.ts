@@ -21,8 +21,9 @@ export default function useDialogDismissal(ref: RefObject<HTMLDialogElement | nu
       startedOutside = isBackdrop(event, dialog);
     };
     const click = (event: MouseEvent) => {
-      if (!startedOutside || !isBackdrop(event, dialog)) return;
+      const dismiss = startedOutside && isBackdrop(event, dialog);
       startedOutside = false;
+      if (!dismiss) return;
       if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close();
     };
     dialog.addEventListener('pointerdown', pointerDown);
