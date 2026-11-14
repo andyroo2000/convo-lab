@@ -44,6 +44,7 @@ const JournalMinimalPlayer = ({ load, label, disabled = false }: Props) => {
         <button
           type="button"
           disabled={busy || disabled}
+          data-journal-playback-control
           onKeyDown={(event) => sentenceKeyDown(event, playback)}
           aria-label={`${playing ? 'Pause' : 'Play'} ${label}`}
           onClick={toggle}
@@ -53,6 +54,7 @@ const JournalMinimalPlayer = ({ load, label, disabled = false }: Props) => {
         </button>
         <input
           type="range"
+          data-journal-playback-control
           onKeyDown={(event) => sentenceKeyDown(event, playback)}
           aria-label={`${label} audio position`}
           min={0}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Eye, BookOpen, BookMarked, Clock3, NotebookPen } from 'lucide-react';
@@ -36,7 +36,8 @@ function shouldRedirectToLogin(loading: boolean, user: User | null) {
   return !loading && !user;
 }
 
-function shouldShowOnboarding(user: User) {
+function shouldShowOnboarding(user: User, dismissedUser: User['id'] | null) {
+  if (dismissedUser === user.id) return false;
   return SHOW_ONBOARDING_WELCOME && user.onboardingCompleted === false;
 }
 
@@ -220,6 +221,7 @@ const LayoutBody = ({
 );
 
 const Layout = () => {
+  const [dismissedOnboardingUser, setDismissedOnboardingUser] = useState<User['id'] | null>(null);
   const { user, loading, logout } = useAuth();
   const { effectiveUser, isImpersonating } = useEffectiveUser();
   const { t } = useTranslation(['common']);
@@ -298,8 +300,8 @@ const Layout = () => {
   }
 
   // Show onboarding modal if user hasn't completed it
-  if (shouldShowOnboarding(user)) {
-    return <OnboardingModal />;
+  if (shouldShowOnboarding(user, dismissedOnboardingUser)) {
+    return <OnboardingModal onClose={() => setDismissedOnboardingUser(user.id)} />;
   }
 
   const menuUser = getMenuUser(user, effectiveUser, isImpersonating);

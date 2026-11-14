@@ -14,6 +14,7 @@ const JournalSentenceText = ({ text }: { text: string }) => {
       {parts.map((part, index) => (
         <button
           type="button"
+          data-journal-playback-control
           onKeyDown={(event) => sentenceKeyDown(event, playback)}
           key={playback.sentences[index].start}
           aria-label={`Seek to sentence ${index + 1}`}

@@ -1,30 +1,35 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Settings2 } from 'lucide-react';
 import JournalAvatar from './JournalAvatar';
 import type { JournalVoice } from './journalAudio';
 
 interface Props {
+  toolbarTarget?: HTMLElement | null;
   voices: JournalVoice[];
   selected: string;
   disabled: boolean;
   onChoose: (id: string) => void;
 }
 
-const JournalVoicePicker = ({ voices, selected, disabled, onChoose }: Props) => {
+const JournalVoicePicker = ({ voices, selected, disabled, onChoose, toolbarTarget }: Props) => {
   const [choosing, setChoosing] = useState(false);
+  const trigger = (
+    <button
+      type="button"
+      aria-label="Narration voice"
+      title="Change narration voice"
+      aria-expanded={choosing}
+      disabled={disabled}
+      onClick={() => setChoosing(!choosing)}
+      className="flex h-10 w-10 items-center justify-center rounded-lg text-indigo hover:bg-white disabled:opacity-50"
+    >
+      <Settings2 size={18} aria-hidden="true" />
+    </button>
+  );
   return (
     <div className="contents">
-      <button
-        type="button"
-        aria-label="Narration voice"
-        title="Change narration voice"
-        aria-expanded={choosing}
-        disabled={disabled}
-        onClick={() => setChoosing(!choosing)}
-        className="ml-auto flex h-10 w-10 items-center justify-center rounded-lg text-indigo hover:bg-white disabled:opacity-50"
-      >
-        <Settings2 size={18} aria-hidden="true" />
-      </button>
+      {toolbarTarget ? createPortal(trigger, toolbarTarget) : trigger}
       {choosing && (
         <section
           aria-label="Choose your narration voice"

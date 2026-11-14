@@ -1,5 +1,6 @@
 import { useId, useRef } from 'react';
 import { Check, X } from 'lucide-react';
+import useDialogDismissal from '../../hooks/useDialogDismissal';
 import { journalFonts, type JournalTypography } from './journalTypography';
 
 interface Props {
@@ -10,13 +11,14 @@ interface Props {
 const JournalAppearance = ({ value, onChange, saved }: Props) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
+  useDialogDismissal(dialog);
   return (
     <>
       <button
         type="button"
         aria-label="Journal appearance"
         aria-haspopup="dialog"
-        className="flex h-11 w-11 p-0 items-center justify-center rounded-[10px] border border-indigo/60 text-indigo hover:border-indigo hover:bg-indigo/5"
+        className="flex h-11 w-11 p-0 items-center justify-center rounded-[10px] bg-indigo/5 text-indigo hover:bg-indigo/10"
         onClick={() => dialog.current?.showModal()}
       >
         <span aria-hidden="true" className="text-lg">
@@ -28,8 +30,8 @@ const JournalAppearance = ({ value, onChange, saved }: Props) => {
         aria-labelledby={`${id}-title`}
         className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-2xl border border-gray-200 bg-white p-5 text-navy shadow-xl backdrop:bg-black/20 md:inset-0 md:m-auto md:w-80 md:rounded-2xl"
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 id={`${id}-title`} className="font-semibold">
+        <div className="mb-2 flex items-center justify-end">
+          <h2 id={`${id}-title`} className="sr-only">
             Journal appearance
           </h2>
           <button
@@ -42,7 +44,7 @@ const JournalAppearance = ({ value, onChange, saved }: Props) => {
           </button>
         </div>
         <fieldset>
-          <legend className="mb-2 text-sm text-gray-600">Font</legend>
+          <legend className="sr-only">Font</legend>
           <div className="grid grid-cols-2 gap-3">
             {(['sans', 'serif'] as const).map((font) => (
               <button

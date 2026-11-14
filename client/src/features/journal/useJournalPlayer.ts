@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import useJournalSpacebar from './useJournalSpacebar';
 import focusJournalAudio from './journalPlayback';
 import { claimJournalAudio, isCurrentJournalAudio } from './journalAudioIntent';
 import { useJournalPlayback } from './useJournalPlayback';
@@ -7,6 +8,7 @@ import useTimedRecording, { type RecordingLoader } from './useTimedRecording';
 export default function useJournalPlayer(load: RecordingLoader) {
   const playback = useJournalPlayback();
   const recording = useTimedRecording(load);
+  useJournalSpacebar(playback.player);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const { player, setSentences, setPosition, setEngaged } = playback;

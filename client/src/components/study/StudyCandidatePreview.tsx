@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
+import usePreviewDialog from './usePreviewDialog';
 
 import { StudyCardFace } from './StudyCardPreview';
 
@@ -22,38 +23,7 @@ const StudyCandidateCardPreviewModal = ({
     []
   );
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-        event.preventDefault();
-        toggleSide();
-      }
-    };
-
-    if (dialog) {
-      if (!dialog.open) {
-        if (typeof dialog.showModal === 'function') {
-          dialog.showModal();
-        } else {
-          dialog.setAttribute('open', '');
-        }
-      }
-
-      closeButtonRef.current?.focus();
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      if (dialog?.open && typeof dialog.close === 'function') {
-        dialog.close();
-      } else {
-        dialog?.removeAttribute('open');
-      }
-    };
-  }, [toggleSide]);
+  usePreviewDialog(dialogRef, closeButtonRef, toggleSide);
 
   const handlePreviewClick = (event: MouseEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest('button, audio, input, select, textarea, a')) {

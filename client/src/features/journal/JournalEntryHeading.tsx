@@ -11,12 +11,15 @@ const JournalEntryHeading = ({
   const Heading = nested ? 'h2' : 'h1';
   return (
     <header className="space-y-3">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-gray-500">{draft.entryDate}</span>
-      </div>
       <Heading className="text-3xl font-semibold text-navy">
         {nested ? 'Your reply' : draft.title || 'Untitled entry'}
       </Heading>
+      <time
+        dateTime={draft.entryDate}
+        className="block text-[15px] font-normal leading-[1.6] tabular-nums text-[#a3aab6]"
+      >
+        {draft.entryDate?.replace(/-/g, '.')}
+      </time>
     </header>
   );
 };

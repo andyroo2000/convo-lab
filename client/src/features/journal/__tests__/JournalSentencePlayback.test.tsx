@@ -127,3 +127,42 @@ it('keeps highlights and repeated arrows aligned when the media clock rounds dow
   expect(sentenceAt(fractional, 4)).toBe(-1);
   expect(sentenceAt(sentences, 1.9999999)).toBe(1);
 });
+
+it('pauses with space on the page or a sentence without seeking or interrupting typing', async () => {
+  mount();
+  const audio = await start();
+  Object.defineProperty(audio, 'paused', { value: false, configurable: true });
+  const pause = vi.mocked(HTMLMediaElement.prototype.pause);
+  pause.mockClear();
+  fireEvent.keyDown(screen.getByLabelText('Edit journal'), { key: ' ', code: 'Space' });
+  expect(pause).not.toHaveBeenCalled();
+  fireEvent.keyDown(document.body, { key: ' ', code: 'Space', repeat: true });
+  expect(pause).not.toHaveBeenCalled();
+  fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+  expect(pause).toHaveBeenCalledTimes(1);
+  audio.currentTime = 1;
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Seek to sentence 2' }), {
+    key: ' ',
+    code: 'Space',
+  });
+  expect(pause).toHaveBeenCalledTimes(2);
+  expect(audio.currentTime).toBe(1);
+});
+
+it('consumes the matching Space release even after audio pauses, and resets on blur', async () => {
+  mount();
+  const audio = await start();
+  const button = screen.getByRole('button', { name: 'Pause journal' });
+  const space = { key: ' ', code: 'Space' };
+  expect(fireEvent.keyUp(button, space)).toBe(true);
+  Object.defineProperty(audio, 'paused', { value: false, configurable: true });
+  fireEvent.keyDown(button, space);
+  Object.defineProperty(audio, 'paused', { value: true, configurable: true });
+  fireEvent.pause(audio);
+  expect(fireEvent.keyUp(button, space)).toBe(false);
+  expect(fireEvent.keyUp(button, space)).toBe(true);
+  Object.defineProperty(audio, 'paused', { value: false, configurable: true });
+  fireEvent.keyDown(button, space);
+  fireEvent.blur(window);
+  expect(fireEvent.keyUp(button, space)).toBe(true);
+});
