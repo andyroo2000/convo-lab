@@ -148,3 +148,21 @@ it('pauses with space on the page or a sentence without seeking or interrupting 
   expect(pause).toHaveBeenCalledTimes(2);
   expect(audio.currentTime).toBe(1);
 });
+
+it('consumes the matching Space release even after audio pauses, and resets on blur', async () => {
+  mount();
+  const audio = await start();
+  const button = screen.getByRole('button', { name: 'Pause journal' });
+  const space = { key: ' ', code: 'Space' };
+  expect(fireEvent.keyUp(button, space)).toBe(true);
+  Object.defineProperty(audio, 'paused', { value: false, configurable: true });
+  fireEvent.keyDown(button, space);
+  Object.defineProperty(audio, 'paused', { value: true, configurable: true });
+  fireEvent.pause(audio);
+  expect(fireEvent.keyUp(button, space)).toBe(false);
+  expect(fireEvent.keyUp(button, space)).toBe(true);
+  Object.defineProperty(audio, 'paused', { value: false, configurable: true });
+  fireEvent.keyDown(button, space);
+  fireEvent.blur(window);
+  expect(fireEvent.keyUp(button, space)).toBe(true);
+});

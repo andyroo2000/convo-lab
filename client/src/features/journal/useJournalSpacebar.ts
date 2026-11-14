@@ -8,8 +8,12 @@ function isPlaybackTarget(target: EventTarget | null) {
   return !control || control.hasAttribute('data-journal-playback-control');
 }
 
+function isSpace(event: KeyboardEvent) {
+  return event.code === 'Space' || event.key === ' ';
+}
+
 function acceptsShortcut(event: KeyboardEvent) {
-  if (event.code !== 'Space' && event.key !== ' ') return false;
+  if (!isSpace(event)) return false;
   const modified = [event.repeat, event.altKey, event.ctrlKey, event.metaKey, event.shiftKey].some(
     Boolean
   );
@@ -18,6 +22,16 @@ function acceptsShortcut(event: KeyboardEvent) {
 
 export default function useJournalSpacebar(player: RefObject<HTMLAudioElement | null>) {
   useEffect(() => {
+    let awaitingRelease = false;
+    const reset = () => {
+      awaitingRelease = false;
+    };
+    const release = (event: KeyboardEvent) => {
+      if (!awaitingRelease || !isSpace(event)) return;
+      reset();
+      event.preventDefault();
+      event.stopPropagation();
+    };
     const pause = (event: KeyboardEvent) => {
       const audio = player.current;
       if (!audio) return;
@@ -25,9 +39,16 @@ export default function useJournalSpacebar(player: RefObject<HTMLAudioElement | 
       if (!acceptsShortcut(event)) return;
       event.preventDefault();
       event.stopPropagation();
+      awaitingRelease = true;
       audio.pause();
     };
     document.addEventListener('keydown', pause, true);
-    return () => document.removeEventListener('keydown', pause, true);
+    document.addEventListener('keyup', release, true);
+    window.addEventListener('blur', reset);
+    return () => {
+      document.removeEventListener('keydown', pause, true);
+      document.removeEventListener('keyup', release, true);
+      window.removeEventListener('blur', reset);
+    };
   }, [player]);
 }
