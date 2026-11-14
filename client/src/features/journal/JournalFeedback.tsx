@@ -19,6 +19,7 @@ const JournalFeedback = (props: FeedbackProps) => {
   const [version, setVersion] = useState<'draft' | 'final'>(() =>
     analysis.result && versionText(analysis, 'final').trim() ? 'final' : 'draft'
   );
+  const [toolbarTarget, setToolbarTarget] = useState<HTMLSpanElement | null>(null);
   const controls = useJournalDocument(props);
   const feedback = analysis.result;
   if (!feedback) return null;
@@ -33,6 +34,7 @@ const JournalFeedback = (props: FeedbackProps) => {
           text={copyText}
           label={`Copy ${version} text`}
         />
+        <span ref={setToolbarTarget} hidden={version !== 'final'} />
       </div>
       <div hidden={version !== 'draft'} className="space-y-6">
         <JournalAnnotatedText
@@ -54,7 +56,12 @@ const JournalFeedback = (props: FeedbackProps) => {
         )}
       </div>
       <div hidden={version !== 'final'}>
-        <JournalCorrected key={`corrected:${analysis.id}`} {...props} controls={controls} />
+        <JournalCorrected
+          key={`corrected:${analysis.id}`}
+          {...props}
+          controls={controls}
+          toolbarTarget={toolbarTarget}
+        />
       </div>
       {followUp && (
         <JournalFollowUp

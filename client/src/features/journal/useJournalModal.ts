@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
+import useDialogDismissal from '../../hooks/useDialogDismissal';
 
 export default function useJournalModal() {
   const dialog = useRef<HTMLDialogElement>(null);
+  useDialogDismissal(dialog);
   useEffect(() => {
     const element = dialog.current;
     const previousFocus = document.activeElement;

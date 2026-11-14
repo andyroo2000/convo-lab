@@ -4,11 +4,20 @@ import { JournalPlaybackBoundary } from './JournalPlaybackContext';
 import { timedEntryAudio } from './journalTimedAudio';
 import useJournalVoice, { type JournalAudioProps } from './useJournalVoice';
 
-const JournalAudioSession = (props: JournalAudioProps) => {
+type Props = JournalAudioProps & { toolbarTarget?: HTMLElement | null };
+
+const JournalAudioSession = (props: Props) => {
   const voice = useJournalVoice(props);
-  const { entryId, analysisId, expectedReplyRevision = 0 } = props;
+  const { entryId, analysisId, expectedReplyRevision = 0, toolbarTarget } = props;
   return (
     <div className="space-y-2">
+      <JournalVoicePicker
+        toolbarTarget={toolbarTarget}
+        voices={voice.voices}
+        selected={voice.voiceId}
+        disabled={voice.loading || voice.error}
+        onChoose={voice.choose}
+      />
       <JournalMinimalPlayer
         key={voice.voiceId}
         label="corrected version"
@@ -27,14 +36,6 @@ const JournalAudioSession = (props: JournalAudioProps) => {
           return result;
         }}
       />
-      <div className="flex justify-end">
-        <JournalVoicePicker
-          voices={voice.voices}
-          selected={voice.voiceId}
-          disabled={voice.loading || voice.error}
-          onChoose={voice.choose}
-        />
-      </div>
       {voice.loading && (
         <p role="status" className="text-sm text-gray-500">
           Loading saved voice…
@@ -56,10 +57,12 @@ const JournalAudioPlayer = ({
   entryId,
   analysisId,
   expectedReplyRevision = 0,
-}: JournalAudioProps) => (
+  toolbarTarget,
+}: Props) => (
   <JournalPlaybackBoundary>
     <JournalAudioSession
       key={`${ownerId}:${entryId}:${analysisId}:${expectedReplyRevision}`}
+      toolbarTarget={toolbarTarget}
       ownerId={ownerId}
       entryId={entryId}
       analysisId={analysisId}

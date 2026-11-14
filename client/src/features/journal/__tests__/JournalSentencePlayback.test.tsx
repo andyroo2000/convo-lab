@@ -127,3 +127,24 @@ it('keeps highlights and repeated arrows aligned when the media clock rounds dow
   expect(sentenceAt(fractional, 4)).toBe(-1);
   expect(sentenceAt(sentences, 1.9999999)).toBe(1);
 });
+
+it('pauses with space on the page or a sentence without seeking or interrupting typing', async () => {
+  mount();
+  const audio = await start();
+  Object.defineProperty(audio, 'paused', { value: false, configurable: true });
+  const pause = vi.mocked(HTMLMediaElement.prototype.pause);
+  pause.mockClear();
+  fireEvent.keyDown(screen.getByLabelText('Edit journal'), { key: ' ', code: 'Space' });
+  expect(pause).not.toHaveBeenCalled();
+  fireEvent.keyDown(document.body, { key: ' ', code: 'Space', repeat: true });
+  expect(pause).not.toHaveBeenCalled();
+  fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+  expect(pause).toHaveBeenCalledTimes(1);
+  audio.currentTime = 1;
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Seek to sentence 2' }), {
+    key: ' ',
+    code: 'Space',
+  });
+  expect(pause).toHaveBeenCalledTimes(2);
+  expect(audio.currentTime).toBe(1);
+});

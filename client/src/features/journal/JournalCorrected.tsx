@@ -11,14 +11,16 @@ interface Props {
   entryId: string;
   analysis: JournalAnalysis;
   controls: JournalDocumentControls;
+  toolbarTarget?: HTMLElement | null;
 }
-const JournalCorrected = ({ ownerId, entryId, analysis, controls }: Props) => {
+const JournalCorrected = ({ ownerId, entryId, analysis, controls, toolbarTarget }: Props) => {
   const { reading } = correctedContent(analysis);
   return (
     <JournalPlaybackProvider key={`${ownerId}:${entryId}:${analysis.id}:${analysis.replyRevision}`}>
       <section aria-label="Corrected Version" className="space-y-4">
         <JournalAudioPlayer
           key={`${analysis.id}:${analysis.replyRevision}`}
+          toolbarTarget={toolbarTarget}
           ownerId={ownerId}
           entryId={entryId}
           analysisId={analysis.id}

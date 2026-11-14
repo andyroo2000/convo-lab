@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { X } from 'lucide-react';
+import DismissibleBackdrop from '../common/DismissibleBackdrop';
 
 interface AvatarCropperModalProps {
   isOpen: boolean;
@@ -134,7 +135,10 @@ const AvatarCropperModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <DismissibleBackdrop
+      onDismiss={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+    >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -208,7 +212,7 @@ const AvatarCropperModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </DismissibleBackdrop>
   );
 };
 

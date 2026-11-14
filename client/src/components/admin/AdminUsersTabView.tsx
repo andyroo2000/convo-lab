@@ -1,4 +1,5 @@
 import { Search, Trash2 } from 'lucide-react';
+import DismissibleBackdrop from '../common/DismissibleBackdrop';
 import { type AdminUser } from '../../lib/adminApi';
 
 const getRoleBadgeClass = (role: string): string => {
@@ -97,7 +98,10 @@ interface UserDetailsProps {
 const UserDetails = ({ onClose, user }: UserDetailsProps) => {
   if (!user) return null;
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <DismissibleBackdrop
+      onDismiss={onClose}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -138,7 +142,7 @@ const UserDetails = ({ onClose, user }: UserDetailsProps) => {
           </div>
         </div>
       </div>
-    </div>
+    </DismissibleBackdrop>
   );
 };
 
