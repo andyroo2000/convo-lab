@@ -1,8 +1,33 @@
 .journal-paper {
   --journal-rule: 2.7em;
-  padding: 0.75em 0.9em 0.75em 1.6em;
+  --journal-paper-top: 0 0, 100% 0;
+  --journal-paper-bottom:
+    100% calc(100% - 10px), 98% calc(100% - 8px), 96% calc(100% - 11px), 93% calc(100% - 6px),
+    90% calc(100% - 9px), 87% calc(100% - 7px), 84% calc(100% - 10px), 81% calc(100% - 7px),
+    77% calc(100% - 12px), 74% calc(100% - 9px), 71% calc(100% - 13px), 68% calc(100% - 8px),
+    65% calc(100% - 10px), 62% calc(100% - 6px), 59% calc(100% - 8px), 56% calc(100% - 4px),
+    53% calc(100% - 7px), 49% calc(100% - 6px), 46% calc(100% - 10px), 43% calc(100% - 7px),
+    39% calc(100% - 12px), 36% calc(100% - 9px), 32% calc(100% - 11px), 29% calc(100% - 6px),
+    26% calc(100% - 9px), 22% calc(100% - 7px), 19% calc(100% - 10px), 16% calc(100% - 6px),
+    12% calc(100% - 9px), 9% calc(100% - 5px), 6% calc(100% - 8px), 3% calc(100% - 6px),
+    0 calc(100% - 9px);
+  position: relative;
+  isolation: isolate;
+  padding: 0.75em 0.9em 48px 1.6em;
+  filter: drop-shadow(0 3px 2px #44341d19);
+  overflow-wrap: anywhere;
+}
+
+/* Tear only the decorative sheet, keeping text and focus outlines unclipped. */
+.journal-paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  clip-path: polygon(var(--journal-paper-top), var(--journal-paper-bottom));
+  z-index: -1;
+  padding: inherit;
   border: 1px solid #e6dfcc;
-  border-radius: 3px 10px 10px 3px;
   background-color: #fffdf5;
   background-image:
     linear-gradient(
@@ -22,10 +47,16 @@
     linear-gradient(#fffdf5, #fffdf5);
   background-origin: padding-box, content-box, padding-box;
   background-clip: padding-box, content-box, padding-box;
-  box-shadow:
-    0 5px 16px #44341d08,
-    2px 2px 0 #efeadd;
-  overflow-wrap: anywhere;
+}
+
+.journal-reply .journal-paper {
+  --journal-paper-top:
+    0 7px, 3% 5px, 6% 8px, 9% 4px, 12% 6px, 16% 3px, 19% 7px, 22% 5px, 26% 8px, 29% 4px, 32% 6px,
+    36% 2px, 39% 5px, 43% 3px, 46% 7px, 49% 5px, 53% 8px, 56% 4px, 59% 6px, 62% 3px, 65% 5px,
+    68% 1px, 71% 4px, 74% 2px, 77% 6px, 81% 4px, 84% 8px, 87% 5px, 90% 7px, 93% 3px, 96% 6px,
+    98% 4px, 100% 7px;
+  padding-top: 24px;
+  filter: drop-shadow(0 -1px 1px #44341d26) drop-shadow(0 3px 2px #44341d19);
 }
 
 @media (max-width: 767px) {

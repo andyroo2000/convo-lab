@@ -77,7 +77,11 @@ const JournalEditor = ({
   useEditorBusy(editor, processing, onBusyChange);
 
   return (
-    <article className={nested ? 'space-y-6' : 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8'}>
+    <article
+      className={
+        nested ? 'journal-reply space-y-6' : 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8'
+      }
+    >
       <EditorMessages editor={editor} onOpen={onOpen} />
       {reviewing ? (
         <JournalEntryHeading draft={editor.draft} nested={nested} />
