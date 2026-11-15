@@ -59,8 +59,8 @@ const InlineExample = () => {
   return (
     <>
       <div ref={setTarget} role="group" aria-label="Entry controls" />
-      <button type="button" onClick={() => setActive(false)}>
-        Show draft
+      <button type="button" onClick={() => setActive((value) => !value)}>
+        {active ? 'Show draft' : 'Show final'}
       </button>
       <JournalAudioPlayer
         ownerId="a"
@@ -248,5 +248,62 @@ it('shows the avatar picker and cancels without changing the saved voice', async
       expect.objectContaining({ voiceId: haru }),
       expect.any(AbortSignal)
     )
+  );
+});
+
+it('retains the chosen voice without requests or a loading flash across version switches', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
+      <InlineExample />
+    </QueryClientProvider>
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Narration voice' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Yua (F)' }));
+  // Playback invalidates the server preference for the next entry mount.
+  fireEvent.click(screen.getByRole('button', { name: 'Listen corrected version' }));
+  await screen.findByLabelText('corrected version audio');
+  for (let index = 0; index < 3; index += 1) {
+    fireEvent.click(screen.getByRole('button', { name: 'Show draft' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show final' }));
+    expect(screen.queryByText('Loading saved voice…')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Listen corrected version' })).toBeEnabled();
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
+  expect(screen.getByRole('button', { name: 'Yua (F)' })).toHaveAttribute('aria-pressed', 'true');
+  expect(getJournalVoices).toHaveBeenCalledTimes(1);
+  expect(getJournalAudioState).toHaveBeenCalledTimes(1);
+});
+
+it('reloads preferences and clears the local choice for a new revision', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = (revision: number) => (
+    <QueryClientProvider client={client}>
+      <JournalAudioPlayer
+        ownerId="a"
+        entryId="entry"
+        analysisId="analysis"
+        expectedReplyRevision={revision}
+      />
+    </QueryClientProvider>
+  );
+  const { rerender } = render(view(1));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Narration voice' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Yua (F)' }));
+  rerender(view(2));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Narration voice' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Narration voice' }));
+  expect(screen.getByRole('button', { name: 'Haru (M)' })).toHaveAttribute('aria-pressed', 'true');
+  expect(getJournalAudioState).toHaveBeenCalledTimes(2);
+  expect(getJournalAudioState).toHaveBeenLastCalledWith(
+    expect.objectContaining({ expectedReplyRevision: 2 })
   );
 });

@@ -9,8 +9,8 @@ type Props = JournalAudioProps & {
   listenTarget?: HTMLElement | null;
 };
 
-const JournalAudioSession = (props: Props) => {
-  const voice = useJournalVoice(props);
+const JournalAudioSession = (props: Props & { voice: ReturnType<typeof useJournalVoice> }) => {
+  const { voice } = props;
   const { entryId, analysisId, expectedReplyRevision = 0, toolbarTarget, listenTarget } = props;
   return (
     <div className="space-y-2">
@@ -56,27 +56,19 @@ const JournalAudioSession = (props: Props) => {
     </div>
   );
 };
-const JournalAudioPlayer = ({
-  ownerId,
-  entryId,
-  analysisId,
-  expectedReplyRevision = 0,
-  toolbarTarget,
-  listenTarget,
-  active = true,
-}: Props & { active?: boolean }) => (
+// Keep preferences mounted across version switches; only the playback session ends.
+const JournalAudioSettings = (props: Props & { active: boolean }) => {
+  const voice = useJournalVoice(props);
+  const { active } = props;
+  return active ? <JournalAudioSession {...props} voice={voice} /> : null;
+};
+const JournalAudioPlayer = ({ active = true, ...props }: Props & { active?: boolean }) => (
   <JournalPlaybackBoundary>
-    {active && (
-      <JournalAudioSession
-        key={`${ownerId}:${entryId}:${analysisId}:${expectedReplyRevision}`}
-        toolbarTarget={toolbarTarget}
-        listenTarget={listenTarget}
-        ownerId={ownerId}
-        entryId={entryId}
-        analysisId={analysisId}
-        expectedReplyRevision={expectedReplyRevision}
-      />
-    )}
+    <JournalAudioSettings
+      key={`${props.ownerId}:${props.entryId}:${props.analysisId}:${props.expectedReplyRevision ?? 0}`}
+      {...props}
+      active={active}
+    />
   </JournalPlaybackBoundary>
 );
 export default JournalAudioPlayer;
