@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import JournalAppearance from '../JournalAppearance';
 import { readTypography, saveTypography, typographyKey } from '../journalTypography';
 
@@ -7,7 +7,18 @@ beforeEach(() => {
   localStorage.clear();
   vi.restoreAllMocks();
 });
+afterEach(() => vi.unstubAllGlobals());
 describe('Journal device typography', () => {
+  it('uses the mobile default without overriding an explicit saved size', () => {
+    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
+    expect(readTypography()).toEqual({ font: 'klee', size: 20 });
+    saveTypography({ font: 'klee', size: 28 });
+    expect(readTypography()).toEqual({ font: 'klee', size: 28 });
+  });
+  it('keeps the journal readable when viewport queries are unavailable', () => {
+    vi.stubGlobal('matchMedia', undefined);
+    expect(readTypography()).toEqual({ font: 'klee', size: 26 });
+  });
   it('defaults to Klee One at desktop size and preserves explicit sans preferences', () => {
     expect(readTypography()).toEqual({ font: 'klee', size: 26 });
     saveTypography({ font: 'sans', size: 20 });

@@ -19,6 +19,15 @@ interface JournalEditorProps {
 
 type Editor = ReturnType<typeof useJournalEditor>;
 
+function entryPresentation(nested: boolean) {
+  return nested
+    ? { 'aria-label': 'Your reply', className: 'journal-reply space-y-6' }
+    : {
+        'aria-label': 'Journal entry',
+        className: 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8',
+      };
+}
+
 function currentFeedback(editor: Editor, analysis: ReturnType<typeof useJournalAnalysis>) {
   if (analysis.data?.entry.body !== editor.draft?.body) return null;
   return analysis.data?.data;
@@ -77,11 +86,7 @@ const JournalEditor = ({
   useEditorBusy(editor, processing, onBusyChange);
 
   return (
-    <article
-      className={
-        nested ? 'journal-reply space-y-6' : 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8'
-      }
-    >
+    <article {...entryPresentation(nested)}>
       <EditorMessages editor={editor} onOpen={onOpen} />
       {!reviewing && <JournalEditorForm editor={editor} processing={processing} />}
 

@@ -19,7 +19,7 @@ export const journalTextStyle: CSSProperties = {
 export function readTypography(): JournalTypography {
   const defaults = {
     ...defaultTypography,
-    size: window.matchMedia('(max-width: 767px)').matches ? 20 : defaultTypography.size,
+    size: window.matchMedia?.('(max-width: 767px)').matches ? 20 : defaultTypography.size,
   };
   try {
     const value = JSON.parse(localStorage.getItem(typographyKey) ?? 'null');
