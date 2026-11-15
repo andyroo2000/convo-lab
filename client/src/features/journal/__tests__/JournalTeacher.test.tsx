@@ -74,17 +74,24 @@ it('asks for the first tutor, saves the choice, and shows their portrait with hi
   await screen.findByRole('img', { name: 'Hana, your tutor' });
   expect(saveTutorPreference).toHaveBeenCalledWith('hana', expect.anything());
   expect(screen.queryByRole('region', { name: 'Choose your tutor' })).not.toBeInTheDocument();
-  expect(screen.queryByText('Who did you watch it with?')).not.toBeInTheDocument();
+  const translation = screen.getByText('Who did you watch it with?');
+  expect(translation).not.toBeVisible();
   expect(screen.getByText('だれ')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Show English' }));
-  expect(screen.getByRole('tooltip', { name: 'English translation' })).toHaveTextContent(
-    'Who did you watch it with?'
-  );
-  fireEvent.keyDown(document, { key: 'Escape' });
-  expect(screen.queryByRole('tooltip', { name: 'English translation' })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Show English' }));
+  const toggle = screen.getByRole('button', { name: 'Hide English' });
+  expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  expect(toggle).toHaveAttribute('aria-controls', translation.id);
+  expect(toggle).toHaveClass('bg-indigo', 'text-white');
+  expect(translation).toBeVisible();
+  expect(translation.previousElementSibling).toHaveAttribute('lang', 'ja');
   fireEvent.pointerDown(document.body);
-  expect(screen.queryByRole('tooltip', { name: 'English translation' })).not.toBeInTheDocument();
+  expect(translation).toBeVisible();
+  fireEvent.click(toggle);
+  expect(translation).not.toBeVisible();
+  expect(screen.getByRole('button', { name: 'Show English' })).toHaveAttribute(
+    'aria-pressed',
+    'false'
+  );
 });
 it('changes the account default while keeping the existing question with its original tutor', async () => {
   selected = 'hana';

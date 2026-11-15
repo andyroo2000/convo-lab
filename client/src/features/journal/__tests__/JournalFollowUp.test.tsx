@@ -55,10 +55,10 @@ it('hides English until requested and saves an optional answer locally', () => {
       <JournalFollowUp ownerId="a" entryId="entry" analysis={analysis} />
     </Wrapper>
   );
-  expect(screen.queryByText('Who did you watch it with?')).not.toBeInTheDocument();
+  expect(screen.getByText('Who did you watch it with?')).not.toBeVisible();
   expect(screen.getByText('だれ')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Show English' }));
-  expect(screen.getByText('Who did you watch it with?')).toBeInTheDocument();
+  expect(screen.getByText('Who did you watch it with?')).toBeVisible();
   fireEvent.change(screen.getByRole('textbox'), { target: { value: '友達と見た。' } });
   expect(localStorage.getItem('convolab:journal-answer:a:entry:analysis')).toContain(
     '友達と見た。'

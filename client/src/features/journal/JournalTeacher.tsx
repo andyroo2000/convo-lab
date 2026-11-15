@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2 } from 'lucide-react';
 import { retrySavedQuestion } from './journalConversationApi';
@@ -75,38 +75,54 @@ const TeacherRibbon = ({
   feedback: JournalFeedback;
   choosing: boolean;
   choose: () => void;
-}) => (
-  <JournalQuestionAudio
-    ownerId={ownerId}
-    entryId={entryId}
-    question={question}
-    portrait={
-      tutor && (
-        <JournalAvatar
-          src={tutorAvatar(tutor)}
-          alt={`${tutor.name}, your tutor`}
-          className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10"
-        />
-      )
-    }
-    controls={
-      <>
-        <JournalEnglish translation={feedback.questionTranslation} />
-        <button
-          type="button"
-          onClick={choose}
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-indigo hover:bg-white"
-          aria-label="Choose tutor"
-          aria-expanded={choosing}
-        >
-          <Settings2 size={18} aria-hidden="true" />
-        </button>
-      </>
-    }
-  >
-    <JournalQuestion feedback={feedback} />
-  </JournalQuestionAudio>
-);
+}) => {
+  const [englishVisible, setEnglishVisible] = useState(false);
+  const translationId = useId();
+  return (
+    <JournalQuestionAudio
+      ownerId={ownerId}
+      entryId={entryId}
+      question={question}
+      portrait={
+        tutor && (
+          <JournalAvatar
+            src={tutorAvatar(tutor)}
+            alt={`${tutor.name}, your tutor`}
+            className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10"
+          />
+        )
+      }
+      controls={
+        <>
+          <JournalEnglish
+            visible={englishVisible}
+            translationId={translationId}
+            onToggle={() => setEnglishVisible(!englishVisible)}
+          />
+          <button
+            type="button"
+            onClick={choose}
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-indigo hover:bg-white"
+            aria-label="Choose tutor"
+            aria-expanded={choosing}
+          >
+            <Settings2 size={18} aria-hidden="true" />
+          </button>
+        </>
+      }
+    >
+      <JournalQuestion feedback={feedback} />
+      <p
+        id={translationId}
+        hidden={!englishVisible}
+        lang="en"
+        className="mt-3 text-sm leading-relaxed text-gray-600"
+      >
+        {feedback.questionTranslation}
+      </p>
+    </JournalQuestionAudio>
+  );
+};
 
 const JournalTeacher = ({ ownerId, entryId, analysis, savedQuestion }: Props) => {
   const [choosing, setChoosing] = useState(false);
