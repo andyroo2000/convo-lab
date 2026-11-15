@@ -1,4 +1,5 @@
 import { LoaderCircle, Pause, Play, RotateCcw, Volume2 } from 'lucide-react';
+import useJournalProgress from './useJournalProgress';
 import { sentenceKeyDown } from './useJournalPlayback';
 import type useJournalPlayer from './useJournalPlayer';
 
@@ -35,7 +36,7 @@ export const ListenButton = ({
       onKeyDown={(event) => sentenceKeyDown(event, player.playback)}
       aria-label={`${action} ${label}`}
       onClick={player.toggle}
-      className="flex min-h-11 min-w-24 shrink-0 items-center justify-center gap-2 rounded-full border border-[#bdcfe4] bg-white px-3 text-sm text-[#315b85] focus-visible:outline-indigo disabled:opacity-60 sm:min-h-9"
+      className="flex min-h-11 min-w-24 shrink-0 items-center justify-center gap-2 rounded-full border border-[#bdcfe4] bg-white px-3 text-sm text-indigo focus-visible:outline-indigo disabled:opacity-60 sm:min-h-9"
     >
       <Icon
         size={16}
@@ -47,7 +48,7 @@ export const ListenButton = ({
   );
 };
 export const RibbonProgress = ({ player, label }: { player: Player; label: string }) => {
-  const progress = player.duration ? Math.min(1, player.playback.position / player.duration) : 0;
+  const progressBar = useJournalProgress(player);
   if (!player.recording) return null;
   return (
     <div
@@ -55,13 +56,12 @@ export const RibbonProgress = ({ player, label }: { player: Player; label: strin
       aria-label={`${label} playback progress`}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={Math.round(progress * 100)}
+      aria-valuenow={Math.round(
+        player.duration ? Math.min(1, player.playback.position / player.duration) * 100 : 0
+      )}
       className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] overflow-hidden bg-[#cfdeed]"
     >
-      <div
-        className="h-full origin-left bg-[#20476a] transition-transform duration-200 ease-linear motion-reduce:transition-none"
-        style={{ transform: `scaleX(${progress})` }}
-      />
+      <div ref={progressBar} className="h-full origin-left bg-indigo" />
     </div>
   );
 };

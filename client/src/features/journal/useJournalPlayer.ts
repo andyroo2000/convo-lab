@@ -62,6 +62,7 @@ export default function useJournalPlayer(load: RecordingLoader) {
       setEngaged(true);
     },
     onPause() {
+      setPosition(player.current?.currentTime ?? 0);
       setPlaying(false);
       setEngaged(false);
     },
