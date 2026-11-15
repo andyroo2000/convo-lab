@@ -24,7 +24,7 @@ it('shows the exact edit above the explanation and omits only matching repeated 
       <JournalExplanation segment={segment} />
     </>
   );
-  const edit = screen.getByLabelText('Suggested edit');
+  const edit = screen.getByRole('group', { name: 'Suggested edit' });
   expect(edit).toHaveTextContent('辺りしい→新あたらしい');
   expect(within(edit).getByText('あたら').tagName).toBe('RT');
   expect(screen.getAllByText('あたら')).toHaveLength(1);
@@ -46,7 +46,8 @@ it('renders bold, italic and combined emphasis without interpreting HTML or link
   expect(screen.getByText('Bold').tagName).toBe('STRONG');
   expect(screen.getByText('italic').tagName).toBe('EM');
   expect(screen.getByText('both', { selector: 'strong > em' })).toBeInTheDocument();
-  expect(container.innerHTML).not.toMatch(/<(img|a|script)[ >]/);
+  expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  expect(screen.queryByRole('link')).not.toBeInTheDocument();
   expect(container).toHaveTextContent('<img src=x onerror=alert(1)>');
   expect(container).toHaveTextContent('[link](javascript:alert(1))');
 });
@@ -74,9 +75,13 @@ it('labels insertions and deletions without falling back to a full sentence', ()
   const { rerender } = render(
     <JournalCorrection segment={{ ...segment, replacement: '', replacementReading: '' }} />
   );
-  expect(screen.getByLabelText('Suggested edit')).toHaveTextContent('辺りしい→Remove');
+  expect(screen.getByRole('group', { name: 'Suggested edit' })).toHaveTextContent(
+    '辺りしい→Remove'
+  );
   rerender(<JournalCorrection segment={{ ...segment, text: '', reading: '' }} />);
-  expect(screen.getByLabelText('Suggested edit')).toHaveTextContent('Insert→新あたらしい');
+  expect(screen.getByRole('group', { name: 'Suggested edit' })).toHaveTextContent(
+    'Insert→新あたらしい'
+  );
 });
 
 it('leaves malformed emphasis and plain historical explanations readable', () => {
@@ -86,4 +91,19 @@ it('leaves malformed emphasis and plain historical explanations readable', () =>
     />
   );
   expect(screen.getByText('Use *new and **plain text.')).toBeInTheDocument();
+});
+
+it('keeps nested or excessive emphasis literal', () => {
+  render(
+    <JournalExplanation
+      segment={{ ...segment, explanationReading: '**a *b* c** and ****new****' }}
+    />
+  );
+  expect(screen.getByText('**a *b* c** and ****new****')).toBeInTheDocument();
+});
+
+it('uses the plain explanation when a reading field is absent', () => {
+  render(<JournalExplanation segment={{ ...segment, explanationReading: null }} />);
+  expect(screen.getByText('new', { selector: 'strong > em' })).toBeInTheDocument();
+  expect(screen.getByText('新しい')).toHaveAttribute('lang', 'ja');
 });

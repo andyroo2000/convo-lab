@@ -5,6 +5,7 @@ import type { JournalSegment } from './types';
 function explanationText(segment: JournalSegment) {
   const text = segment.explanationReading ?? segment.explanation ?? '';
   if (segment.replacement == null) return text;
+  // Match the full annotation: the same kanji with another reading still needs ruby.
   const displayed = new Set(
     [
       ...`${segment.reading} ${segment.replacementReading ?? ''}`.matchAll(
@@ -62,12 +63,13 @@ function emphasized(text: string): ReactNode {
 // Only inline emphasis is interpreted. HTML, links, images and other markup stay text.
 const JournalExplanation = ({ segment }: { segment: JournalSegment }) => (
   <p className="journal-explanation">
-    {splitParts(
-      explanationText(segment),
-      /((?<!\*)(?:\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*]+\*)(?!\*))/g
-    ).map((part) => (
+    {splitParts(explanationText(segment), /(\*+[^*]+\*+)/g).map((part) => (
       <Fragment key={part.key}>
-        {part.matched ? emphasized(part.text) : <JapaneseTerms text={part.text} />}
+        {part.matched && /^(\*{1,3})[^*]+\1$/.test(part.text) ? (
+          emphasized(part.text)
+        ) : (
+          <JapaneseTerms text={part.text} />
+        )}
       </Fragment>
     ))}
   </p>
