@@ -21,20 +21,16 @@ const ConversationReply = ({
   last,
   refresh,
   onOpen,
-}: Props & { node: JournalConversationNode; last: boolean; refresh: () => Promise<void> }) => (
-  <section
-    key={node.entry.id}
-    className="space-y-6 border-t border-gray-200 pt-6"
-    aria-label="Conversation reply"
-  >
-    {node.question && node.parentEntryId && (
-      <JournalTeacher
-        ownerId={ownerId}
-        entryId={node.parentEntryId}
-        analysis={analysis}
-        savedQuestion={node.question}
-      />
-    )}
+}: Props & { node: JournalConversationNode; last: boolean; refresh: () => Promise<void> }) => {
+  const teacher = node.question && node.parentEntryId && (
+    <JournalTeacher
+      ownerId={ownerId}
+      entryId={node.parentEntryId}
+      analysis={analysis}
+      savedQuestion={node.question}
+    />
+  );
+  return (
     <JournalEditor
       ownerId={ownerId}
       entryId={node.entry.id}
@@ -44,15 +40,24 @@ const ConversationReply = ({
       }}
       onOpen={onOpen}
       initial={node}
+      pendingHeader={teacher}
       renderFeedback={(childAnalysis) => (
         <>
-          <JournalFeedback
-            key={childAnalysis.id}
-            ownerId={ownerId}
-            entryId={node.entry.id}
-            analysis={childAnalysis}
-            followUp={false}
-          />
+          <section
+            className="rounded-2xl border border-[#dce5ef] bg-[#fafcff] p-3 sm:p-5"
+            aria-label="Conversation reply"
+          >
+            {teacher}
+            <div className="mt-7 border-t border-[#e0e7ee] pt-6">
+              <JournalFeedback
+                key={childAnalysis.id}
+                ownerId={ownerId}
+                entryId={node.entry.id}
+                analysis={childAnalysis}
+                followUp={false}
+              />
+            </div>
+          </section>
           {last && (
             <JournalConversationComposer
               ownerId={ownerId}
@@ -65,8 +70,8 @@ const ConversationReply = ({
         </>
       )}
     />
-  </section>
-);
+  );
+};
 
 const JournalConversation = ({
   ownerId,

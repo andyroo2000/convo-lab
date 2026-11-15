@@ -21,21 +21,28 @@ const JournalFeedback = (props: FeedbackProps) => {
     analysis.result && versionText(analysis, 'final').trim() ? 'final' : 'draft'
   );
   const [toolbarTarget, setToolbarTarget] = useState<HTMLSpanElement | null>(null);
+  const [listenTarget, setListenTarget] = useState<HTMLSpanElement | null>(null);
   const controls = useJournalDocument(props);
   const feedback = analysis.result;
   if (!feedback) return null;
   const reply = analysis.currentReply;
   const copyText = versionText(analysis, version);
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-2">
+    <div className="space-y-5">
+      <div
+        className="relative flex flex-wrap items-center gap-2 pb-3"
+        role="group"
+        aria-label="Entry controls"
+      >
         <JournalVersionPicker value={version} onChange={setVersion} />
+        <span className="flex-1" />
+        <span ref={setListenTarget} className={version === 'final' ? 'contents' : 'hidden'} />
         <JournalCopyButton
           key={`${version}:${copyText}`}
           text={copyText}
           label={`Copy ${version} text`}
         />
-        <span ref={setToolbarTarget} hidden={version !== 'final'} />
+        <span ref={setToolbarTarget} className={version === 'final' ? 'contents' : 'hidden'} />
       </div>
       <div hidden={version !== 'draft'} className="space-y-6">
         <JournalAnnotatedText
@@ -63,6 +70,8 @@ const JournalFeedback = (props: FeedbackProps) => {
           {...props}
           controls={controls}
           toolbarTarget={toolbarTarget}
+          listenTarget={listenTarget}
+          active={version === 'final'}
         />
       </div>
       {followUp && (

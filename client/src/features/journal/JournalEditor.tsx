@@ -14,6 +14,7 @@ interface JournalEditorProps {
   nested?: boolean;
   onBusyChange?: (busy: boolean) => void;
   initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
+  pendingHeader?: ReactNode;
   renderFeedback?: (analysis: JournalAnalysis, heading: ReactNode) => ReactNode;
 }
 
@@ -65,6 +66,7 @@ const JournalEditor = ({
   onBusyChange,
   nested = false,
   initial,
+  pendingHeader,
 }: JournalEditorProps) => {
   const { editor, analysis, current, processing } = useEditorFeedback({
     ownerId,
@@ -83,7 +85,12 @@ const JournalEditor = ({
       }
     >
       <EditorMessages editor={editor} onOpen={onOpen} />
-      {!reviewing && <JournalEditorForm editor={editor} processing={processing} />}
+      {!reviewing && (
+        <>
+          {pendingHeader}
+          <JournalEditorForm editor={editor} processing={processing} />
+        </>
+      )}
 
       <FeedbackStatus
         analysis={analysis}

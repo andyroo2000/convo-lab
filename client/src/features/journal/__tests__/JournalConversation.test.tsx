@@ -80,6 +80,9 @@ it('keeps independent Draft/Final controls without appending the child to the ro
   );
   await screen.findByText('友達と見ました。');
   const replySection = screen.getByRole('region', { name: 'Conversation reply' });
+  expect(replySection).toContainElement(screen.getByText('Saved tutor question'));
+  expect(replySection).toContainElement(screen.getByText('友達と見ました。'));
+  expect(replySection).not.toContainElement(screen.getByText('Answer composer'));
   expect(within(replySection).queryByRole('heading')).not.toBeInTheDocument();
   expect(within(replySection).queryByText('2026.11.13')).not.toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Draft' })).toHaveLength(2);
