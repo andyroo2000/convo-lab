@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import JournalAvatar from './JournalAvatar';
 import JournalEnglish from './JournalEnglish';
+import JournalThinkingDelay from './JournalThinkingDelay';
 import JournalThinkingOrnament, { ThinkingDots } from './JournalThinkingOrnament';
 import { nextWaitingPhrase } from './journalThinkingContent';
 import { journalTextStyle } from './journalTypography';
@@ -51,6 +52,7 @@ const JournalThinking = ({ avatar, lastAnswer, children }: Props) => {
           </p>
         )}
         <ThinkingDots />
+        <JournalThinkingDelay />
         {lastAnswer && (
           <p
             className="mt-9 w-full border-t border-[#ddd8c9] pt-5 text-left"

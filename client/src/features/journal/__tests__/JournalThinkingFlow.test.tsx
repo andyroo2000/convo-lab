@@ -155,3 +155,17 @@ it('keeps a retry available when feedback polling fails', async () => {
   await screen.findByRole('button', { name: 'Retry' });
   expect(thinking()).toBeInTheDocument();
 });
+
+it('ignores an answer that arrives after cancelling the waiting screen', async () => {
+  const clarification = deferred<JournalClarification>();
+  vi.mocked(answerClarification).mockReturnValue(clarification.promise);
+  setup();
+  await answer();
+  const signal = vi.mocked(answerClarification).mock.calls[0][3];
+  fireEvent.click(screen.getByRole('button', { name: 'Back to draft' }));
+  await screen.findByRole('button', { name: 'Submit draft' });
+  await act(async () => clarification.resolve({ ...meaning, status: 'resolved', question: null }));
+  expect(signal.aborted).toBe(true);
+  expect(submitJournalEntry).not.toHaveBeenCalled();
+  expect(screen.queryByRole('region', { name: 'Your tutor is thinking' })).not.toBeInTheDocument();
+});
