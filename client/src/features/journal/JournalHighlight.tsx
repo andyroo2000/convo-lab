@@ -2,6 +2,9 @@ import { useId } from 'react';
 import { createPortal } from 'react-dom';
 import useJournalActionPopover from './useJournalActionPopover';
 import JournalRuby from './JournalRuby';
+import JournalCorrection from './JournalCorrection';
+import JournalExplanation from './JournalExplanation';
+import './journalTutorText.css';
 import JournalEditText from './JournalEditText';
 import JournalSuggestionFooter from './JournalSuggestionFooter';
 import { journalHighlightLayout, journalHighlightStyles } from './journalHighlightStyles';
@@ -27,9 +30,8 @@ interface HighlightProps {
 }
 const JournalNote = ({ segment, action, close }: HighlightProps & { close: () => void }) => (
   <>
-    <p className="text-sm leading-relaxed">
-      <JournalRuby text={segment.explanationReading ?? segment.explanation ?? ''} />
-    </p>
+    <JournalCorrection segment={segment} />
+    <JournalExplanation segment={segment} />
     {action?.error && (
       <p role="alert" className="mt-2 text-sm text-rose-700 dark:text-rose-300">
         {action.error}
@@ -82,7 +84,7 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
             role="dialog"
             aria-label={labels[segment.kind]}
             style={position}
-            className="fixed z-50 max-h-[calc(100dvh-24px)] overflow-y-auto w-max max-w-[min(24rem,calc(100vw-24px))] rounded-[14px] border border-[#e8ddd5] bg-white p-3.5 text-navy shadow-lg dark:border-[#455055] dark:bg-[#2a3338] dark:text-[#e2e9ee]"
+            className="fixed z-50 max-h-[calc(100dvh-24px)] overflow-y-auto w-max max-w-[min(30rem,calc(100vw-24px))] rounded-[14px] border border-[#e8ddd5] bg-white p-3.5 text-navy shadow-lg dark:border-[#455055] dark:bg-[#2a3338] dark:text-[#e2e9ee]"
             onPointerEnter={show}
             onPointerLeave={(event) => {
               if (event.pointerType === 'mouse') hide();

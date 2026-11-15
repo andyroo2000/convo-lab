@@ -46,9 +46,6 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
           </button>
         )}
       </div>
-      <p className="mt-1 text-sm text-gray-600">
-        Used for new questions on all your devices. Earlier questions keep their tutor.
-      </p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         {preferences.data?.data.tutors.map((tutor) => (
           <button

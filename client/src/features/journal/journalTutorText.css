@@ -1,0 +1,117 @@
+.journal-tutor-question {
+  font-family: system-ui, 'Noto Sans JP', sans-serif;
+  font-size: var(--journal-size, 26px);
+  font-weight: 400;
+  line-height: 1.65;
+}
+.journal-tutor-translation {
+  margin-top: 2px;
+  color: #594c44;
+  font:
+    400 20px/1.35 Georgia,
+    'Times New Roman',
+    serif;
+}
+.journal-explanation {
+  color: #594c44;
+  font:
+    400 22px/1.45 'Crimson Pro',
+    Georgia,
+    serif;
+  overflow-wrap: anywhere;
+}
+.journal-explanation strong {
+  font-weight: 700;
+}
+.journal-explanation em {
+  font-style: italic;
+}
+.journal-explanation [lang='ja'],
+.journal-correction [lang='ja'] {
+  color: #3d694c;
+  font-family: 'Noto Serif JP', 'Yu Mincho', serif;
+  font-style: normal;
+  font-weight: 400;
+}
+.journal-explanation [lang='ja'] {
+  font-size: 0.92em;
+}
+.journal-explanation ruby,
+.journal-correction ruby {
+  ruby-position: over;
+  ruby-align: center;
+}
+.journal-explanation rt,
+.journal-correction rt {
+  font-size: 0.5em;
+  line-height: 1.2;
+}
+.journal-correction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px 22px;
+  padding: 16px 6px 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e8ddd5;
+  font-size: 27px;
+  line-height: 1.5;
+}
+.journal-correction > [lang='ja'] {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.journal-correction .journal-correction-original {
+  color: #897064;
+}
+.journal-correction-original {
+  /* Clone the overhang for each wrapped line; ruby readings stay above the strike. */
+  padding-inline: 6px;
+  margin-inline: -6px;
+  background: linear-gradient(#bf616d, #bf616d) left 58% / 100% 1.5px no-repeat;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.journal-correction-arrow {
+  color: #675b4b;
+  font:
+    30px/1 'Times New Roman',
+    serif;
+}
+.journal-correction-label {
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+  color: #697782;
+}
+.dark .journal-explanation,
+.dark .journal-tutor-translation {
+  color: #e0d1c4;
+}
+.dark .journal-explanation [lang='ja'],
+.dark .journal-correction [lang='ja'] {
+  color: #a1c7a9;
+}
+.dark .journal-correction {
+  border-color: #455055;
+}
+.dark .journal-correction .journal-correction-original {
+  color: #c4aaa1;
+}
+.dark .journal-correction-arrow,
+.dark .journal-correction-label {
+  color: #c4b9aa;
+}
+@media (max-width: 767px) {
+  .journal-tutor-translation {
+    font-size: 18px;
+  }
+  .journal-explanation {
+    font-size: 20px;
+  }
+  .journal-correction {
+    font-size: 23px;
+    gap: 12px 18px;
+  }
+}

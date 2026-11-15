@@ -1,38 +1,20 @@
-import { useId } from 'react';
-import { createPortal } from 'react-dom';
-import useJournalPopover from './useJournalPopover';
+interface Props {
+  visible: boolean;
+  translationId: string;
+  onToggle: () => void;
+}
 
-const JournalEnglish = ({ translation }: { translation: string }) => {
-  const popover = useJournalPopover();
-  const id = useId();
-  return (
-    <>
-      <button
-        type="button"
-        ref={popover.anchor}
-        className="flex h-11 w-11 items-center justify-center rounded-lg text-xs font-semibold text-indigo hover:bg-white/70"
-        aria-label={popover.open ? 'Hide English' : 'Show English'}
-        aria-expanded={popover.open}
-        aria-describedby={popover.open ? id : undefined}
-        onClick={popover.open ? popover.close : popover.show}
-      >
-        En
-      </button>
-      {popover.open &&
-        createPortal(
-          <div
-            id={id}
-            ref={popover.popup}
-            role="tooltip"
-            aria-label="English translation"
-            style={popover.position}
-            className="fixed z-50 w-72 max-w-[calc(100vw-24px)] rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed text-gray-600 shadow-lg"
-          >
-            {translation}
-          </div>,
-          document.body
-        )}
-    </>
-  );
-};
+const JournalEnglish = ({ visible, translationId, onToggle }: Props) => (
+  <button
+    type="button"
+    className={`flex h-11 w-11 items-center justify-center rounded-lg text-xs font-semibold ${visible ? 'bg-indigo text-white hover:bg-indigo/90' : 'bg-white/70 text-indigo hover:bg-white'}`}
+    aria-label={visible ? 'Hide English' : 'Show English'}
+    aria-expanded={visible}
+    aria-pressed={visible}
+    aria-controls={translationId}
+    onClick={onToggle}
+  >
+    En
+  </button>
+);
 export default JournalEnglish;
