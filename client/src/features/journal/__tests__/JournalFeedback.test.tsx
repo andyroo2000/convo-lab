@@ -72,7 +72,6 @@ it('opens a compact correction on tap or keyboard focus and closes with Escape',
   expect(popup.textContent).toContain('Use 見ました for the past tense.');
   expect(within(popup).getAllByText('み')).toHaveLength(2);
   expect(within(popup).getAllByText('えいが')).toHaveLength(2);
-  expect(popup.className).toContain('p-3.5');
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   fireEvent.focus(screen.getByRole('button'));

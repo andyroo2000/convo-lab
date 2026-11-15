@@ -5,6 +5,7 @@ import JournalRuby from './JournalRuby';
 import JournalCorrection from './JournalCorrection';
 import JournalExplanation from './JournalExplanation';
 import './journalTutorText.css';
+import './journalNotePopover.css';
 import JournalEditText from './JournalEditText';
 import JournalSuggestionFooter from './JournalSuggestionFooter';
 import { journalHighlightLayout, journalHighlightStyles } from './journalHighlightStyles';
@@ -48,7 +49,8 @@ const JournalNote = ({ segment, action, close }: HighlightProps & { close: () =>
 );
 
 const JournalHighlight = ({ segment, action }: HighlightProps) => {
-  const { anchor, popup, open, position, show, hide, dismiss, trigger } = useJournalActionPopover();
+  const { anchor, popup, open, position, pointer, show, hide, dismiss, trigger } =
+    useJournalActionPopover();
   const id = useId();
 
   if (segment.kind === 'plain' || segment.kind === 'keep')
@@ -84,13 +86,23 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
             role="dialog"
             aria-label={labels[segment.kind]}
             style={position}
-            className="fixed z-50 max-h-[calc(100dvh-24px)] overflow-y-auto w-max max-w-[min(30rem,calc(100vw-24px))] rounded-[14px] border border-[#e8ddd5] bg-white p-3.5 text-navy shadow-lg dark:border-[#455055] dark:bg-[#2a3338] dark:text-[#e2e9ee]"
+            className="journal-note-popover fixed z-50 w-max max-w-[min(30rem,calc(100vw-24px))] text-navy shadow-lg dark:text-[#e2e9ee]"
             onPointerEnter={show}
             onPointerLeave={(event) => {
               if (event.pointerType === 'mouse') hide();
             }}
           >
-            <JournalNote segment={segment} action={action} close={dismiss} />
+            {pointer.visible && (
+              <span
+                className="journal-note-pointer"
+                data-placement={pointer.placement}
+                style={{ left: pointer.left }}
+                aria-hidden="true"
+              />
+            )}
+            <div className="journal-note-content">
+              <JournalNote segment={segment} action={action} close={dismiss} />
+            </div>
           </div>,
           document.body
         )}

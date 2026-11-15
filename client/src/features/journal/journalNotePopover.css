@@ -1,0 +1,78 @@
+.journal-note-popover {
+  --journal-note-header: #f0edf8;
+  --journal-note-accent: #aaa0ba;
+  --journal-note-divider: #e1dce7;
+  --journal-note-surface: #fff;
+  --journal-note-edge: #e8ddd5;
+  background: var(--journal-note-surface);
+  border: 1px solid var(--journal-note-edge);
+  border-top: 2px solid var(--journal-note-accent);
+  border-radius: 8px;
+}
+.journal-note-content {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  padding: 0 16px 14px;
+  border-radius: 6px 6px 8px 8px;
+}
+.journal-note-content:not(:has(.journal-correction)) {
+  padding-top: 14px;
+}
+.journal-note-content > .journal-correction {
+  gap: 12px 78px;
+  margin: 0 -16px 15px;
+  padding: 16px 18px 14px;
+  background: var(--journal-note-header);
+  border-bottom: 3px double var(--journal-note-divider);
+}
+.journal-note-content > .journal-correction:has(rt:not([aria-hidden='true'])) {
+  padding-top: 28px;
+}
+.journal-note-content .journal-correction rt[aria-hidden='true'] {
+  display: none;
+}
+.journal-note-content .journal-correction-arrow {
+  width: 30px;
+  right: calc(100% + 24px);
+  text-align: center;
+}
+.journal-note-pointer {
+  position: absolute;
+  top: -14px;
+  width: 24px;
+  height: 12px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  --journal-pointer-border: var(--journal-note-accent);
+  --journal-pointer-fill: var(--journal-note-surface);
+}
+.journal-note-popover:has(.journal-correction) .journal-note-pointer {
+  --journal-pointer-fill: var(--journal-note-header);
+}
+.journal-note-pointer::before,
+.journal-note-pointer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--journal-pointer-border);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+}
+.journal-note-pointer::after {
+  top: 2px;
+  bottom: -2px;
+  background: var(--journal-pointer-fill);
+}
+.journal-note-popover .journal-note-pointer[data-placement='above'] {
+  top: auto;
+  bottom: -12px;
+  transform: translateX(-50%) rotate(180deg);
+  --journal-pointer-border: var(--journal-note-edge);
+  --journal-pointer-fill: var(--journal-note-surface);
+}
+.dark .journal-note-popover {
+  --journal-note-header: #393443;
+  --journal-note-accent: #9588a5;
+  --journal-note-divider: #585060;
+  --journal-note-surface: #2a3338;
+  --journal-note-edge: #455055;
+}

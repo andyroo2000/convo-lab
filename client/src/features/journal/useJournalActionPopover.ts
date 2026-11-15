@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import useJournalPopover from './useJournalPopover';
 
 export default function useJournalActionPopover() {
-  const popover = useJournalPopover();
+  const popover = useJournalPopover(16);
   const closeOnClick = useRef(false);
   const restoringFocus = useRef(false);
   const { anchor, popup, open, close, show } = popover;

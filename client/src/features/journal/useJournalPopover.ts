@@ -1,15 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import journalPopoverPosition from './journalPopoverPosition';
 
-function positionPopover(anchor: HTMLElement | null, popup: HTMLElement | null) {
+function positionPopover(anchor: HTMLElement | null, popup: HTMLElement | null, gap: number) {
   if (!anchor || !popup) return null;
-  const rect = anchor.getBoundingClientRect();
-  const size = popup.getBoundingClientRect();
-  const left = Math.max(12, Math.min(rect.left, window.innerWidth - size.width - 12));
-  const top =
-    rect.bottom + size.height + 12 < window.innerHeight
-      ? rect.bottom + 6
-      : Math.max(12, rect.top - size.height - 6);
-  return { left, top };
+  return journalPopoverPosition(
+    anchor.getBoundingClientRect(),
+    popup.getBoundingClientRect(),
+    { width: window.innerWidth, height: window.innerHeight },
+    gap
+  );
 }
 
 function dismissPopover(
@@ -40,12 +39,18 @@ function dismissPopover(
   };
 }
 
-export default function useJournalPopover() {
+export default function useJournalPopover(gap = 6) {
   const anchor = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
   const timeout = useRef<ReturnType<typeof setTimeout>>();
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState({ left: 12, top: 12 });
+  const [position, setPosition] = useState({
+    left: 12,
+    top: 12,
+    pointerLeft: 24,
+    placement: 'below',
+    pointerVisible: false,
+  });
   const show = () => {
     clearTimeout(timeout.current);
     setOpen(true);
@@ -59,7 +64,7 @@ export default function useJournalPopover() {
   useLayoutEffect(() => {
     if (!open) return undefined;
     const reposition = () => {
-      const placement = positionPopover(anchor.current, popup.current);
+      const placement = positionPopover(anchor.current, popup.current, gap);
       if (placement) setPosition(placement);
     };
     reposition();
@@ -67,7 +72,7 @@ export default function useJournalPopover() {
     const observer = new ResizeObserver(reposition);
     observer.observe(popup.current);
     return () => observer.disconnect();
-  }, [open]);
+  }, [open, gap]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -83,5 +88,18 @@ export default function useJournalPopover() {
     clearTimeout(timeout.current);
     setOpen(false);
   };
-  return { anchor, popup, open, position, show, hide, close };
+  return {
+    anchor,
+    popup,
+    open,
+    position: { left: position.left, top: position.top },
+    pointer: {
+      left: position.pointerLeft,
+      placement: position.placement,
+      visible: position.pointerVisible,
+    },
+    show,
+    hide,
+    close,
+  };
 }
