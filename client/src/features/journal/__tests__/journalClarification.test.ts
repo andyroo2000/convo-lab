@@ -10,7 +10,7 @@ import {
 vi.mock('../../../lib/apiClient', () => ({ requestJson: vi.fn() }));
 beforeEach(() => vi.resetAllMocks());
 it('sends versioned questions and preserves abort signals', async () => {
-  const {signal} = new AbortController();
+  const { signal } = new AbortController();
   const entry = { id: 'entry/one', version: 3 };
   const state: JournalClarification = {
     id: 'check',
