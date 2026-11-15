@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import JournalAvatar from './JournalAvatar';
+import JournalThinking from './JournalThinking';
 import { getTutorPreferences, tutorAvatar } from './journalTutor';
 import type useJournalClarification from './useJournalClarification';
 import type { ClarificationQuestion } from './journalClarification';
@@ -93,15 +94,60 @@ function useClarificationTutor(ownerId: string) {
   const tutor = tutors?.tutors.find((item) => item.id === tutors.selectedId) ?? tutors?.tutors[0];
   return tutor;
 }
+function isThinking(workflow: Workflow, waitingForFeedback: boolean) {
+  if (workflow.busy) return true;
+  return !workflow.active && waitingForFeedback;
+}
+
+const ClarificationError = ({ workflow }: { workflow: Workflow }) => {
+  if (!workflow.error) return null;
+  return (
+    <div className="space-y-3">
+      <p role="alert" className="text-sm text-rose-700">
+        {workflow.error}
+      </p>
+      <button
+        type="button"
+        disabled={workflow.busy}
+        onClick={() => {
+          workflow.retry().catch(() => undefined);
+        }}
+        className="rounded-xl bg-indigo px-5 py-3 text-white disabled:opacity-40"
+      >
+        Retry
+      </button>
+    </div>
+  );
+};
+
 const JournalClarificationDialog = ({
   ownerId,
   workflow,
+  waitingForFeedback = false,
 }: {
+  waitingForFeedback?: boolean;
   ownerId: string;
   workflow: Workflow;
 }) => {
   const tutor = useClarificationTutor(ownerId);
   const question = workflow.state?.question;
+  if (isThinking(workflow, waitingForFeedback))
+    return (
+      <JournalThinking
+        avatar={tutor ? tutorAvatar(tutor) : undefined}
+        lastAnswer={workflow.lastAnswer}
+      >
+        {workflow.active && (
+          <button
+            type="button"
+            onClick={workflow.cancel}
+            className="mt-6 min-h-11 text-sm text-slate-600 underline"
+          >
+            Back to draft
+          </button>
+        )}
+      </JournalThinking>
+    );
   return (
     <section aria-label="Clarify your meaning" lang="en" className="flex items-start gap-3">
       <JournalAvatar
@@ -111,28 +157,7 @@ const JournalClarificationDialog = ({
       />
       <div className="min-w-0 flex-1 space-y-4 rounded-2xl bg-[#edf5ff] p-5">
         {question && <Question key={question.id} question={question} workflow={workflow} />}
-        {workflow.busy && (
-          <p role="status" className="text-sm text-slate-600">
-            Checking…
-          </p>
-        )}
-        {workflow.error && (
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-rose-700">
-              {workflow.error}
-            </p>
-            <button
-              type="button"
-              disabled={workflow.busy}
-              onClick={() => {
-                workflow.retry().catch(() => undefined);
-              }}
-              className="rounded-xl bg-indigo px-5 py-3 text-white disabled:opacity-40"
-            >
-              Retry
-            </button>
-          </div>
-        )}
+        <ClarificationError workflow={workflow} />
         <button
           type="button"
           onClick={workflow.cancel}

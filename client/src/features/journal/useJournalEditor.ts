@@ -28,6 +28,7 @@ export default function useJournalEditor({
   const store = useMemo(() => new JournalDraftStore(ownerId), [ownerId]);
   const [draft, setDraft] = useState<JournalDraft | null>(null);
   const [busy, setBusy] = useState(false);
+  const [requestingFeedback, setRequestingFeedback] = useState(false);
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [locallySaved, setLocallySaved] = useState(false);
@@ -47,6 +48,7 @@ export default function useJournalEditor({
     setLocallySaved(false);
     setBusy(false);
     setSubmission(undefined);
+    setRequestingFeedback(false);
     let local: JournalDraft | null = null;
     try {
       local = store.get(entryId);
@@ -99,6 +101,7 @@ export default function useJournalEditor({
   }
 
   async function submitSaved(entry: JournalEntry, epoch: number) {
+    setRequestingFeedback(true);
     try {
       const clarificationId = await clarification.begin(entry);
       if (!clarificationId || scope.current !== epoch) return false;
@@ -110,6 +113,8 @@ export default function useJournalEditor({
     } catch {
       if (scope.current === epoch)
         setError('Saved, but feedback could not be requested. Try Submit again.');
+    } finally {
+      if (scope.current === epoch) setRequestingFeedback(false);
     }
     return false;
   }
@@ -187,6 +192,7 @@ export default function useJournalEditor({
 
   return {
     clarification,
+    requestingFeedback,
     draft,
     busy,
     error,
