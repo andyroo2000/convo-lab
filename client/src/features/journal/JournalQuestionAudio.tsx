@@ -1,24 +1,34 @@
-import JournalMinimalPlayer from './JournalMinimalPlayer';
+import JournalTutorRibbon, { type TutorRibbonSlots } from './JournalTutorRibbon';
 import { JournalPlaybackBoundary } from './JournalPlaybackContext';
 import { timedQuestionAudio } from './journalTimedAudio';
+import useJournalPlayer from './useJournalPlayer';
 import type { TutorQuestion } from './journalTutor';
 
-interface Props {
+interface Props extends TutorRibbonSlots {
   ownerId: string;
   entryId: string;
   question?: TutorQuestion;
 }
-const JournalQuestionAudio = ({ ownerId, entryId, question }: Props) => {
-  if (!question?.tutor) return null;
+const QuestionPlayer = ({
+  entryId,
+  question,
+  ...slots
+}: Omit<Props, 'ownerId' | 'question'> & { question: TutorQuestion }) => {
+  const player = useJournalPlayer((signal) => timedQuestionAudio(entryId, question.id, signal));
+  return (
+    <JournalTutorRibbon {...slots} player={player} label={`${question.tutor?.name}'s question`} />
+  );
+};
+const JournalQuestionAudio = ({ ownerId, entryId, question, ...slots }: Props) => {
+  if (!question?.tutor) return <JournalTutorRibbon {...slots} />;
   return (
     <JournalPlaybackBoundary>
-      <div className="mt-3">
-        <JournalMinimalPlayer
-          key={`${ownerId}:${entryId}:${question.id}`}
-          label={`${question.tutor.name}'s question`}
-          load={(signal) => timedQuestionAudio(entryId, question.id, signal)}
-        />
-      </div>
+      <QuestionPlayer
+        key={`${ownerId}:${entryId}:${question.id}`}
+        entryId={entryId}
+        question={question}
+        {...slots}
+      />
     </JournalPlaybackBoundary>
   );
 };
