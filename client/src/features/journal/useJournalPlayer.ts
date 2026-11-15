@@ -61,6 +61,7 @@ export default function useJournalPlayer(load: RecordingLoader) {
     onEnded() {
       setPlaying(false);
       setEngaged(false);
+      setPosition(duration);
     },
     onError() {
       recording.setError('Audio could not be played. Try again.');

@@ -90,9 +90,10 @@ it('starts after the first Listen click and supports pause, resume, and replay',
   expect(audio.play).toHaveBeenCalledTimes(2);
   expect(audio.currentTime).toBe(4);
   fireEvent.play(audio);
-  audio.currentTime = 10;
-  fireEvent.timeUpdate(audio);
+  // A final timeupdate may be omitted or rounded below the media duration.
+  audio.currentTime = 9.999;
   fireEvent.ended(audio);
+  expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
   fireEvent.click(screen.getByRole('button', { name: "Replay Hana's question" }));
   expect(audio.play).toHaveBeenCalledTimes(3);
 });
