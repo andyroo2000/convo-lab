@@ -21,6 +21,7 @@ export default function useJournalClarification(scope: string) {
   const [state, setState] = useState<JournalClarification | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [lastAnswer, setLastAnswer] = useState('');
 
   const cancel = useCallback(() => {
     session.current?.controller.abort();
@@ -32,6 +33,7 @@ export default function useJournalClarification(scope: string) {
     setState(null);
     setBusy(false);
     setError('');
+    setLastAnswer('');
   }, []);
   useEffect(() => cancel, [scope, cancel]);
 
@@ -73,6 +75,7 @@ export default function useJournalClarification(scope: string) {
       resolve = done;
     });
     session.current = { entry, controller: new AbortController(), resolve, promise };
+    setLastAnswer('');
     setActive(true);
     setState(null);
     request((current) => startClarification(current.entry, current.controller.signal)).catch(
@@ -83,6 +86,7 @@ export default function useJournalClarification(scope: string) {
   function answer(text: string) {
     if (running.current) return Promise.resolve();
     if (!state?.question || !text.trim()) return Promise.resolve();
+    setLastAnswer(text.trim());
     pendingAnswer.current = { state, text: text.trim() };
     return request((current) =>
       answerClarification(current.entry, state, text.trim(), current.controller.signal)
@@ -96,5 +100,5 @@ export default function useJournalClarification(scope: string) {
       );
     return request((current) => startClarification(current.entry, current.controller.signal));
   }
-  return { active, state, busy, error, begin, answer, retry, cancel };
+  return { active, state, busy, error, lastAnswer, begin, answer, retry, cancel };
 }

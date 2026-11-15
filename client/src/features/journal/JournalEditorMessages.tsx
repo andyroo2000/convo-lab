@@ -1,7 +1,6 @@
 import type useJournalEditor from './useJournalEditor';
 import type useJournalAnalysis from './useJournalAnalysis';
 import type { JournalAnalysis } from './types';
-import JournalProgress from './JournalProgress';
 
 type Editor = ReturnType<typeof useJournalEditor>;
 
@@ -60,10 +59,6 @@ export const FeedbackStatus = ({
       <p role="alert" className="text-sm text-rose-700">
         {current.error} Submit again to retry.
       </p>
-    );
-  if (current?.status === 'queued' || current?.status === 'processing')
-    return (
-      <JournalProgress key={current.id} status={current.status} startedAt={current.updatedAt} />
     );
   return null;
 };

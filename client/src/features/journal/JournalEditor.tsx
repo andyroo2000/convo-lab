@@ -52,7 +52,11 @@ function useEditorFeedback({ ownerId, entryId, onSaved, initial }: JournalEditor
   });
   const current = currentFeedback(editor, analysis);
   const processing = isProcessing(current);
-  return { editor, analysis, current, processing };
+  const waiting = editor.clarification.active || editor.requestingFeedback || processing;
+  const retryFeedback = () => {
+    analysis.refetch().catch(() => undefined);
+  };
+  return { editor, analysis, current, processing, waiting, retryFeedback };
 }
 
 function useEditorBusy(
@@ -78,7 +82,7 @@ const JournalEditor = ({
   initial,
   pendingHeader,
 }: JournalEditorProps) => {
-  const { editor, analysis, current, processing } = useEditorFeedback({
+  const { editor, analysis, current, processing, waiting, retryFeedback } = useEditorFeedback({
     ownerId,
     entryId,
     onSaved,
@@ -88,10 +92,15 @@ const JournalEditor = ({
   const reviewing = current?.status === 'ready';
   useEditorBusy(editor, processing, onBusyChange);
 
-  if (editor.clarification.active)
+  if (waiting)
     return (
       <article {...entryPresentation(nested)}>
-        <JournalClarificationDialog ownerId={ownerId} workflow={editor.clarification} />
+        <JournalClarificationDialog
+          ownerId={ownerId}
+          workflow={editor.clarification}
+          waitingForFeedback
+        />
+        <FeedbackStatus analysis={analysis} current={current} retry={retryFeedback} />
       </article>
     );
 
@@ -105,13 +114,7 @@ const JournalEditor = ({
         </>
       )}
 
-      <FeedbackStatus
-        analysis={analysis}
-        current={current}
-        retry={() => {
-          analysis.refetch().catch(() => undefined);
-        }}
-      />
+      <FeedbackStatus analysis={analysis} current={current} retry={retryFeedback} />
       {reviewing &&
         current &&
         renderFeedback?.(current, nested ? null : <JournalEntryHeading draft={editor.draft} />)}

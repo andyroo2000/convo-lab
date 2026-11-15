@@ -4,6 +4,7 @@ import JournalEditor from '../JournalEditor';
 import useJournalEditor from '../useJournalEditor';
 import useJournalAnalysis from '../useJournalAnalysis';
 
+vi.mock('../JournalClarificationDialog', () => ({ default: () => <p>Your tutor is thinking</p> }));
 vi.mock('../useJournalEditor');
 vi.mock('../useJournalAnalysis');
 vi.mock('../JournalEditorForm', () => ({ default: () => null }));
@@ -36,6 +37,6 @@ it.each(['processing', 'ready'] as const)('shows %s only for the current diary t
   unmount();
   show('original', status);
   expect(
-    screen.getByText(status === 'ready' ? 'Corrections' : 'Reviewing your Japanese…')
+    screen.getByText(status === 'ready' ? 'Corrections' : 'Your tutor is thinking')
   ).toBeInTheDocument();
 });
