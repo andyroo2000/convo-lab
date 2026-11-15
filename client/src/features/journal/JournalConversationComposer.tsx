@@ -79,7 +79,7 @@ const JournalConversationComposer = (props: Props) => {
   });
   return (
     <section
-      className="space-y-4 border-t border-gray-200 pt-6"
+      className="space-y-6 rounded-2xl border border-[#dce5ef] bg-[#fafcff] p-3 sm:p-5"
       aria-label="Continue the conversation"
     >
       <JournalTeacher ownerId={ownerId} entryId={entryId} analysis={analysis} />

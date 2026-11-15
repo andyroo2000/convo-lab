@@ -13,6 +13,8 @@ interface Props {
   analysis: JournalAnalysis;
   controls: JournalDocumentControls;
   toolbarTarget?: HTMLElement | null;
+  listenTarget?: HTMLElement | null;
+  active?: boolean;
   heading?: ReactNode;
 }
 const JournalCorrected = ({
@@ -21,6 +23,8 @@ const JournalCorrected = ({
   analysis,
   controls,
   toolbarTarget,
+  listenTarget,
+  active,
   heading,
 }: Props) => {
   const { reading } = correctedContent(analysis);
@@ -30,6 +34,8 @@ const JournalCorrected = ({
         <JournalAudioPlayer
           key={`${analysis.id}:${analysis.replyRevision}`}
           toolbarTarget={toolbarTarget}
+          listenTarget={listenTarget}
+          active={active}
           ownerId={ownerId}
           entryId={entryId}
           analysisId={analysis.id}
