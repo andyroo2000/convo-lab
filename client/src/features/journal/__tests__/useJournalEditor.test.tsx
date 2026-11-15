@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
+import { startClarification } from '../journalClarification';
 import { JsonRequestError } from '../../../lib/apiClient';
 import { getJournalEntry, saveJournalDraft, submitJournalEntry } from '../journalApi';
 import { JournalDraftStore, newJournalDraft } from '../journalDrafts';
@@ -11,8 +12,21 @@ vi.mock('../journalApi', () => ({
   saveJournalDraft: vi.fn(),
   submitJournalEntry: vi.fn(),
 }));
+vi.mock('../journalClarification', async (original) => ({
+  ...(await original<typeof import('../journalClarification')>()),
+  startClarification: vi.fn(),
+}));
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(startClarification).mockImplementation(async (entry) => ({
+    id: 'meaning',
+    sourceVersion: entry.version,
+    revision: 0,
+    status: 'resolved',
+    question: null,
+    error: null,
+    updatedAt: '',
+  }));
   localStorage.clear();
 });
 
@@ -44,7 +58,7 @@ it('saves before submitting and uses the returned server version', async () => {
   const { result, entry, store, draft } = setup();
   vi.mocked(saveJournalDraft).mockResolvedValue(entry);
   await act(() => result.current.save(true));
-  expect(submitJournalEntry).toHaveBeenCalledWith(entry);
+  expect(submitJournalEntry).toHaveBeenCalledWith(entry, 'meaning');
   expect(store.get(draft.id)).toBeNull();
   expect(result.current.draft?.expectedVersion).toBe(2);
   expect(result.current.submitted).toBe(1);
@@ -181,4 +195,31 @@ it('reports unsuccessful submission so the edit form can remain open', async () 
   });
   expect(saved).not.toBe(true);
   expect(result.current.error).toContain('feedback could not be requested');
+});
+
+it('waits for meaning clarification before requesting the existing feedback', async () => {
+  const { result, entry } = setup();
+  vi.mocked(saveJournalDraft).mockResolvedValue(entry);
+  vi.mocked(startClarification).mockResolvedValue({
+    id: 'meaning',
+    sourceVersion: entry.version,
+    revision: 0,
+    status: 'waiting',
+    question: { id: 'drive', prompt: 'Who was driving?', choices: ['Me', 'Molly'] },
+    error: null,
+    updatedAt: '',
+  });
+  let saved: Promise<boolean>;
+  act(() => {
+    saved = result.current.save(true);
+  });
+  await waitFor(() => expect(result.current.clarification.state?.status).toBe('waiting'));
+  expect(submitJournalEntry).not.toHaveBeenCalled();
+  expect(result.current.busy).toBe(true);
+  act(() => result.current.clarification.cancel());
+  await act(async () => {
+    expect(await saved).toBe(false);
+  });
+  expect(submitJournalEntry).not.toHaveBeenCalled();
+  expect(result.current.draft?.body).toBe(entry.body);
 });

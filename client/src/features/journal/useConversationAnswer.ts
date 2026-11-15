@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { JsonRequestError } from '../../lib/apiClient';
 import { createConversationAnswer } from './journalConversationApi';
 import { submitJournalEntry } from './journalApi';
+import useJournalClarification from './useJournalClarification';
 
 const draftSchema = z.object({
   body: z.string(),
@@ -28,6 +29,7 @@ export default function useConversationAnswer(
   questionId: string,
   onSaved: () => Promise<unknown>
 ) {
+  const clarification = useJournalClarification(key);
   const [draft, setDraft] = useState(() => restore(key));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -55,6 +57,19 @@ export default function useConversationAnswer(
           : 'Could not send your answer. Retry to send the same answer safely.'
       );
   }
+  async function finishSaved() {
+    try {
+      if (live.current) await onSaved();
+    } catch {
+      if (live.current) setError('Your answer is saved. Reload the conversation to see it.');
+      return;
+    }
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* The answer is saved; stale drafts retry the same id safely. */
+    }
+  }
   async function submit() {
     if (busy || !draft.body.trim()) return;
     const request = draft.request ?? { id: ulid().toLowerCase(), questionId, body: draft.body };
@@ -63,27 +78,19 @@ export default function useConversationAnswer(
     persist({ ...draft, request });
     try {
       const { data: entry } = await createConversationAnswer(entryId, request);
+      const clarificationId = await clarification.begin(entry);
+      if (!clarificationId || !live.current) return;
       try {
-        await submitJournalEntry(entry);
+        await submitJournalEntry(entry, clarificationId);
       } catch {
         /* The saved answer remains editable and can be submitted again. */
       }
-      try {
-        if (live.current) await onSaved();
-      } catch {
-        if (live.current) setError('Your answer is saved. Reload the conversation to see it.');
-        return;
-      }
-      try {
-        localStorage.removeItem(key);
-      } catch {
-        /* The answer is saved; stale drafts retry the same id safely. */
-      }
+      await finishSaved();
     } catch (reason) {
       reportFailure(reason);
     } finally {
       if (live.current) setBusy(false);
     }
   }
-  return { draft, busy, error, change: (body: string) => persist({ body }), submit };
+  return { clarification, draft, busy, error, change: (body: string) => persist({ body }), submit };
 }

@@ -3,6 +3,7 @@ import useJournalEditor from './useJournalEditor';
 import useJournalAnalysis from './useJournalAnalysis';
 import JournalEntryHeading from './JournalEntryHeading';
 import JournalEditorForm from './JournalEditorForm';
+import JournalClarificationDialog from './JournalClarificationDialog';
 import { EditorMessages, FeedbackStatus } from './JournalEditorMessages';
 import type { JournalAnalysis, JournalEntry } from './types';
 
@@ -86,6 +87,13 @@ const JournalEditor = ({
   });
   const reviewing = current?.status === 'ready';
   useEditorBusy(editor, processing, onBusyChange);
+
+  if (editor.clarification.active)
+    return (
+      <article {...entryPresentation(nested)}>
+        <JournalClarificationDialog ownerId={ownerId} workflow={editor.clarification} />
+      </article>
+    );
 
   return (
     <article {...entryPresentation(nested)}>

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import JournalTeacher from './JournalTeacher';
+import JournalClarificationDialog from './JournalClarificationDialog';
 import { prepareTutorQuestion } from './journalTutor';
 import { journalTextStyle } from './journalTypography';
 import useConversationAnswer from './useConversationAnswer';
@@ -22,6 +23,8 @@ const Answer = ({
 }: Props & { questionId: string }) => {
   const key = `convolab:journal-answer:${ownerId}:${rootId}:${analysis.id}:conversation`;
   const reply = useConversationAnswer(key, entryId, questionId, onSaved);
+  if (reply.clarification.active)
+    return <JournalClarificationDialog ownerId={ownerId} workflow={reply.clarification} />;
   return (
     <form
       className="space-y-3"
