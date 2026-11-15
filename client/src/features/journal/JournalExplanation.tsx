@@ -30,14 +30,22 @@ function splitParts(text: string, pattern: RegExp) {
     .filter((part) => part.text !== '');
 }
 
-const JapaneseTerms = ({ text }: { text: string }) => (
+const JapaneseTerms = ({ text, replacement }: { text: string; replacement: string }) => (
   <>
     {splitParts(
       text,
       /((?:[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}々〆ー]+(?:\[[ぁ-ゖァ-ヺー]+\])?)+)/gu
     ).map((part) =>
       part.matched ? (
-        <span lang="ja" key={part.key}>
+        <span
+          lang="ja"
+          key={part.key}
+          className={
+            replacement === part.text.replace(/\[[^\]]+\]/gu, '')
+              ? 'journal-corrected-term'
+              : undefined
+          }
+        >
           <JournalRuby text={part.text} />
         </span>
       ) : (
@@ -47,9 +55,11 @@ const JapaneseTerms = ({ text }: { text: string }) => (
   </>
 );
 
-function emphasized(text: string): ReactNode {
+function emphasized(text: string, replacement: string): ReactNode {
   const marker = text.match(/^\*{1,3}/)?.[0] ?? '';
-  const content = <JapaneseTerms text={text.slice(marker.length, -marker.length)} />;
+  const content = (
+    <JapaneseTerms text={text.slice(marker.length, -marker.length)} replacement={replacement} />
+  );
   if (marker === '***')
     return (
       <strong>
@@ -66,9 +76,9 @@ const JournalExplanation = ({ segment }: { segment: JournalSegment }) => (
     {splitParts(explanationText(segment), /(\*+[^*]+\*+)/g).map((part) => (
       <Fragment key={part.key}>
         {part.matched && /^(\*{1,3})[^*]+\1$/.test(part.text) ? (
-          emphasized(part.text)
+          emphasized(part.text, segment.replacement ?? '')
         ) : (
-          <JapaneseTerms text={part.text} />
+          <JapaneseTerms text={part.text} replacement={segment.replacement ?? ''} />
         )}
       </Fragment>
     ))}

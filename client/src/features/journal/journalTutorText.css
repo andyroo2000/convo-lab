@@ -1,5 +1,5 @@
 .journal-tutor-question {
-  font-family: system-ui, 'Noto Sans JP', sans-serif;
+  font-family: 'Noto Serif JP', 'Yu Mincho', serif;
   font-size: var(--journal-size, 26px);
   font-weight: 400;
   line-height: 1.65;
@@ -28,10 +28,13 @@
 }
 .journal-explanation [lang='ja'],
 .journal-correction [lang='ja'] {
-  color: #3d694c;
   font-family: 'Noto Serif JP', 'Yu Mincho', serif;
   font-style: normal;
   font-weight: 400;
+}
+.journal-explanation .journal-corrected-term,
+.journal-correction .journal-correction-replacement {
+  color: #3d694c;
 }
 .journal-explanation [lang='ja'] {
   font-size: 0.92em;
@@ -50,7 +53,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 12px 22px;
+  gap: 12px 58px;
   padding: 16px 6px 14px;
   margin-bottom: 14px;
   border-bottom: 1px solid #e8ddd5;
@@ -73,7 +76,16 @@
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
+.journal-correction-target {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 .journal-correction-arrow {
+  position: absolute;
+  right: calc(100% + 18px);
+  top: 0.2em;
   color: #675b4b;
   font:
     30px/1 'Times New Roman',
@@ -89,8 +101,8 @@
 .dark .journal-tutor-translation {
   color: #e0d1c4;
 }
-.dark .journal-explanation [lang='ja'],
-.dark .journal-correction [lang='ja'] {
+.dark .journal-explanation .journal-corrected-term,
+.dark .journal-correction .journal-correction-replacement {
   color: #a1c7a9;
 }
 .dark .journal-correction {
@@ -112,6 +124,6 @@
   }
   .journal-correction {
     font-size: 23px;
-    gap: 12px 18px;
+    gap: 12px 54px;
   }
 }
