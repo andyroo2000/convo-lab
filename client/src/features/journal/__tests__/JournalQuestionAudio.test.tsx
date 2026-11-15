@@ -96,6 +96,8 @@ it('starts after the first Listen click and supports pause, resume, and replay',
   expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
   fireEvent.click(screen.getByRole('button', { name: "Replay Hana's question" }));
   expect(audio.play).toHaveBeenCalledTimes(3);
+  expect(audio.currentTime).toBe(0);
+  expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
 });
 it('tracks real playback in the ribbon without a separate seek bar or clock', async () => {
   mount();

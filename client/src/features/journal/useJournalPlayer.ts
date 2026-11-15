@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type SyntheticEvent } from 'react';
 import useJournalSpacebar from './useJournalSpacebar';
 import focusJournalAudio from './journalPlayback';
 import { claimJournalAudio, isCurrentJournalAudio } from './journalAudioIntent';
@@ -28,6 +28,12 @@ export default function useJournalPlayer(load: RecordingLoader) {
       recording.setError('Audio could not be played. Try again.');
     }
   }
+  function restartIfFinished() {
+    if (duration <= 0 || playback.position < duration) return;
+    const audio = player.current;
+    if (audio) audio.currentTime = 0;
+    setPosition(0);
+  }
   const toggle = () => {
     if (!recording.recording) {
       recording.prepare().catch(() => undefined);
@@ -38,6 +44,7 @@ export default function useJournalPlayer(load: RecordingLoader) {
       return;
     }
     claimJournalAudio();
+    restartIfFinished();
     play().catch(() => undefined);
   };
   const media = {
@@ -58,10 +65,14 @@ export default function useJournalPlayer(load: RecordingLoader) {
       setPlaying(false);
       setEngaged(false);
     },
-    onEnded() {
+    onEnded(event: SyntheticEvent<HTMLAudioElement>) {
       setPlaying(false);
       setEngaged(false);
-      setPosition(duration);
+      const finalDuration = event.currentTarget.duration;
+      if (Number.isFinite(finalDuration) && finalDuration > 0) {
+        setDuration(finalDuration);
+        setPosition(finalDuration);
+      }
     },
     onError() {
       recording.setError('Audio could not be played. Try again.');
