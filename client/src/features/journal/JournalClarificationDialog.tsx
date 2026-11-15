@@ -42,7 +42,7 @@ const Question = ({
             <input
               type="radio"
               id={`${group}-${index}`}
-              name="clarification"
+              name={group}
               checked={choice === index}
               onChange={() => setChoice(index)}
             />
@@ -56,7 +56,7 @@ const Question = ({
           <input
             type="radio"
             id={`${group}-other`}
-            name="clarification"
+            name={group}
             checked={choice === 'other'}
             onChange={() => setChoice('other')}
           />
@@ -110,9 +110,7 @@ const JournalClarificationDialog = ({
         className="h-12 w-12 shrink-0 rounded-full object-cover"
       />
       <div className="min-w-0 flex-1 space-y-4 rounded-2xl bg-[#edf5ff] p-5">
-        {question && !workflow.error && (
-          <Question key={question.id} question={question} workflow={workflow} />
-        )}
+        {question && <Question key={question.id} question={question} workflow={workflow} />}
         {workflow.busy && (
           <p role="status" className="text-sm text-slate-600">
             Checking…

@@ -130,3 +130,28 @@ it('rejects a resolved response for another draft version', async () => {
   expect(complete).not.toHaveBeenCalled();
   unmount();
 });
+
+it('retries the exact unanswered question and text after a failed answer request', async () => {
+  vi.mocked(startClarification).mockResolvedValue(waiting);
+  vi.mocked(answerClarification)
+    .mockRejectedValueOnce(new Error('Offline'))
+    .mockResolvedValueOnce(resolved);
+  const complete = vi.fn();
+  const { result } = renderHook(() => useJournalClarification('owner:entry'));
+  act(() => {
+    result.current.begin(entry).then(complete);
+  });
+  await waitFor(() => expect(result.current.state?.question).toEqual(question));
+  await act(() => result.current.answer('Molly searched while I drove'));
+  expect(result.current.error).toBe('Offline');
+  expect(complete).not.toHaveBeenCalled();
+  await act(() => result.current.retry());
+  expect(answerClarification).toHaveBeenLastCalledWith(
+    entry,
+    waiting,
+    'Molly searched while I drove',
+    expect.any(AbortSignal)
+  );
+  expect(startClarification).toHaveBeenCalledOnce();
+  expect(complete).toHaveBeenCalledWith('session');
+});
