@@ -38,11 +38,14 @@ export function deleteJournalEntry({ id, version }: Pick<JournalEntry, 'id' | 'v
   });
 }
 
-export async function submitJournalEntry({ id, version }: Pick<JournalEntry, 'id' | 'version'>) {
+export async function submitJournalEntry(
+  { id, version }: Pick<JournalEntry, 'id' | 'version'>,
+  clarificationId?: string
+) {
   const expectedVersion = version;
   const response = await requestJson<{ data: JournalAnalysis }>(`${entryPath(id)}/submit`, {
     method: 'POST',
-    body: JSON.stringify({ expectedVersion }),
+    body: JSON.stringify({ expectedVersion, clarificationId }),
   });
   return response.data;
 }

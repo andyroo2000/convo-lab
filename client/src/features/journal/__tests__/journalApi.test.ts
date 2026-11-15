@@ -60,3 +60,12 @@ it('includes optimistic versions when submitting or deleting', async () => {
     body: '{"expectedVersion":4}',
   });
 });
+
+it('binds final submission to the resolved clarification session', async () => {
+  vi.mocked(requestJson).mockResolvedValue({ data: { status: 'queued' } });
+  await submitJournalEntry({ id: 'entry', version: 4 }, 'clarification');
+  expect(requestJson).toHaveBeenLastCalledWith('/api/journal/entries/entry/submit', {
+    method: 'POST',
+    body: '{"expectedVersion":4,"clarificationId":"clarification"}',
+  });
+});
