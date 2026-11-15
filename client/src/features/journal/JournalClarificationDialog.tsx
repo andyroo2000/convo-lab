@@ -1,3 +1,4 @@
+import './journalTutorText.css';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import JournalAvatar from './JournalAvatar';
@@ -29,7 +30,7 @@ const Question = ({
     >
       <fieldset disabled={workflow.busy} className="space-y-2">
         <legend className="mb-4 w-full">
-          <p ref={heading} tabIndex={-1} className="text-lg font-medium text-navy outline-none">
+          <p ref={heading} tabIndex={-1} className="journal-explanation outline-none">
             {question.prompt}
           </p>
         </legend>

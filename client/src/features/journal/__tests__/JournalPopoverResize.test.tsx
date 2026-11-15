@@ -9,11 +9,11 @@ afterEach(() => {
 });
 
 it('keeps the note inside a phone viewport when its footer or error changes size', () => {
-  let resized: (() => void) | undefined;
+  const observers = new Set<() => void>();
   const disconnect = vi.fn();
   class Observer {
     constructor(callback: () => void) {
-      resized = callback;
+      observers.add(callback);
     }
 
     observe = vi.fn();
@@ -44,8 +44,8 @@ it('keeps the note inside a phone viewport when its footer or error changes size
   const note = screen.getByRole('dialog');
   expect(note).toHaveStyle({ left: '100px' });
   popupWidth = 280;
-  act(() => resized?.());
+  act(() => observers.forEach((resized) => resized()));
   expect(note).toHaveStyle({ left: '28px' });
   unmount();
-  expect(disconnect).toHaveBeenCalledOnce();
+  expect(disconnect).toHaveBeenCalledTimes(observers.size);
 });

@@ -107,3 +107,26 @@ it('uses the plain explanation when a reading field is absent', () => {
   expect(screen.getByText('new', { selector: 'strong > em' })).toBeInTheDocument();
   expect(screen.getByText('新しい')).toHaveAttribute('lang', 'ja');
 });
+
+it('colors only Japanese terms contained in the correction, not the mistaken original', () => {
+  render(
+    <JournalExplanation
+      segment={{
+        ...segment,
+        explanationReading: 'Use **新しい**. 辺り and 辺りしい are different.',
+      }}
+    />
+  );
+  expect(screen.getByText('新しい')).toHaveClass('journal-corrected-term');
+  expect(screen.getByText('辺り')).not.toHaveClass('journal-corrected-term');
+  expect(screen.getByText('辺りしい')).not.toHaveClass('journal-corrected-term');
+});
+
+it('does not mark Japanese terms as corrections when the edit removes text', () => {
+  render(
+    <JournalExplanation
+      segment={{ ...segment, replacement: '', explanationReading: 'Remove 辺りしい.' }}
+    />
+  );
+  expect(screen.getByText('辺りしい')).not.toHaveClass('journal-corrected-term');
+});
