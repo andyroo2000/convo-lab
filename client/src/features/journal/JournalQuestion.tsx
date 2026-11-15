@@ -1,9 +1,9 @@
-import { journalTextStyle } from './journalTypography';
+import './journalTutorText.css';
 import JournalSentenceText from './JournalSentenceText';
 import type { JournalFeedback } from './types';
 
 const JournalQuestion = ({ feedback }: { feedback: JournalFeedback }) => (
-  <p style={journalTextStyle} lang="ja" className="text-xl leading-[2.05] text-navy">
+  <p lang="ja" className="journal-tutor-question text-navy">
     <JournalSentenceText text={feedback.questionReading} />
   </p>
 );

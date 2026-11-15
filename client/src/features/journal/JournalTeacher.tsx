@@ -116,7 +116,7 @@ const TeacherRibbon = ({
         id={translationId}
         hidden={!englishVisible}
         lang="en"
-        className="mt-3 text-sm leading-relaxed text-gray-600"
+        className="journal-tutor-translation"
       >
         {feedback.questionTranslation}
       </p>

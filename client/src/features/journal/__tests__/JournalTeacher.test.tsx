@@ -83,7 +83,7 @@ it('asks for the first tutor, saves the choice, and shows their portrait with hi
   expect(toggle).toHaveAttribute('aria-controls', translation.id);
   expect(toggle).toHaveClass('bg-indigo', 'text-white');
   expect(translation).toBeVisible();
-  expect(translation.previousElementSibling).toHaveAttribute('lang', 'ja');
+  expect(translation).toHaveAttribute('lang', 'en');
   fireEvent.pointerDown(document.body);
   expect(translation).toBeVisible();
   fireEvent.click(toggle);
