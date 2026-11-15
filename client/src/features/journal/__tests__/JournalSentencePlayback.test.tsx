@@ -166,3 +166,16 @@ it('consumes the matching Space release even after audio pauses, and resets on b
   fireEvent.blur(window);
   expect(fireEvent.keyUp(button, space)).toBe(true);
 });
+
+it('keeps inline sentences keyboard accessible when playback is paused', async () => {
+  mount();
+  const audio = await start();
+  fireEvent.pause(audio);
+  const second = screen.getByRole('button', { name: 'Seek to sentence 2' });
+  expect(second).toHaveAttribute('tabindex', '0');
+  fireEvent.keyDown(second, { key: 'Enter' });
+  expect(audio.currentTime).toBe(2);
+  audio.currentTime = 0;
+  fireEvent.keyDown(second, { key: ' ', code: 'Space' });
+  expect(audio.currentTime).toBe(2);
+});
