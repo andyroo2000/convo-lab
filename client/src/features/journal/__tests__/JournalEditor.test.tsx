@@ -12,6 +12,7 @@ function show(body: string, status: 'processing' | 'ready') {
   vi.mocked(useJournalEditor).mockReturnValue({
     draft: { body, expectedVersion: 1 },
     submitted: 1,
+    clarification: { active: false },
     acceptGeneratedEntry: vi.fn(),
   } as unknown as ReturnType<typeof useJournalEditor>);
   vi.mocked(useJournalAnalysis).mockReturnValue({

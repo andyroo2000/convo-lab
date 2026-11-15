@@ -16,6 +16,7 @@ interface Session {
 export default function useJournalClarification(scope: string) {
   const session = useRef<Session | null>(null);
   const running = useRef(false);
+  const pendingAnswer = useRef<{ state: JournalClarification; text: string } | null>(null);
   const [active, setActive] = useState(false);
   const [state, setState] = useState<JournalClarification | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,6 +27,7 @@ export default function useJournalClarification(scope: string) {
     session.current?.resolve(undefined);
     session.current = null;
     running.current = false;
+    pendingAnswer.current = null;
     setActive(false);
     setState(null);
     setBusy(false);
@@ -50,7 +52,10 @@ export default function useJournalClarification(scope: string) {
     setError('');
     try {
       const result = await operation(current);
-      if (!current.controller.signal.aborted) await receive(current, result);
+      if (!current.controller.signal.aborted) {
+        pendingAnswer.current = null;
+        await receive(current, result);
+      }
     } catch (reason) {
       if (!current.controller.signal.aborted)
         setError(reason instanceof Error ? reason.message : 'Please retry.');
@@ -76,12 +81,19 @@ export default function useJournalClarification(scope: string) {
     return promise;
   }
   function answer(text: string) {
+    if (running.current) return Promise.resolve();
     if (!state?.question || !text.trim()) return Promise.resolve();
+    pendingAnswer.current = { state, text: text.trim() };
     return request((current) =>
       answerClarification(current.entry, state, text.trim(), current.controller.signal)
     );
   }
   function retry() {
+    const pending = pendingAnswer.current;
+    if (pending)
+      return request((current) =>
+        answerClarification(current.entry, pending.state, pending.text, current.controller.signal)
+      );
     return request((current) => startClarification(current.entry, current.controller.signal));
   }
   return { active, state, busy, error, begin, answer, retry, cancel };

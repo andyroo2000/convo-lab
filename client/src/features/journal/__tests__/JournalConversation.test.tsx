@@ -1,6 +1,15 @@
-import { act, fireEvent, render, renderHook, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  waitFor,
+  render,
+  renderHook,
+  screen,
+  within,
+} from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
+import { startClarification } from '../journalClarification';
 import JournalConversation from '../JournalConversation';
 import useConversationAnswer from '../useConversationAnswer';
 import { JsonRequestError } from '../../../lib/apiClient';
@@ -48,8 +57,21 @@ function wrapper({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
+vi.mock('../journalClarification', async (original) => ({
+  ...(await original<typeof import('../journalClarification')>()),
+  startClarification: vi.fn(),
+}));
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(startClarification).mockImplementation(async (savedEntry) => ({
+    id: 'meaning',
+    sourceVersion: savedEntry.version,
+    revision: 0,
+    status: 'resolved',
+    question: null,
+    error: null,
+    updatedAt: '',
+  }));
   localStorage.clear();
 });
 it('keeps independent Draft/Final controls without appending the child to the root', async () => {
@@ -129,7 +151,7 @@ it('retries the exact saved request after an uncertain network failure', async (
   expect(JSON.parse(localStorage.getItem('draft-key')!).request).toEqual(original);
   await act(() => result.current.submit());
   expect(createConversationAnswer).toHaveBeenLastCalledWith('root', original);
-  expect(submitJournalEntry).toHaveBeenCalledWith(entry);
+  expect(submitJournalEntry).toHaveBeenCalledWith(entry, 'meaning');
   expect(saved).toHaveBeenCalledOnce();
   expect(localStorage.getItem('draft-key')).toBeNull();
 });
@@ -182,4 +204,34 @@ it.each([404, 409, 422])('keeps rejected answers editable after HTTP %s', async 
   await act(() => result.current.submit());
   expect(result.current.draft.request).toBeUndefined();
   expect(result.current.draft.body).toBe(entry.body);
+});
+
+it('keeps the saved reply and request when clarification is cancelled', async () => {
+  vi.mocked(createConversationAnswer).mockResolvedValue({ data: entry });
+  vi.mocked(startClarification).mockResolvedValue({
+    id: 'meaning',
+    sourceVersion: entry.version,
+    revision: 0,
+    status: 'waiting',
+    question: { id: 'drive', prompt: 'Who was driving?', choices: ['Me', 'Molly'] },
+    error: null,
+    updatedAt: '',
+  });
+  const saved = vi.fn();
+  const { result } = renderHook(() =>
+    useConversationAnswer('draft-key', 'root', 'question', saved)
+  );
+  act(() => result.current.change(entry.body));
+  let pending: Promise<void>;
+  act(() => {
+    pending = result.current.submit();
+  });
+  await waitFor(() => expect(result.current.clarification.state?.status).toBe('waiting'));
+  expect(submitJournalEntry).not.toHaveBeenCalled();
+  act(() => result.current.clarification.cancel());
+  await act(async () => {
+    await pending;
+  });
+  expect(saved).not.toHaveBeenCalled();
+  expect(JSON.parse(localStorage.getItem('draft-key')!).request.body).toBe(entry.body);
 });

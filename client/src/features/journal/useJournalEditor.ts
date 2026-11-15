@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
+import useJournalClarification from './useJournalClarification';
 import { JsonRequestError } from '../../lib/apiClient';
 import { getJournalEntry, saveJournalDraft, submitJournalEntry } from './journalApi';
 import { draftFromEntry, JournalDraftStore, newJournalDraft } from './journalDrafts';
@@ -22,6 +23,7 @@ export default function useJournalEditor({
   onSaved,
   initialEntry,
 }: EditorOptions) {
+  const clarification = useJournalClarification(`${ownerId}:${entryId}`);
   const initialRef = useRef(initialEntry);
   const store = useMemo(() => new JournalDraftStore(ownerId), [ownerId]);
   const [draft, setDraft] = useState<JournalDraft | null>(null);
@@ -98,7 +100,9 @@ export default function useJournalEditor({
 
   async function submitSaved(entry: JournalEntry, epoch: number) {
     try {
-      const data = await submitJournalEntry(entry);
+      const clarificationId = await clarification.begin(entry);
+      if (!clarificationId || scope.current !== epoch) return false;
+      const data = await submitJournalEntry(entry, clarificationId);
       if (scope.current !== epoch) return false;
       setSubmission({ data, entry });
       setSubmitted((value) => value + 1);
@@ -182,6 +186,7 @@ export default function useJournalEditor({
   }
 
   return {
+    clarification,
     draft,
     busy,
     error,
