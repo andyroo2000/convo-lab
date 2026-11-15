@@ -14,10 +14,19 @@ interface JournalEditorProps {
   nested?: boolean;
   onBusyChange?: (busy: boolean) => void;
   initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
-  renderFeedback?: (analysis: JournalAnalysis) => ReactNode;
+  renderFeedback?: (analysis: JournalAnalysis, heading: ReactNode) => ReactNode;
 }
 
 type Editor = ReturnType<typeof useJournalEditor>;
+
+function entryPresentation(nested: boolean) {
+  return nested
+    ? { 'aria-label': 'Your reply', className: 'journal-reply space-y-6' }
+    : {
+        'aria-label': 'Journal entry',
+        className: 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8',
+      };
+}
 
 function currentFeedback(editor: Editor, analysis: ReturnType<typeof useJournalAnalysis>) {
   if (analysis.data?.entry.body !== editor.draft?.body) return null;
@@ -77,13 +86,9 @@ const JournalEditor = ({
   useEditorBusy(editor, processing, onBusyChange);
 
   return (
-    <article className={nested ? 'space-y-6' : 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8'}>
+    <article {...entryPresentation(nested)}>
       <EditorMessages editor={editor} onOpen={onOpen} />
-      {reviewing ? (
-        <JournalEntryHeading draft={editor.draft} nested={nested} />
-      ) : (
-        <JournalEditorForm editor={editor} processing={processing} />
-      )}
+      {!reviewing && <JournalEditorForm editor={editor} processing={processing} />}
 
       <FeedbackStatus
         analysis={analysis}
@@ -92,7 +97,9 @@ const JournalEditor = ({
           analysis.refetch().catch(() => undefined);
         }}
       />
-      {reviewing && current && renderFeedback?.(current)}
+      {reviewing &&
+        current &&
+        renderFeedback?.(current, nested ? null : <JournalEntryHeading draft={editor.draft} />)}
     </article>
   );
 };

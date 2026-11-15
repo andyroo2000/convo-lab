@@ -46,7 +46,7 @@ const JournalAppearance = ({ value, onChange, saved }: Props) => {
         <fieldset>
           <legend className="sr-only">Font</legend>
           <div className="grid grid-cols-2 gap-3">
-            {(['sans', 'serif'] as const).map((font) => (
+            {(['klee', 'sans', 'serif'] as const).map((font) => (
               <button
                 key={font}
                 type="button"
@@ -56,12 +56,17 @@ const JournalAppearance = ({ value, onChange, saved }: Props) => {
               >
                 <span
                   aria-hidden="true"
-                  style={{ fontFamily: journalFonts[font] }}
+                  style={{
+                    fontFamily: journalFonts[font],
+                    fontWeight: font === 'klee' ? 600 : 400,
+                  }}
                   className="text-3xl"
                 >
                   Aa あ
                 </span>
-                <span className="text-sm">{font === 'sans' ? 'Sans-serif' : 'Serif'}</span>
+                <span className="text-sm">
+                  {{ klee: 'Klee One', sans: 'Sans-serif', serif: 'Serif' }[font]}
+                </span>
                 {value.font === font && (
                   <Check
                     size={16}

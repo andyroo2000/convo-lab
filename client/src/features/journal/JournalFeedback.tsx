@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import JournalVersionPicker from './JournalVersionPicker';
 import JournalAnnotatedText from './JournalAnnotatedText';
 import JournalCorrected from './JournalCorrected';
@@ -13,9 +13,10 @@ interface FeedbackProps {
   entryId: string;
   analysis: JournalAnalysis;
   followUp?: boolean;
+  heading?: ReactNode;
 }
 const JournalFeedback = (props: FeedbackProps) => {
-  const { ownerId, entryId, analysis, followUp = true } = props;
+  const { ownerId, entryId, analysis, followUp = true, heading } = props;
   const [version, setVersion] = useState<'draft' | 'final'>(() =>
     analysis.result && versionText(analysis, 'final').trim() ? 'final' : 'draft'
   );
@@ -42,6 +43,7 @@ const JournalFeedback = (props: FeedbackProps) => {
           feedback={feedback}
           analysis={analysis}
           controls={controls}
+          heading={heading}
         />
         {reply?.result && (
           <section aria-label="Your last answer" className="space-y-2">
