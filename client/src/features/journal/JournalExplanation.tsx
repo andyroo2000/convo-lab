@@ -41,7 +41,7 @@ const JapaneseTerms = ({ text, replacement }: { text: string; replacement: strin
           lang="ja"
           key={part.key}
           className={
-            replacement.includes(part.text.replace(/\[[^\]]+\]/gu, ''))
+            replacement === part.text.replace(/\[[^\]]+\]/gu, '')
               ? 'journal-corrected-term'
               : undefined
           }

@@ -130,3 +130,17 @@ it('does not mark Japanese terms as corrections when the edit removes text', () 
   );
   expect(screen.getByText('辺りしい')).not.toHaveClass('journal-corrected-term');
 });
+
+it('does not color a mistaken particle merely because it occurs inside the replacement', () => {
+  render(
+    <JournalExplanation
+      segment={{
+        ...segment,
+        replacement: '映画を見た',
+        explanationReading: 'Use 映画を見た rather than を.',
+      }}
+    />
+  );
+  expect(screen.getByText('映画を見た')).toHaveClass('journal-corrected-term');
+  expect(screen.getByText('を')).not.toHaveClass('journal-corrected-term');
+});
