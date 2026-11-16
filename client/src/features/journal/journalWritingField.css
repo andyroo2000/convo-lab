@@ -1,9 +1,9 @@
-.journal-final-writing {
+.journal-writing-field {
   display: grid;
 }
 
 /* The hidden copy sizes the paper, including trailing newlines, as text or width changes. */
-.journal-final-writing > * {
+.journal-writing-field > * {
   grid-area: 1 / 1;
   min-width: 0;
   padding: 0;
@@ -14,12 +14,12 @@
   overflow-wrap: anywhere;
 }
 
-.journal-final-writing-size {
+.journal-writing-field-size {
   visibility: hidden;
   pointer-events: none;
 }
 
-.journal-final-writing textarea {
+.journal-writing-field textarea {
   width: 100%;
   height: 100%;
   resize: none;
