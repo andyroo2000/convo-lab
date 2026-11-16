@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { SquarePen } from 'lucide-react';
+import JournalArchiveMore from './JournalArchiveMore';
 import JournalRowActions from './JournalRowActions';
 import JournalArchiveRow from './JournalArchiveRow';
 import type useJournalArchive from './useJournalArchive';
@@ -14,6 +15,18 @@ interface ArchiveProps {
   onDeleted: (id: string) => void;
   onRenamed: (id: string) => void;
 }
+
+const ArchivePagination = ({ archive }: { archive: Archive }) =>
+  archive.query.hasNextPage ? (
+    <JournalArchiveMore
+      busy={archive.query.isFetchingNextPage}
+      automatic={!archive.query.isFetchNextPageError}
+      cursor={archive.query.data?.pages.at(-1)?.nextCursor}
+      load={() => {
+        archive.query.fetchNextPage().catch(() => undefined);
+      }}
+    />
+  ) : null;
 
 const ArchiveContents = ({
   archive,
@@ -70,18 +83,7 @@ const ArchiveContents = ({
     {archive.entries.length === 0 && !archive.query.isLoading && (
       <p className="py-8 text-center text-sm text-gray-500">No journal entries yet.</p>
     )}
-    {archive.query.hasNextPage && (
-      <button
-        type="button"
-        className="btn-secondary w-full"
-        disabled={archive.query.isFetchingNextPage}
-        onClick={() => {
-          archive.query.fetchNextPage().catch(() => undefined);
-        }}
-      >
-        Load more
-      </button>
-    )}
+    <ArchivePagination archive={archive} />
   </>
 );
 
@@ -92,9 +94,9 @@ const JournalArchive = ({
   appearance,
   ...actions
 }: ArchiveProps) => (
-  <div className="space-y-4 p-5">
+  <div className="journal-archive space-y-4 p-5">
     <div className="flex items-center justify-between">
-      <h1 className="text-2xl font-semibold text-navy">Journal</h1>
+      <h1 className="text-2xl font-semibold text-navy">My entries</h1>
       <div className="flex items-center gap-2">
         {appearance}
         <button
@@ -108,7 +110,7 @@ const JournalArchive = ({
         </button>
       </div>
     </div>
-    <div className={selectedId ? 'hidden space-y-4 md:block' : 'space-y-4'}>
+    <div className="journal-archive-scroll space-y-4">
       <ArchiveContents archive={archive} selectedId={selectedId} {...actions} />
     </div>
   </div>

@@ -1,3 +1,4 @@
+import './dialogMock';
 import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import {
@@ -86,7 +87,7 @@ it('plays from the entry toolbar, tracks progress, and stops when switching to D
     expect(within(toolbar).getByRole('button', { name: 'Listen corrected version' })).toBeEnabled()
   );
   expect(within(toolbar).getByRole('button', { name: 'Narration voice' })).toBeEnabled();
-  expect(screen.queryByRole('slider')).toBeNull();
+  expect(screen.getByRole('slider')).toBeDisabled();
   fireEvent.click(within(toolbar).getByRole('button', { name: 'Listen corrected version' }));
   const audio = await screen.findByLabelText<HTMLAudioElement>('corrected version audio');
   Object.defineProperty(audio, 'duration', { value: 10 });
@@ -95,7 +96,10 @@ it('plays from the entry toolbar, tracks progress, and stops when switching to D
   fireEvent.play(audio);
   audio.currentTime = 5;
   fireEvent.timeUpdate(audio);
-  expect(within(toolbar).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  const seek = within(toolbar).getByRole('slider');
+  expect(seek).toHaveValue('5');
+  fireEvent.change(seek, { target: { value: '3' } });
+  expect(audio.currentTime).toBe(3);
   expect(within(toolbar).getByRole('button', { name: 'Pause corrected version' })).toBeEnabled();
   fireEvent.click(screen.getByRole('button', { name: 'Show draft' }));
   expect(audio.pause).toHaveBeenCalled();
@@ -237,10 +241,10 @@ it('shows the avatar picker and cancels without changing the saved voice', async
   const trigger = screen.getByRole('button', { name: 'Narration voice' });
   await waitFor(() => expect(trigger).toBeEnabled());
   fireEvent.click(trigger);
-  expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getByRole('dialog', { name: 'Choose your narration voice' })).toBeVisible();
   expect(screen.getByRole('button', { name: 'Haru (M)' })).toHaveAttribute('aria-pressed', 'true');
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  expect(screen.queryByRole('region', { name: 'Choose your narration voice' })).toBeNull();
+  expect(screen.queryByRole('dialog', { name: 'Choose your narration voice' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Listen corrected version' }));
   await waitFor(() =>
     expect(timedEntryAudio).toHaveBeenCalledWith(

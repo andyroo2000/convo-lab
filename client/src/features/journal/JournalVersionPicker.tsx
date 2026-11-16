@@ -10,7 +10,7 @@ const JournalVersionPicker = ({
   onChange: (value: Version) => void;
 }) => (
   <div role="group" aria-label="Entry version" className="journal-version-picker">
-    {(['draft', 'final'] as const).map((version, index) => (
+    {(['draft', 'final'] as const).map((version) => (
       <button
         key={version}
         type="button"
@@ -18,9 +18,6 @@ const JournalVersionPicker = ({
         onClick={() => onChange(version)}
         className="journal-version-button"
       >
-        <span className="journal-version-number" aria-hidden="true">
-          {index + 1}
-        </span>
         {version === 'draft' ? 'Draft' : 'Final'}
       </button>
     ))}

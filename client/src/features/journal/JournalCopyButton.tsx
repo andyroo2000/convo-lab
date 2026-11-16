@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
+function copyMenuLabel(copied: boolean) {
+  return copied ? 'Copied' : 'Copy text';
+}
+
 const JournalCopyButton = ({
   text,
   label: copyLabel = 'Copy corrected version',
+  menu = false,
 }: {
   text: string;
   label?: string;
+  menu?: boolean;
 }) => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(false);
@@ -26,18 +32,24 @@ const JournalCopyButton = ({
   }
   const label = copied ? 'Copied' : copyLabel;
   const Icon = copied ? Check : Copy;
+  const menuLabel = copyMenuLabel(copied);
   return (
     <div className="relative">
       <button
         type="button"
         aria-label={label}
         title={label}
-        className="flex h-10 w-10 items-center justify-center rounded-lg text-indigo hover:bg-indigo/5"
+        className={
+          menu
+            ? 'journal-menu-item'
+            : 'flex h-10 w-10 items-center justify-center rounded-lg text-indigo hover:bg-indigo/5'
+        }
         onClick={() => {
           copy().catch(() => undefined);
         }}
       >
         <Icon size={18} aria-hidden="true" />
+        {menu && menuLabel}
       </button>
       <span role="status" className="sr-only">
         {copied ? 'Copied' : ''}

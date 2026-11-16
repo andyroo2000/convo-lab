@@ -7,8 +7,9 @@ interface Props {
   value: JournalTypography;
   onChange: (value: JournalTypography) => void;
   saved: boolean;
+  menu?: boolean;
 }
-const JournalAppearance = ({ value, onChange, saved }: Props) => {
+const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
   useDialogDismissal(dialog);
@@ -18,12 +19,17 @@ const JournalAppearance = ({ value, onChange, saved }: Props) => {
         type="button"
         aria-label="Journal appearance"
         aria-haspopup="dialog"
-        className="flex h-11 w-11 p-0 items-center justify-center rounded-[10px] bg-indigo/5 text-indigo hover:bg-indigo/10"
+        className={
+          menu
+            ? 'journal-menu-item'
+            : 'flex h-11 w-11 p-0 items-center justify-center rounded-[10px] bg-indigo/5 text-indigo hover:bg-indigo/10'
+        }
         onClick={() => dialog.current?.showModal()}
       >
         <span aria-hidden="true" className="text-lg">
           Aa
         </span>
+        {menu && 'Appearance'}
       </button>
       <dialog
         ref={dialog}
