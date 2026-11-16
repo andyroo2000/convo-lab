@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import JournalPaper from './JournalPaper';
+import JournalWritingField from './JournalWritingField';
 import type { JournalDocumentControls } from './useJournalDocument';
 import './journalDraftActions.css';
-import './journalFinalEditor.css';
 
 interface Props {
   text: string;
@@ -46,20 +46,15 @@ const JournalFinalEditor = ({ text, revision, controls, onClose, heading }: Prop
       }}
     >
       <JournalPaper heading={heading}>
-        <div className="journal-final-writing">
-          <div aria-hidden="true" className="journal-final-writing-size">
-            {`${value} `}
-          </div>
-          <textarea
-            ref={field}
-            aria-label="Final text"
-            value={value}
-            maxLength={30000}
-            disabled={controls.busy}
-            onChange={(event) => setValue(event.target.value)}
-            rows={3}
-          />
-        </div>
+        <JournalWritingField
+          className="journal-writing-field--paper"
+          fieldRef={field}
+          aria-label="Final text"
+          value={value}
+          maxLength={30000}
+          disabled={controls.busy}
+          onChange={(event) => setValue(event.target.value)}
+        />
       </JournalPaper>
       {controls.error && (
         <p role="alert" className="text-sm text-rose-700">

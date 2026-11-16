@@ -1,4 +1,5 @@
 import JournalDraftActions from './JournalDraftActions';
+import JournalWritingField from './JournalWritingField';
 import { journalTextStyle } from './journalTypography';
 import type useJournalEditor from './useJournalEditor';
 
@@ -21,32 +22,19 @@ const JournalEditorForm = ({
   if (!draft) return null;
   return (
     <>
-      <label htmlFor="journal-title" className="block">
-        <span className="sr-only">Title (optional)</span>
-        <input
-          id="journal-title"
-          className="w-full border-0 bg-transparent text-3xl font-semibold text-navy outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-indigo/30"
-          placeholder="Untitled entry"
-          value={draft.title ?? ''}
-          maxLength={255}
-          disabled={busy}
-          onChange={(event) => editor.change({ title: event.target.value || null })}
-        />
-      </label>
-      <label htmlFor="journal-body" className="block">
-        <span className="sr-only">Journal entry in Japanese</span>
-        <textarea
-          style={journalTextStyle}
-          id="journal-body"
-          lang="ja"
-          className="min-h-64 w-full resize-y rounded-2xl border border-gray-200 bg-white p-5 text-xl leading-loose text-navy focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/20"
-          placeholder="今日は…"
-          value={draft.body}
-          maxLength={20000}
-          disabled={busy}
-          onChange={(event) => editor.change({ body: event.target.value })}
-        />
-      </label>
+      {draft.title && <h1 className="text-3xl font-semibold text-navy">{draft.title}</h1>}
+      <JournalWritingField
+        style={journalTextStyle}
+        id="journal-body"
+        lang="ja"
+        aria-label="Journal entry in Japanese"
+        className="journal-writing-field--draft min-h-64 w-full rounded-2xl border border-gray-200 bg-white text-xl leading-loose text-navy focus-within:border-indigo focus-within:ring-2 focus-within:ring-indigo/20"
+        placeholder="今日は…"
+        value={draft.body}
+        maxLength={20000}
+        disabled={busy}
+        onChange={(event) => editor.change({ body: event.target.value })}
+      />
       <JournalDraftActions
         editor={editor}
         ownerId={ownerId}
