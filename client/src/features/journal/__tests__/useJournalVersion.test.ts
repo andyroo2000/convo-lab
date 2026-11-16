@@ -6,18 +6,19 @@ import { removeJournalDeviceData } from '../journalDeviceCleanup';
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.restoreAllMocks());
 
-it('isolates entries and accounts when props change without remounting', () => {
+it('defaults unseen feedback to Draft while retaining each entry and account selection', () => {
   const { result, rerender } = renderHook(
     ({ owner, entry }) => useJournalVersion(owner, entry, true),
     { initialProps: { owner: 'a', entry: 'one' } }
   );
-  act(() => result.current[1]('draft'));
-  rerender({ owner: 'a', entry: 'two' });
-  expect(result.current[0]).toBe('final');
-  rerender({ owner: 'b', entry: 'one' });
-  expect(result.current[0]).toBe('final');
-  rerender({ owner: 'a', entry: 'one' });
   expect(result.current[0]).toBe('draft');
+  act(() => result.current[1]('final'));
+  rerender({ owner: 'a', entry: 'two' });
+  expect(result.current[0]).toBe('draft');
+  rerender({ owner: 'b', entry: 'one' });
+  expect(result.current[0]).toBe('draft');
+  rerender({ owner: 'a', entry: 'one' });
+  expect(result.current[0]).toBe('final');
 });
 
 it('ignores invalid preferences and falls back to Draft when Final is unavailable', () => {
@@ -27,7 +28,7 @@ it('ignores invalid preferences and falls back to Draft when Final is unavailabl
   });
   expect(result.current[0]).toBe('draft');
   rerender({ ready: true });
-  expect(result.current[0]).toBe('final');
+  expect(result.current[0]).toBe('draft');
   act(() => result.current[1]('draft'));
   rerender({ ready: false });
   rerender({ ready: true });
@@ -42,8 +43,9 @@ it('keeps switching usable when browser storage is blocked', () => {
     throw new Error('Blocked');
   });
   const { result } = renderHook(() => useJournalVersion('a', 'one', true));
-  act(() => result.current[1]('draft'));
   expect(result.current[0]).toBe('draft');
+  act(() => result.current[1]('final'));
+  expect(result.current[0]).toBe('final');
 });
 
 it('removes preferences on entry and account deletion without touching another account', () => {

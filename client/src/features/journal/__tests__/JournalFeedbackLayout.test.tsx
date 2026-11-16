@@ -28,7 +28,7 @@ const analysis: JournalAnalysis = {
   },
 };
 
-it('keeps one corrected section across repeated saved Apply/Reject revisions', () => {
+it('keeps one corrected section across repeated saved final-text revisions', () => {
   const { rerender } = render(
     <JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />
   );
@@ -78,7 +78,8 @@ it('switches between highlighted draft and final without showing both', () => {
       }}
     />
   );
-  expect(screen.getByRole('button', { name: 'Final' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', { name: 'Draft' })).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(screen.getByRole('button', { name: 'Final' }));
   expect(screen.getByRole('region', { name: 'Corrected Version' })).toBeVisible();
   expect(screen.getByText('Audio player')).toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: 'Draft' }));
@@ -118,6 +119,7 @@ it('reopens the last viewed version after remounting', () => {
 
 it('keeps playback and version controls outside the notebook sheet', () => {
   render(<JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Final' }));
   const sheet = screen.getByRole('article', { name: 'Notebook sheet' });
   expect(sheet).toHaveClass('journal-paper');
   expect(sheet).not.toContainElement(screen.getByText('Audio player'));

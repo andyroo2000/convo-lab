@@ -7,7 +7,6 @@ import JournalExplanation from './JournalExplanation';
 import './journalTutorText.css';
 import './journalNotePopover.css';
 import JournalEditText from './JournalEditText';
-import JournalSuggestionFooter from './JournalSuggestionFooter';
 import { journalHighlightLayout, journalHighlightStyles } from './journalHighlightStyles';
 import type { JournalSegment } from './types';
 
@@ -27,30 +26,16 @@ const labels = {
 
 interface HighlightProps {
   segment: JournalSegment;
-  action?: { applied: boolean; disabled: boolean; error?: string; toggle: () => Promise<boolean> };
 }
-const JournalNote = ({ segment, action, close }: HighlightProps & { close: () => void }) => (
+const JournalNote = ({ segment }: HighlightProps) => (
   <>
     <JournalCorrection segment={segment} />
     <JournalExplanation segment={segment} />
-    {action?.error && (
-      <p role="alert" className="mt-2 text-sm text-rose-700 dark:text-rose-300">
-        {action.error}
-      </p>
-    )}
-    {action ? (
-      <JournalSuggestionFooter kind={segment.kind} action={action} close={close} />
-    ) : (
-      <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
-        To change this passage, edit the corrected version.
-      </p>
-    )}
   </>
 );
 
-const JournalHighlight = ({ segment, action }: HighlightProps) => {
-  const { anchor, popup, open, position, pointer, show, hide, dismiss, trigger } =
-    useJournalActionPopover();
+const JournalHighlight = ({ segment }: HighlightProps) => {
+  const { anchor, popup, open, position, pointer, show, hide, trigger } = useJournalActionPopover();
   const id = useId();
 
   if (segment.kind === 'plain' || segment.kind === 'keep')
@@ -101,7 +86,7 @@ const JournalHighlight = ({ segment, action }: HighlightProps) => {
               />
             )}
             <div className="journal-note-content">
-              <JournalNote segment={segment} action={action} close={dismiss} />
+              <JournalNote segment={segment} />
             </div>
           </div>,
           document.body

@@ -5,6 +5,7 @@ import { JsonRequestError } from '../../../lib/apiClient';
 import { getJournalEntry, saveJournalDraft, submitJournalEntry } from '../journalApi';
 import { JournalDraftStore, newJournalDraft } from '../journalDrafts';
 import useJournalEditor from '../useJournalEditor';
+import { journalVersionPrefix } from '../useJournalVersion';
 import type { JournalEntry } from '../types';
 
 vi.mock('../journalApi', () => ({
@@ -222,4 +223,17 @@ it('waits for meaning clarification before requesting the existing feedback', as
   });
   expect(submitJournalEntry).not.toHaveBeenCalled();
   expect(result.current.draft?.body).toBe(entry.body);
+});
+
+it('opens new feedback on Draft even if Final was last viewed, but preserves preference on failure', async () => {
+  const { result, entry, draft } = setup();
+  const key = `${journalVersionPrefix('a')}${draft.id}`;
+  localStorage.setItem(key, 'final');
+  vi.mocked(saveJournalDraft)
+    .mockRejectedValueOnce(new Error('Offline'))
+    .mockResolvedValueOnce(entry);
+  await act(() => result.current.save(true));
+  expect(localStorage.getItem(key)).toBe('final');
+  await act(() => result.current.save(true));
+  expect(localStorage.getItem(key)).toBe('draft');
 });
