@@ -307,3 +307,42 @@ it('reloads preferences and clears the local choice for a new revision', async (
     expect.objectContaining({ expectedReplyRevision: 2 })
   );
 });
+
+it('switches entries without a saved-voice loading message while preferences are pending', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = (entryId: string) => (
+    <QueryClientProvider client={client}>
+      <JournalAudioPlayer ownerId="a" entryId={entryId} analysisId="analysis" />
+    </QueryClientProvider>
+  );
+  const { rerender } = render(view('first'));
+  expect(screen.queryByText('Loading saved voice…')).toBeNull();
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Listen corrected version' })).toBeEnabled()
+  );
+  let finish!: (value: { data: { voiceId: string; hasAudio: boolean } }) => void;
+  vi.mocked(getJournalAudioState).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  rerender(view('second'));
+  expect(screen.queryByText('Loading saved voice…')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Listen corrected version' })).toBeDisabled();
+  expect(timedEntryAudio).not.toHaveBeenCalled();
+  await act(async () => {
+    finish({ data: { voiceId: 'yua', hasAudio: true } });
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Listen corrected version' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Listen corrected version' }));
+  await waitFor(() =>
+    expect(timedEntryAudio).toHaveBeenCalledWith(
+      'second',
+      expect.objectContaining({ voiceId: 'yua' }),
+      expect.any(AbortSignal)
+    )
+  );
+});

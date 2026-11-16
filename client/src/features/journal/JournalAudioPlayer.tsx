@@ -40,11 +40,6 @@ const JournalAudioSession = (props: Props & { voice: ReturnType<typeof useJourna
           return result;
         }}
       />
-      {voice.loading && (
-        <p role="status" className="text-sm text-gray-500">
-          Loading saved voice…
-        </p>
-      )}
       {voice.error && (
         <p role="alert" className="text-sm text-rose-700">
           Could not load your saved voice.{' '}
