@@ -1,30 +1,44 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { BookOpen, X } from 'lucide-react';
 import useDialogDismissal from '../../hooks/useDialogDismissal';
 
-const JournalEntriesDrawer = ({ children, entryId }: { children: ReactNode; entryId?: string }) => {
+function useCloseOnEntryClick(dialog: RefObject<HTMLDialogElement>) {
+  useEffect(() => {
+    const element = dialog.current;
+    const select = (event: MouseEvent) => {
+      if (event.metaKey || event.ctrlKey) return;
+      if ((event.target as HTMLElement).closest('a')) element?.close();
+    };
+    element?.addEventListener('click', select);
+    return () => element?.removeEventListener('click', select);
+  }, [dialog]);
+}
+
+const JournalEntriesDrawer = ({
+  children,
+  entryId,
+  disabled = false,
+}: {
+  children: ReactNode;
+  entryId?: string;
+  disabled?: boolean;
+}) => {
   const dialog = useRef<HTMLDialogElement>(null);
   useDialogDismissal(dialog);
   useEffect(() => {
     dialog.current?.close();
   }, [entryId]);
-  useEffect(() => {
-    const element = dialog.current;
-    const select = (event: MouseEvent) => {
-      if ((event.target as HTMLElement).closest('a')) element?.close();
-    };
-    element?.addEventListener('click', select);
-    return () => element?.removeEventListener('click', select);
-  }, []);
+  useCloseOnEntryClick(dialog);
   return (
     <>
       <button
         className="journal-entries-trigger"
         type="button"
+        disabled={disabled}
         aria-haspopup="dialog"
         onClick={() => dialog.current?.showModal()}
       >
-        <BookOpen size={18} /> My entries
+        <BookOpen size={18} aria-hidden="true" /> My entries
       </button>
       <dialog ref={dialog} aria-label="My entries" className="journal-entries-drawer">
         <button
@@ -33,7 +47,7 @@ const JournalEntriesDrawer = ({ children, entryId }: { children: ReactNode; entr
           aria-label="Close entries"
           onClick={() => dialog.current?.close()}
         >
-          <X size={20} />
+          <X size={20} aria-hidden="true" />
         </button>
         {children}
       </dialog>

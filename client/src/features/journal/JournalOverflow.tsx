@@ -4,17 +4,24 @@ import { Ellipsis } from 'lucide-react';
 const JournalOverflow = ({ children }: { children: ReactNode }) => {
   const root = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
+    const element = root.current;
+    if (!element) return undefined;
     const outside = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) root.current?.removeAttribute('open');
+      if (!element.contains(event.target as Node)) element.removeAttribute('open');
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !root.current?.open) return;
-      root.current.removeAttribute('open');
-      root.current.querySelector('summary')?.focus();
+      if (event.key !== 'Escape' || !element.open) return;
+      element.removeAttribute('open');
+      element.querySelector('summary')?.focus();
     };
+    const blur = (event: FocusEvent) => {
+      if (!element.contains(event.relatedTarget as Node)) element.removeAttribute('open');
+    };
+    element.addEventListener('focusout', blur);
     document.addEventListener('pointerdown', outside);
     document.addEventListener('keydown', escape);
     return () => {
+      element.removeEventListener('focusout', blur);
       document.removeEventListener('pointerdown', outside);
       document.removeEventListener('keydown', escape);
     };

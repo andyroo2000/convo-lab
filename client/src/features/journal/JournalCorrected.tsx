@@ -1,6 +1,7 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Pencil } from 'lucide-react';
+import JournalDeskContext from './JournalDeskContext';
 import JournalFinalEditor from './JournalFinalEditor';
 import { correctedContent } from './journalVersionText';
 import JournalPaper from './JournalPaper';
@@ -33,6 +34,13 @@ const JournalCorrected = ({
   const { text, reading } = correctedContent(analysis);
   const [editing, setEditing] = useState<{ text: string; revision: number } | null>(null);
   const editButton = useRef<HTMLButtonElement>(null);
+  const { editingChanged } = useContext(JournalDeskContext);
+  const isEditing = Boolean(editing);
+  useEffect(() => {
+    if (!isEditing) return undefined;
+    editingChanged?.(1);
+    return () => editingChanged?.(-1);
+  }, [isEditing, editingChanged]);
   const closeEditor = () => {
     setEditing(null);
     controls.reset();

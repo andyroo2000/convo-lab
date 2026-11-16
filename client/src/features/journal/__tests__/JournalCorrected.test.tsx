@@ -50,10 +50,10 @@ it('copies the selected version and follows saved correction changes without fur
   const { rerender } = render(<JournalFeedback {...props} followUp={false} />);
   fireEvent.click(screen.getByRole('button', { name: 'Draft' }));
   fireEvent.click(screen.getByLabelText('More journal options'));
-  fireEvent.click(screen.getByRole('button', { name: 'Copy draft text' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Copy text (Copy draft text)' }));
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('映画を見ますた。'));
   fireEvent.click(screen.getByRole('button', { name: 'Final' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Copy final text' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Copy text (Copy final text)' }));
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('映画を見た。'));
   rerender(
     <JournalFeedback
@@ -69,7 +69,7 @@ it('copies the selected version and follows saved correction changes without fur
       }}
     />
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Copy final text' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Copy text (Copy final text)' }));
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('映画を見ました。'));
   expect(screen.getByRole('button', { name: 'Edit final text' })).toBeVisible();
 });

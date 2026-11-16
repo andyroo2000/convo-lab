@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { SquarePen } from 'lucide-react';
 import JournalArchiveMore from './JournalArchiveMore';
 import JournalRowActions from './JournalRowActions';
@@ -16,17 +16,20 @@ interface ArchiveProps {
   onRenamed: (id: string) => void;
 }
 
-const ArchivePagination = ({ archive }: { archive: Archive }) =>
-  archive.query.hasNextPage ? (
+const ArchivePagination = ({ archive }: { archive: Archive }) => {
+  const { fetchNextPage } = archive.query;
+  const load = useCallback(() => {
+    fetchNextPage().catch(() => undefined);
+  }, [fetchNextPage]);
+  return archive.query.hasNextPage ? (
     <JournalArchiveMore
       busy={archive.query.isFetchingNextPage}
       automatic={!archive.query.isFetchNextPageError}
       cursor={archive.query.data?.pages.at(-1)?.nextCursor}
-      load={() => {
-        archive.query.fetchNextPage().catch(() => undefined);
-      }}
+      load={load}
     />
   ) : null;
+};
 
 const ArchiveContents = ({
   archive,

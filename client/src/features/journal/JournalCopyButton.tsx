@@ -5,6 +5,16 @@ function copyMenuLabel(copied: boolean) {
   return copied ? 'Copied' : 'Copy text';
 }
 
+const CopyError = ({ error }: { error: boolean }) =>
+  error ? (
+    <p
+      role="alert"
+      className="absolute right-0 top-full z-10 w-64 rounded-lg border border-rose-100 bg-white p-3 text-sm text-rose-700 shadow-sm"
+    >
+      Could not copy. Select the text to copy it.
+    </p>
+  ) : null;
+
 const JournalCopyButton = ({
   text,
   label: copyLabel = 'Copy corrected version',
@@ -37,7 +47,7 @@ const JournalCopyButton = ({
     <div className="relative">
       <button
         type="button"
-        aria-label={label}
+        aria-label={menu ? `${menuLabel} (${copyLabel})` : label}
         title={label}
         className={
           menu
@@ -54,14 +64,7 @@ const JournalCopyButton = ({
       <span role="status" className="sr-only">
         {copied ? 'Copied' : ''}
       </span>
-      {error && (
-        <p
-          role="alert"
-          className="absolute right-0 top-full z-10 w-64 rounded-lg border border-rose-100 bg-white p-3 text-sm text-rose-700 shadow-sm"
-        >
-          Could not copy. Select the text to copy it.
-        </p>
-      )}
+      <CopyError error={error} />
     </div>
   );
 };

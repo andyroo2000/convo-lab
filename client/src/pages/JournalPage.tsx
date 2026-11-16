@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import JournalEntriesDrawer from '../features/journal/JournalEntriesDrawer';
 import JournalOverflow from '../features/journal/JournalOverflow';
@@ -32,6 +32,11 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   useEffect(() => {
     refresh();
   }, [refresh, entryId]);
+  const [editingCount, setEditingCount] = useState(0);
+  const editingChanged = useCallback(
+    (delta: number) => setEditingCount((value) => Math.max(0, value + delta)),
+    []
+  );
   const [target, setTarget] = useState<HTMLDivElement | null>(null);
   const close = () => navigate('/app/journal');
   const open = (id: string) => navigate(`/app/journal/${id}`);
@@ -54,12 +59,15 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
     ),
     [typography, appearanceSaved]
   );
-  const deskValue = useMemo(() => ({ target, appearance }), [target, appearance]);
+  const deskValue = useMemo(
+    () => ({ target, appearance, editingChanged }),
+    [target, appearance, editingChanged]
+  );
   return (
     <JournalDeskContext.Provider value={deskValue}>
       <div className="journal-desk">
         <header className="journal-desk-toolbar">
-          <JournalEntriesDrawer entryId={entryId}>
+          <JournalEntriesDrawer entryId={entryId} disabled={editingCount > 0}>
             <JournalArchive
               archive={archive}
               selectedId={entryId}
