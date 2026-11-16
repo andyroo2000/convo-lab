@@ -17,6 +17,22 @@ const segment: JournalSegment = {
     'For ***new***, use 新[あたら]しい. 辺[あた]り means ***the surrounding area***.',
 };
 
+it.each([
+  ['Use 新しい. 辺り means nearby.', 'Use 新しい.\u2002辺り means nearby.'],
+  ['Use 間. ながら normally links actions.', 'Use 間.\u2002ながら normally links actions.'],
+  ['Use **新しい**. Another sentence.', 'Use 新しい.\u2002Another sentence.'],
+  ['An English sentence. **辺り** follows.', 'An English sentence.\u2002辺り follows.'],
+  ['Use 間[あいだ]. Another sentence.', 'Use 間あいだ.\u2002Another sentence.'],
+  ['Use 新しい.\nAnother paragraph.', 'Use 新しい.\nAnother paragraph.'],
+  ['Use 新しい。辺り is different.', 'Use 新しい。辺り is different.'],
+  ['Version 3.14. Visit example.jp. Done.', 'Version 3.14. Visit example.jp. Done.'],
+])('spaces mixed-language sentence endings in %s', (explanationReading, expected) => {
+  render(<JournalExplanation segment={{ ...segment, explanationReading }} />);
+  expect(
+    screen.getByText((_, element) => element?.textContent === expected, { selector: 'p' })
+  ).toBeInTheDocument();
+});
+
 it('shows the exact edit above the explanation and omits only matching repeated readings', () => {
   render(
     <>

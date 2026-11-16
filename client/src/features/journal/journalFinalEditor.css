@@ -1,0 +1,35 @@
+.journal-final-writing {
+  display: grid;
+}
+
+/* The hidden copy sizes the paper, including trailing newlines, as text or width changes. */
+.journal-final-writing > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.journal-final-writing-size {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.journal-final-writing textarea {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  outline: none;
+}
+
+.journal-final-writing:focus-within {
+  box-shadow: -2px 0 #a5b9a1;
+}

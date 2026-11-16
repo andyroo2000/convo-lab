@@ -2,8 +2,21 @@ import { Fragment, type ReactNode } from 'react';
 import JournalRuby from './JournalRuby';
 import type { JournalSegment } from './types';
 
+function sentenceSpacing(text: string) {
+  // A half-em space separates mixed-language sentences without changing their punctuation.
+  return text
+    .replace(
+      /((?:[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}々〆ー]|\[[ぁ-ゖァ-ヺー]+\])\*{0,3}\.)[ \t]+(?=\S)/gu,
+      '$1\u2002'
+    )
+    .replace(
+      /\.[ \t]+(?=\*{0,3}[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])/gu,
+      '.\u2002'
+    );
+}
+
 function explanationText(segment: JournalSegment) {
-  const text = segment.explanationReading ?? segment.explanation ?? '';
+  const text = sentenceSpacing(segment.explanationReading ?? segment.explanation ?? '');
   if (segment.replacement == null) return text;
   // Match the full annotation: the same kanji with another reading still needs ruby.
   const displayed = new Set(
