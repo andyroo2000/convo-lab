@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import TutorNotFound from '../../components/common/TutorNotFound';
 import useJournalEditor from './useJournalEditor';
 import useJournalAnalysis from './useJournalAnalysis';
 import JournalEntryHeading from './JournalEntryHeading';
@@ -34,6 +35,10 @@ function entryPresentation(nested: boolean) {
 function currentFeedback(editor: Editor, analysis: ReturnType<typeof useJournalAnalysis>) {
   if (analysis.data?.entry.body !== editor.draft?.body) return null;
   return analysis.data?.data;
+}
+
+function isMissingEntry(editor: Editor) {
+  return editor.notFound && !editor.draft;
 }
 
 function isProcessing(analysis: JournalAnalysis | null | undefined) {
@@ -93,6 +98,13 @@ const JournalEditor = ({
   });
   const reviewing = current?.status === 'ready';
   useEditorBusy(editor, processing, onBusyChange);
+
+  if (isMissingEntry(editor))
+    return (
+      <article {...entryPresentation(nested)}>
+        <TutorNotFound />
+      </article>
+    );
 
   if (waiting)
     return (

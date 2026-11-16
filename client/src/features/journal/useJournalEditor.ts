@@ -31,12 +31,21 @@ export default function useJournalEditor({
   const [busy, setBusy] = useState(false);
   const [requestingFeedback, setRequestingFeedback] = useState(false);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [locallySaved, setLocallySaved] = useState(false);
   const [submitted, setSubmitted] = useState(0);
   const [submission, setSubmission] = useState<{ data: JournalAnalysis; entry: JournalEntry }>();
   const scope = useRef(0);
   const acceptedVersion = useRef(0);
+
+  function reportLoadError(reason: unknown) {
+    if (reason instanceof JsonRequestError && reason.status === 404) {
+      setNotFound(true);
+      return;
+    }
+    setError('Could not load this entry. Please try again.');
+  }
 
   useEffect(() => {
     scope.current += 1;
@@ -45,6 +54,7 @@ export default function useJournalEditor({
     const controller = new AbortController();
     setDraft(null);
     setError('');
+    setNotFound(false);
     setConflict(false);
     setLocallySaved(false);
     setBusy(false);
@@ -68,8 +78,8 @@ export default function useJournalEditor({
           setDraft(draftFromEntry(entry));
         })
         .catch((reason) => {
-          if (!controller.signal.aborted)
-            setError(reason instanceof Error ? reason.message : 'Could not load this entry.');
+          if (controller.signal.aborted) return;
+          reportLoadError(reason);
         });
     }
     return () => {
@@ -200,6 +210,7 @@ export default function useJournalEditor({
     draft,
     busy,
     error,
+    notFound,
     conflict,
     locallySaved,
     submitted,

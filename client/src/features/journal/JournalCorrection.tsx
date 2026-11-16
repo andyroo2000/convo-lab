@@ -13,8 +13,10 @@ const JournalCorrection = ({ segment }: { segment: JournalSegment }) => {
       aria-label="Suggested edit"
     >
       {segment.text ? (
-        <span ref={layout.original} className="journal-correction-original" lang="ja">
-          <JournalRuby text={segment.reading} />
+        <span ref={layout.original} lang="ja">
+          <span className="journal-correction-original">
+            <JournalRuby text={segment.reading} />
+          </span>
         </span>
       ) : (
         <span ref={layout.original} className="journal-correction-label">
