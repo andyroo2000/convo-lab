@@ -44,6 +44,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
     refresh();
   }, [refresh, entryId]);
   useJournalListScroll(entryId);
+  const close = () => navigate('/app/journal');
   const open = (id: string) => navigate(`/app/journal/${id}`);
   const create = () => {
     const id = archive.create();
@@ -105,6 +106,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
               onBusyChange={setEditorBusy}
               onSaved={archive.saved}
               onOpen={open}
+              onClose={close}
               renderFeedback={(analysis, heading) => (
                 <JournalConversation
                   key={analysis.id}
@@ -113,6 +115,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
                   analysis={analysis}
                   heading={heading}
                   onOpen={open}
+                  onClose={close}
                 />
               )}
             />

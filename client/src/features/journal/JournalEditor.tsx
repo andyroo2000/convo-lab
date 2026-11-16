@@ -12,6 +12,7 @@ interface JournalEditorProps {
   entryId: string;
   onSaved: (entry: JournalEntry) => void;
   onOpen: (id: string) => void;
+  onClose?: () => void;
   nested?: boolean;
   onBusyChange?: (busy: boolean) => void;
   initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
@@ -76,6 +77,7 @@ const JournalEditor = ({
   entryId,
   onSaved,
   onOpen,
+  onClose,
   renderFeedback,
   onBusyChange,
   nested = false,
@@ -110,7 +112,12 @@ const JournalEditor = ({
       {!reviewing && (
         <>
           {pendingHeader}
-          <JournalEditorForm editor={editor} processing={processing} />
+          <JournalEditorForm
+            ownerId={ownerId}
+            editor={editor}
+            processing={processing}
+            onClose={onClose}
+          />
         </>
       )}
 
