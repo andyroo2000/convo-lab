@@ -137,17 +137,7 @@ const JournalClarificationDialog = ({
       <JournalThinking
         avatar={tutor ? tutorAvatar(tutor) : undefined}
         lastAnswer={workflow.lastAnswer}
-      >
-        {workflow.active && (
-          <button
-            type="button"
-            onClick={workflow.cancel}
-            className="mt-6 min-h-11 text-sm text-slate-600 underline"
-          >
-            Back to draft
-          </button>
-        )}
-      </JournalThinking>
+      />
     );
   return (
     <section aria-label="Clarify your meaning" lang="en" className="flex items-start gap-3">

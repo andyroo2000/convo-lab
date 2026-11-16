@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import JournalPaper from './JournalPaper';
 import type { JournalDocumentControls } from './useJournalDocument';
 import './journalDraftActions.css';
+import './journalFinalEditor.css';
 
 interface Props {
   text: string;
@@ -45,17 +46,21 @@ const JournalFinalEditor = ({ text, revision, controls, onClose, heading }: Prop
       }}
     >
       <JournalPaper heading={heading}>
-        <textarea
-          ref={field}
-          aria-label="Final text"
-          value={value}
-          maxLength={30000}
-          disabled={controls.busy}
-          onChange={(event) => setValue(event.target.value)}
-          className="block min-h-64 w-full resize-y border-0 bg-transparent text-inherit leading-[2.7] outline-none focus:ring-2 focus:ring-indigo/30"
-        />
+        <div className="journal-final-writing">
+          <div aria-hidden="true" className="journal-final-writing-size">
+            {`${value} `}
+          </div>
+          <textarea
+            ref={field}
+            aria-label="Final text"
+            value={value}
+            maxLength={30000}
+            disabled={controls.busy}
+            onChange={(event) => setValue(event.target.value)}
+            rows={3}
+          />
+        </div>
       </JournalPaper>
-      <p className="text-sm text-gray-600">Audio will use your saved changes.</p>
       {controls.error && (
         <p role="alert" className="text-sm text-rose-700">
           {controls.error}

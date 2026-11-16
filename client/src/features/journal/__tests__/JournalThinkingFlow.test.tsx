@@ -64,7 +64,7 @@ function setup() {
   vi.mocked(saveJournalDraft).mockResolvedValue(entry);
   vi.mocked(startClarification).mockResolvedValue(meaning);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(
+  const view = render(
     <QueryClientProvider client={client}>
       <JournalEditor
         ownerId="owner"
@@ -76,7 +76,7 @@ function setup() {
     </QueryClientProvider>
   );
   fireEvent.click(screen.getByRole('button', { name: 'Submit draft' }));
-  return { entry, client };
+  return { entry, client, ...view };
 }
 async function answer() {
   fireEvent.click(await screen.findByRole('radio', { name: '私です。' }));
@@ -96,6 +96,7 @@ it('retains the same tutor screen through answer, submission and processing unti
   const { client, entry } = setup();
   await answer();
   const panel = thinking();
+  expect(screen.queryByRole('button', { name: 'Back to draft' })).not.toBeInTheDocument();
   const phrase = screen.getByText(
     new RegExp(waitingPhrases.map((item) => item.japanese).join('|'))
   );
@@ -156,14 +157,13 @@ it('keeps a retry available when feedback polling fails', async () => {
   expect(thinking()).toBeInTheDocument();
 });
 
-it('ignores an answer that arrives after cancelling the waiting screen', async () => {
+it('ignores an answer that arrives after leaving the waiting screen', async () => {
   const clarification = deferred<JournalClarification>();
   vi.mocked(answerClarification).mockReturnValue(clarification.promise);
-  setup();
+  const { unmount } = setup();
   await answer();
   const signal = vi.mocked(answerClarification).mock.calls[0][3];
-  fireEvent.click(screen.getByRole('button', { name: 'Back to draft' }));
-  await screen.findByRole('button', { name: 'Submit draft' });
+  unmount();
   await act(async () => clarification.resolve({ ...meaning, status: 'resolved', question: null }));
   expect(signal.aborted).toBe(true);
   expect(submitJournalEntry).not.toHaveBeenCalled();
