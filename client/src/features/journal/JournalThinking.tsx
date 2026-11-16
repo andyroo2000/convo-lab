@@ -1,10 +1,10 @@
 import { useId, useState, type ReactNode } from 'react';
+import { Check } from 'lucide-react';
 import JournalAvatar from './JournalAvatar';
 import JournalEnglish from './JournalEnglish';
 import JournalThinkingDelay from './JournalThinkingDelay';
 import JournalThinkingOrnament, { ThinkingDots } from './JournalThinkingOrnament';
 import { nextWaitingPhrase } from './journalThinkingContent';
-import { journalTextStyle } from './journalTypography';
 import './journalTutorText.css';
 
 interface Props {
@@ -55,10 +55,13 @@ const JournalThinking = ({ avatar, lastAnswer, children }: Props) => {
         <JournalThinkingDelay />
         {lastAnswer && (
           <p
-            className="mt-9 w-full border-t border-[#ddd8c9] pt-5 text-left"
-            style={journalTextStyle}
+            className="mt-9 flex w-full items-center gap-3 border-t border-[#ddd8c9] pt-5 text-left text-base leading-relaxed text-[#594c44]"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
-            {lastAnswer}
+            <Check size={16} className="shrink-0 text-[#6a8267]" aria-hidden="true" />
+            <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">
+              {lastAnswer}
+            </span>
           </p>
         )}
         {children}
