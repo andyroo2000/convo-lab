@@ -5,6 +5,7 @@ import { prepareTutorQuestion } from './journalTutor';
 import { journalTextStyle } from './journalTypography';
 import useConversationAnswer from './useConversationAnswer';
 import type { JournalAnalysis } from './types';
+import './journalDraftActions.css';
 
 interface Props {
   ownerId: string;
@@ -63,7 +64,7 @@ const Answer = ({
       <button
         type="submit"
         disabled={reply.busy || !reply.draft.body.trim()}
-        className="rounded-xl bg-indigo px-5 py-3 text-white disabled:opacity-40"
+        className="journal-draft-button journal-draft-button--sage"
       >
         {reply.busy ? 'Submitting…' : 'Submit'}
       </button>

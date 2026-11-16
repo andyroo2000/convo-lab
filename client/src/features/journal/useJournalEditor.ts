@@ -87,7 +87,9 @@ export default function useJournalEditor({
       setError('');
     } catch {
       setLocallySaved(false);
-      setError('Could not save on this device. Keep this page open and try Save draft.');
+      setError(
+        'Could not save on this device. Keep this page open. Use Close, then Keep draft & close to save online.'
+      );
     }
   }
 

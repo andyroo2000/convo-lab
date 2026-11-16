@@ -12,6 +12,7 @@ interface Props {
   entryId: string;
   analysis: JournalAnalysis;
   onOpen: (id: string) => void;
+  onClose?: () => void;
 }
 const ConversationReply = ({
   node,
@@ -21,6 +22,7 @@ const ConversationReply = ({
   last,
   refresh,
   onOpen,
+  onClose,
 }: Props & { node: JournalConversationNode; last: boolean; refresh: () => Promise<void> }) => {
   const teacher = node.question && node.parentEntryId && (
     <JournalTeacher
@@ -39,6 +41,7 @@ const ConversationReply = ({
         refresh().catch(() => undefined);
       }}
       onOpen={onOpen}
+      onClose={onClose}
       initial={node}
       pendingHeader={teacher}
       renderFeedback={(childAnalysis) => (
@@ -78,6 +81,7 @@ const JournalConversation = ({
   entryId,
   analysis,
   onOpen,
+  onClose,
   heading,
 }: Props & { heading?: ReactNode }) => {
   const thread = useQuery({
@@ -128,6 +132,7 @@ const JournalConversation = ({
           last={index === nodes.length - 1}
           refresh={refresh}
           onOpen={onOpen}
+          onClose={onClose}
         />
       ))}
       {thread.isSuccess && nodes.length === 0 && (

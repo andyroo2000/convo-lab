@@ -1,32 +1,19 @@
-import { Check } from 'lucide-react';
+import JournalDraftActions from './JournalDraftActions';
 import { journalTextStyle } from './journalTypography';
 import type useJournalEditor from './useJournalEditor';
 
 type Editor = ReturnType<typeof useJournalEditor>;
 
-function saveStatus(editor: Editor): string {
-  if (editor.busy) return 'Saving…';
-  if (editor.error) return 'Check save status';
-  if (editor.locallySaved) return 'Draft saved on this device';
-  return 'Draft saved';
-}
-
-const DraftSaveStatus = ({ editor }: { editor: Editor }) => (
-  <span
-    role="status"
-    className="flex w-full items-center justify-end gap-1.5 text-xs text-gray-500 sm:w-auto"
-  >
-    {!editor.busy && !editor.error && <Check className="h-4 w-4" aria-hidden="true" />}
-    {saveStatus(editor)}
-  </span>
-);
-
 const JournalEditorForm = ({
   editor,
+  ownerId,
+  onClose,
   processing,
   onSubmitted = () => undefined,
 }: {
   editor: Editor;
+  ownerId: string;
+  onClose?: () => void;
   processing: boolean;
   onSubmitted?: () => void;
 }) => {
@@ -60,34 +47,14 @@ const JournalEditorForm = ({
           onChange={(event) => editor.change({ body: event.target.value })}
         />
       </label>
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <DraftSaveStatus editor={editor} />
-        <button
-          type="button"
-          className="btn-secondary"
-          disabled={busy}
-          onClick={() => {
-            editor.save().catch(() => undefined);
-          }}
-        >
-          Save draft
-        </button>
-        <button
-          type="button"
-          className="btn-primary"
-          disabled={busy || processing || !draft.body.trim()}
-          onClick={() => {
-            editor
-              .save(true)
-              .then((success) => {
-                if (success) onSubmitted();
-              })
-              .catch(() => undefined);
-          }}
-        >
-          {busy ? 'Saving…' : 'Submit'}
-        </button>
-      </div>
+      <JournalDraftActions
+        editor={editor}
+        ownerId={ownerId}
+        processing={processing}
+        canSubmit={!busy && !processing && Boolean(draft.body.trim())}
+        onClose={onClose}
+        onSubmitted={onSubmitted}
+      />
     </>
   );
 };
