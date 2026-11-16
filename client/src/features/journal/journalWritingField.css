@@ -29,7 +29,3 @@
   border-radius: 0;
   outline: none;
 }
-
-.journal-writing-field--paper:focus-within {
-  box-shadow: -2px 0 #a5b9a1;
-}
