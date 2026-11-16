@@ -1,4 +1,7 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { Pencil } from 'lucide-react';
+import JournalFinalEditor from './JournalFinalEditor';
 import { correctedContent } from './journalVersionText';
 import JournalPaper from './JournalPaper';
 import JournalAudioPlayer from './JournalAudioPlayer';
@@ -24,33 +27,63 @@ const JournalCorrected = ({
   controls,
   toolbarTarget,
   listenTarget,
-  active,
+  active = true,
   heading,
 }: Props) => {
-  const { reading } = correctedContent(analysis);
+  const { text, reading } = correctedContent(analysis);
+  const [editing, setEditing] = useState<{ text: string; revision: number } | null>(null);
+  const editButton = useRef<HTMLButtonElement>(null);
+  const closeEditor = () => {
+    setEditing(null);
+    controls.reset();
+    requestAnimationFrame(() => editButton.current?.focus());
+  };
+  const edit = (
+    <button
+      ref={editButton}
+      type="button"
+      aria-label="Edit final text"
+      title="Edit final text"
+      disabled={controls.busy || Boolean(editing)}
+      className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm text-indigo hover:bg-indigo/5 disabled:opacity-50"
+      onClick={() => {
+        controls.reset();
+        setEditing({ text, revision: analysis.replyRevision ?? 0 });
+      }}
+    >
+      <Pencil size={18} aria-hidden="true" /> Edit final
+    </button>
+  );
   return (
-    <JournalPlaybackProvider key={`${ownerId}:${entryId}:${analysis.id}:${analysis.replyRevision}`}>
-      <section aria-label="Corrected Version" className="space-y-4">
-        <JournalAudioPlayer
-          key={`${analysis.id}:${analysis.replyRevision}`}
-          toolbarTarget={toolbarTarget}
-          listenTarget={listenTarget}
-          active={active}
-          ownerId={ownerId}
-          entryId={entryId}
-          analysisId={analysis.id}
-          expectedReplyRevision={analysis.replyRevision ?? 0}
+    <section aria-label="Corrected Version" className="space-y-4">
+      {active && (toolbarTarget ? createPortal(edit, toolbarTarget) : edit)}
+      {editing ? (
+        <JournalFinalEditor
+          {...editing}
+          controls={controls}
+          onClose={closeEditor}
+          heading={heading}
         />
-        <JournalPaper heading={heading}>
-          <JournalSentenceText text={reading} />
-        </JournalPaper>
-        {controls.error && (
-          <p role="alert" className="text-sm text-rose-700">
-            {controls.error}
-          </p>
-        )}
-      </section>
-    </JournalPlaybackProvider>
+      ) : (
+        <JournalPlaybackProvider
+          key={`${ownerId}:${entryId}:${analysis.id}:${analysis.replyRevision}`}
+        >
+          <JournalAudioPlayer
+            key={`${analysis.id}:${analysis.replyRevision}`}
+            toolbarTarget={toolbarTarget}
+            listenTarget={listenTarget}
+            active={active}
+            ownerId={ownerId}
+            entryId={entryId}
+            analysisId={analysis.id}
+            expectedReplyRevision={analysis.replyRevision ?? 0}
+          />
+          <JournalPaper heading={heading}>
+            <JournalSentenceText text={reading} />
+          </JournalPaper>
+        </JournalPlaybackProvider>
+      )}
+    </section>
   );
 };
 export default JournalCorrected;

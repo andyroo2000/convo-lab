@@ -109,6 +109,10 @@ it('keeps independent Draft/Final controls without appending the child to the ro
   expect(within(replySection).queryByRole('heading')).not.toBeInTheDocument();
   expect(within(replySection).queryByText('2026.11.13')).not.toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Draft' })).toHaveLength(2);
+  screen
+    .getAllByRole('button', { name: 'Draft' })
+    .forEach((button) => expect(button).toHaveAttribute('aria-pressed', 'true'));
+  screen.getAllByRole('button', { name: 'Final' }).forEach((button) => fireEvent.click(button));
   expect(screen.getAllByRole('button', { name: 'Final' })[1]).toHaveAttribute(
     'aria-pressed',
     'true'

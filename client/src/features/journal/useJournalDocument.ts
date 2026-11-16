@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { JsonRequestError, requestJson } from '../../lib/apiClient';
+import publishJournalDocument from './journalDocumentCache';
 import type { JournalAnalysis } from './types';
 
-type Change = { suggestionId: string; applied: boolean } | { text: string };
+type Change = { text: string };
 interface Options {
   ownerId: string;
   entryId: string;
@@ -22,23 +23,21 @@ export default function useJournalDocument({ ownerId, entryId, analysis }: Optio
     setSaving(true);
     setError('');
     try {
-      await requestJson<{ data: JournalAnalysis }>(
-        `/api/journal/entries/${encodeURIComponent(entryId)}/${'text' in input ? 'corrected' : 'suggestion'}`,
+      const saved = await requestJson<{ data: JournalAnalysis }>(
+        `/api/journal/entries/${encodeURIComponent(entryId)}/corrected`,
         {
           method: 'PUT',
           body: JSON.stringify({ analysisId: analysis.id, expectedRevision: revision, ...input }),
         }
       );
-      await refresh();
+      await publishJournalDocument(client, ownerId, entryId, saved.data);
       return true;
     } catch (failure) {
       await refresh().catch(() => undefined);
       let message = 'Could not save this change. Your writing is still here; please try again.';
       if (failure instanceof JsonRequestError && failure.status === 409) {
-        message = 'The entry changed and has been refreshed. Review the suggestion and try again.';
-        if ('text' in input)
-          message =
-            'The entry changed and has been refreshed. Your edits are still here; copy them before closing the editor, then reopen it to review the latest version.';
+        message =
+          'The entry changed and has been refreshed. Your edits are still here; copy them before closing the editor, then reopen it to review the latest version.';
       }
       setError(message);
       return false;

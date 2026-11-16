@@ -32,21 +32,20 @@ function setup() {
     () => useJournalDocument({ ownerId: 'owner', entryId: 'entry', analysis }),
     { wrapper }
   );
-  return { ...view, refresh };
+  return { ...view, refresh, client };
 }
-it('sends exact suggestion state and refreshes the saved analysis', async () => {
+it('saves exact final text and refreshes the saved analysis', async () => {
   vi.mocked(requestJson).mockResolvedValue({ data: analysis });
   const { result, refresh } = setup();
   await act(async () => {
-    await result.current.change({ suggestionId: 'a:1', applied: false });
+    await result.current.change({ text: '新しい文章。' });
   });
-  expect(requestJson).toHaveBeenCalledWith('/api/journal/entries/entry/suggestion', {
+  expect(requestJson).toHaveBeenCalledWith('/api/journal/entries/entry/corrected', {
     method: 'PUT',
     body: JSON.stringify({
       analysisId: 'a',
       expectedRevision: 2,
-      suggestionId: 'a:1',
-      applied: false,
+      text: '新しい文章。',
     }),
   });
   expect(refresh).toHaveBeenCalledWith({ queryKey: ['journal-analysis', 'owner', 'entry'] });
@@ -60,4 +59,43 @@ it('refetches a conflict without retrying or replacing the editor revision', asy
   expect(requestJson).toHaveBeenCalledTimes(1);
   expect(refresh).toHaveBeenCalled();
   await waitFor(() => expect(result.current.error).toContain('Your edits are still here'));
+});
+
+it('publishes saved text and its audio revision to entry and conversation caches even if refresh fails', async () => {
+  const saved = {
+    ...analysis,
+    replyRevision: 3,
+    correctedDocument: { text: '編集', reading: '編集[へんしゅう]', suggestions: [] },
+  };
+  vi.mocked(requestJson).mockResolvedValue({ data: saved });
+  const { result, client, refresh } = setup();
+  const key = ['journal-analysis', 'owner', 'entry', 0];
+  client.setQueryData(key, { data: analysis, entry: { id: 'entry', body: 'Original draft' } });
+  client.setQueryData(['journal-conversation', 'owner', 'root'], {
+    data: [{ entry: { id: 'entry' }, analysis }],
+  });
+  client.setQueryData(['journal-analysis', 'other', 'entry', 0], { data: analysis });
+  refresh.mockRejectedValue(new Error('Offline'));
+  await act(async () => {
+    expect(await result.current.change({ text: '編集' })).toBe(true);
+  });
+  expect(client.getQueryData(key)).toEqual({
+    data: saved,
+    entry: { id: 'entry', body: 'Original draft' },
+  });
+  expect(client.getQueryData(['journal-conversation', 'owner', 'root'])).toEqual({
+    data: [{ entry: { id: 'entry' }, analysis: saved }],
+  });
+  expect(client.getQueryData(['journal-analysis', 'other', 'entry', 0])).toEqual({
+    data: analysis,
+  });
+});
+it('does not replace a newer revision with an older acknowledgement', async () => {
+  vi.mocked(requestJson).mockResolvedValue({ data: { ...analysis, replyRevision: 3 } });
+  const { result, client } = setup();
+  const key = ['journal-analysis', 'owner', 'entry', 0];
+  const newer = { data: { ...analysis, replyRevision: 4 } };
+  client.setQueryData(key, newer);
+  await act(async () => result.current.change({ text: '編集' }));
+  expect(client.getQueryData(key)).toEqual(newer);
 });

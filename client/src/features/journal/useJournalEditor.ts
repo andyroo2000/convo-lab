@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
 import useJournalClarification from './useJournalClarification';
+import { rememberJournalVersion } from './useJournalVersion';
 import { JsonRequestError } from '../../lib/apiClient';
 import { getJournalEntry, saveJournalDraft, submitJournalEntry } from './journalApi';
 import { draftFromEntry, JournalDraftStore, newJournalDraft } from './journalDrafts';
@@ -109,6 +110,7 @@ export default function useJournalEditor({
       if (!clarificationId || scope.current !== epoch) return false;
       const data = await submitJournalEntry(entry, clarificationId);
       if (scope.current !== epoch) return false;
+      rememberJournalVersion(ownerId, entryId, 'draft');
       setSubmission({ data, entry });
       setSubmitted((value) => value + 1);
       return true;

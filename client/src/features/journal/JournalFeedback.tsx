@@ -48,22 +48,11 @@ const JournalFeedback = (props: FeedbackProps) => {
         <span ref={setToolbarTarget} className={version === 'final' ? 'contents' : 'hidden'} />
       </div>
       <div hidden={version !== 'draft'} className="space-y-6">
-        <JournalAnnotatedText
-          sourceId={analysis.id}
-          feedback={feedback}
-          analysis={analysis}
-          controls={controls}
-          heading={heading}
-        />
+        <JournalAnnotatedText sourceId={analysis.id} feedback={feedback} heading={heading} />
         {reply?.result && (
           <section aria-label="Your last answer" className="space-y-2">
             <h2 className="text-sm font-medium text-gray-600">Your last answer</h2>
-            <JournalAnnotatedText
-              sourceId={reply.id}
-              feedback={reply.result}
-              analysis={analysis}
-              controls={controls}
-            />
+            <JournalAnnotatedText sourceId={reply.id} feedback={reply.result} />
           </section>
         )}
       </div>

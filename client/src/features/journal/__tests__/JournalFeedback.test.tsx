@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { expect, it } from 'vitest';
 import { KnownKanjiContextProvider } from '../../../contexts/KnownKanjiContext';
 import JournalHighlight from '../JournalHighlight';
 import JournalRuby from '../JournalRuby';
@@ -36,12 +36,8 @@ it.each(['', null])(
   }
 );
 
-it('leaves an optional change out of the original passage even after applying it', () => {
-  const optional = { ...segment, kind: 'optional' as const, replacementReading: null };
-  const action = { applied: false, disabled: false, toggle: vi.fn() };
-  const { rerender } = render(<JournalHighlight segment={optional} action={action} />);
-  expect(screen.getByRole('button')).toHaveTextContent('映画えいがを見みますた。');
-  rerender(<JournalHighlight segment={optional} action={{ ...action, applied: true }} />);
+it('leaves optional wording out of the original passage', () => {
+  render(<JournalHighlight segment={{ ...segment, kind: 'optional' }} />);
   expect(screen.getByRole('button')).toHaveTextContent('映画えいがを見みますた。');
   expect(screen.getByRole('button')).not.toHaveTextContent('ました。');
 });
@@ -112,62 +108,23 @@ it('keeps a tapped popup open when the anchor blurs and toggles it on another ta
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
-it('applies optional changes only on request and lets corrections be rejected', async () => {
-  const toggle = vi.fn().mockResolvedValue(true);
-  const { rerender } = render(
-    <JournalHighlight
-      segment={{ ...segment, kind: 'optional' }}
-      action={{ applied: false, disabled: false, toggle }}
-    />
-  );
-  expect(toggle).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button'));
-  expect(screen.getByRole('status')).toHaveTextContent('Original kept');
-  fireEvent.click(screen.getByRole('button', { name: 'Apply suggestion' }));
-  await waitFor(() => expect(toggle).toHaveBeenCalledTimes(1));
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
-  rerender(
-    <JournalHighlight segment={segment} action={{ applied: true, disabled: false, toggle }} />
-  );
-  expect(screen.getByRole('status')).toHaveTextContent('Applied');
-  fireEvent.click(screen.getByRole('button', { name: 'Reject correction' }));
-  await waitFor(() => expect(toggle).toHaveBeenCalledTimes(2));
-});
-
-it('moves keyboard focus into the action and restores it on Escape without reopening', async () => {
-  render(
-    <JournalHighlight
-      segment={segment}
-      action={{ applied: true, disabled: false, toggle: vi.fn() }}
-    />
-  );
-  const anchor = screen.getByRole('button');
-  anchor.focus();
-  fireEvent.click(anchor, { detail: 0 });
-  const action = screen.getByRole('button', { name: 'Reject correction' });
-  await waitFor(() => expect(action).toHaveFocus());
-  fireEvent.keyDown(action, { key: 'Escape' });
-  expect(anchor).toHaveFocus();
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-});
-
-it('keeps a failed change open and displays the error next to its action', async () => {
-  render(
-    <JournalHighlight
-      segment={segment}
-      action={{
-        applied: true,
-        disabled: false,
-        error: 'Please try again.',
-        toggle: vi.fn().mockResolvedValue(false),
-      }}
-    />
-  );
-  fireEvent.click(screen.getByRole('button'));
-  fireEvent.click(screen.getByRole('button', { name: 'Reject correction' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Please try again.');
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
-});
+it.each(['correction', 'optional'] as const)(
+  'shows %s notes without acceptance controls or status',
+  (kind) => {
+    render(<JournalHighlight segment={{ ...segment, kind }} />);
+    const anchor = screen.getByRole('button');
+    anchor.focus();
+    fireEvent.click(anchor);
+    const popup = screen.getByRole('dialog');
+    expect(popup).toHaveTextContent('past tense');
+    expect(within(popup).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(popup).queryByRole('status')).not.toBeInTheDocument();
+    expect(popup).not.toHaveTextContent('Applied');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(anchor).toHaveFocus();
+  }
+);
 
 it('never inserts a full-sentence suggestion for legacy segments without replacement fields', () => {
   const { replacement: _replacement, replacementReading: _reading, ...legacy } = segment;
