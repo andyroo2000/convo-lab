@@ -15,7 +15,9 @@ const JournalOverflow = ({ children }: { children: ReactNode }) => {
       element.querySelector('summary')?.focus();
     };
     const blur = (event: FocusEvent) => {
-      if (!element.contains(event.relatedTarget as Node)) element.removeAttribute('open');
+      if (event.relatedTarget && !element.contains(event.relatedTarget as Node)) {
+        element.removeAttribute('open');
+      }
     };
     element.addEventListener('focusout', blur);
     document.addEventListener('pointerdown', outside);

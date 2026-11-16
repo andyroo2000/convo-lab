@@ -70,6 +70,8 @@ it('dismisses overflow on Escape, outside pointer, or keyboard focus leaving', (
   const trigger = screen.getByLabelText('More journal options');
   fireEvent.click(trigger);
   expect(screen.getByRole('button', { name: 'Copy text' })).toBeVisible();
+  fireEvent.focusOut(trigger, { relatedTarget: null });
+  expect(screen.getByText('Copy text')).toBeVisible();
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.getByText('Copy text')).not.toBeVisible();
   expect(trigger).toHaveFocus();
