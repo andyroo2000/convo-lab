@@ -1,3 +1,4 @@
+import './dialogMock';
 import { useState } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
@@ -22,16 +23,13 @@ const ToolbarExample = () => {
     </>
   );
 };
-it('keeps the settings trigger beside Copy while opening the picker before the player', () => {
+it('opens narration choices in a modal and cancels without a selection', () => {
   render(<ToolbarExample />);
   const toolbar = screen.getByRole('group', { name: 'Entry toolbar' });
   const settings = within(toolbar).getByRole('button', { name: 'Narration voice' });
   fireEvent.click(settings);
-  const panel = screen.getByRole('region', { name: 'Choose your narration voice' });
-  const player = screen.getByRole('group', { name: 'Audio player' });
-  expect(toolbar.compareDocumentPosition(panel)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-  expect(panel.compareDocumentPosition(player)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-  expect(settings).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getByRole('dialog', { name: 'Choose your narration voice' })).toBeVisible();
+  expect(settings).toHaveAttribute('aria-haspopup', 'dialog');
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  expect(screen.queryByRole('region')).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });

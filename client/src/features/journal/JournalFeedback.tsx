@@ -1,4 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useContext, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import JournalDeskContext from './JournalDeskContext';
+import JournalOverflow from './JournalOverflow';
 import JournalVersionPicker from './JournalVersionPicker';
 import JournalAnnotatedText from './JournalAnnotatedText';
 import JournalCorrected from './JournalCorrected';
@@ -24,29 +27,30 @@ const JournalFeedback = (props: FeedbackProps) => {
     Boolean(analysis.result && versionText(analysis, 'final').trim())
   );
   const [toolbarTarget, setToolbarTarget] = useState<HTMLSpanElement | null>(null);
-  const [listenTarget, setListenTarget] = useState<HTMLSpanElement | null>(null);
+  const desk = useContext(JournalDeskContext);
   const controls = useJournalDocument(props);
   const feedback = analysis.result;
   if (!feedback) return null;
   const reply = analysis.currentReply;
   const copyText = versionText(analysis, version);
-  return (
-    <div className="space-y-5">
-      <div
-        className="relative flex flex-wrap items-center gap-2 pb-3"
-        role="group"
-        aria-label="Entry controls"
-      >
-        <JournalVersionPicker value={version} onChange={setVersion} />
-        <span className="flex-1" />
-        <span ref={setListenTarget} className={version === 'final' ? 'contents' : 'hidden'} />
+  const toolbar = (
+    <div className="journal-feedback-toolbar" role="group" aria-label="Entry controls">
+      <JournalVersionPicker value={version} onChange={setVersion} />
+      <JournalOverflow>
         <JournalCopyButton
           key={`${version}:${copyText}`}
+          menu
           text={copyText}
           label={`Copy ${version} text`}
         />
         <span ref={setToolbarTarget} className={version === 'final' ? 'contents' : 'hidden'} />
-      </div>
+        {desk.appearance}
+      </JournalOverflow>
+    </div>
+  );
+  return (
+    <div className="space-y-5">
+      {heading && desk.target ? createPortal(toolbar, desk.target) : toolbar}
       <div hidden={version !== 'draft'} className="space-y-6">
         <JournalAnnotatedText sourceId={analysis.id} feedback={feedback} heading={heading} />
         {reply?.result && (
@@ -62,7 +66,6 @@ const JournalFeedback = (props: FeedbackProps) => {
           {...props}
           controls={controls}
           toolbarTarget={toolbarTarget}
-          listenTarget={listenTarget}
           active={version === 'final'}
         />
       </div>

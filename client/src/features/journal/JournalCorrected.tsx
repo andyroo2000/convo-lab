@@ -1,6 +1,7 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Pencil } from 'lucide-react';
+import JournalDeskContext from './JournalDeskContext';
 import JournalFinalEditor from './JournalFinalEditor';
 import { correctedContent } from './journalVersionText';
 import JournalPaper from './JournalPaper';
@@ -33,6 +34,13 @@ const JournalCorrected = ({
   const { text, reading } = correctedContent(analysis);
   const [editing, setEditing] = useState<{ text: string; revision: number } | null>(null);
   const editButton = useRef<HTMLButtonElement>(null);
+  const { editingChanged } = useContext(JournalDeskContext);
+  const isEditing = Boolean(editing);
+  useEffect(() => {
+    if (!isEditing) return undefined;
+    editingChanged?.(1);
+    return () => editingChanged?.(-1);
+  }, [isEditing, editingChanged]);
   const closeEditor = () => {
     setEditing(null);
     controls.reset();
@@ -45,7 +53,7 @@ const JournalCorrected = ({
       aria-label="Edit final text"
       title="Edit final text"
       disabled={controls.busy || Boolean(editing)}
-      className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm text-indigo hover:bg-indigo/5 disabled:opacity-50"
+      className="journal-menu-item"
       onClick={() => {
         controls.reset();
         setEditing({ text, revision: analysis.replyRevision ?? 0 });
@@ -68,19 +76,21 @@ const JournalCorrected = ({
         <JournalPlaybackProvider
           key={`${ownerId}:${entryId}:${analysis.id}:${analysis.replyRevision}`}
         >
-          <JournalAudioPlayer
-            key={`${analysis.id}:${analysis.replyRevision}`}
-            toolbarTarget={toolbarTarget}
-            listenTarget={listenTarget}
-            active={active}
-            ownerId={ownerId}
-            entryId={entryId}
-            analysisId={analysis.id}
-            expectedReplyRevision={analysis.replyRevision ?? 0}
-          />
-          <JournalPaper heading={heading}>
-            <JournalSentenceText text={reading} />
-          </JournalPaper>
+          <div className="journal-final-notebook">
+            <JournalAudioPlayer
+              key={`${analysis.id}:${analysis.replyRevision}`}
+              toolbarTarget={toolbarTarget}
+              listenTarget={listenTarget}
+              active={active}
+              ownerId={ownerId}
+              entryId={entryId}
+              analysisId={analysis.id}
+              expectedReplyRevision={analysis.replyRevision ?? 0}
+            />
+            <JournalPaper heading={heading}>
+              <JournalSentenceText text={reading} />
+            </JournalPaper>
+          </div>
         </JournalPlaybackProvider>
       )}
     </section>

@@ -25,6 +25,8 @@ const JournalAudioSession = (props: Props & { voice: ReturnType<typeof useJourna
         key={voice.voiceId}
         target={listenTarget}
         label="corrected version"
+        compact
+        avatar={voice.voices.find((item) => item.id === voice.voiceId)?.avatarUrl}
         disabled={!voice.ready}
         load={async (signal) => {
           const result = await timedEntryAudio(

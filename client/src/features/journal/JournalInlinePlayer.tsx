@@ -1,4 +1,6 @@
 import { createPortal } from 'react-dom';
+import JournalAvatar from './JournalAvatar';
+import JournalSeekRibbon from './JournalSeekRibbon';
 import { ListenButton, RibbonProgress } from './JournalPlaybackControls';
 import useJournalPlayer from './useJournalPlayer';
 import type { RecordingLoader } from './useTimedRecording';
@@ -8,13 +10,20 @@ interface Props {
   label: string;
   disabled?: boolean;
   target?: HTMLElement | null;
+  compact?: boolean;
+  avatar?: string;
 }
-const JournalInlinePlayer = ({ load, label, disabled, target }: Props) => {
+const JournalInlinePlayer = ({ load, label, disabled, target, compact = false, avatar }: Props) => {
   const player = useJournalPlayer(load);
   const controls = (
     <>
+      {compact && <JournalAvatar src={avatar} className="journal-narrator-avatar" />}
       <ListenButton player={player} label={label} disabled={disabled} />
-      <RibbonProgress player={player} label={label} />
+      {compact ? (
+        <JournalSeekRibbon player={player} label={label} />
+      ) : (
+        <RibbonProgress player={player} label={label} />
+      )}
     </>
   );
   return (
@@ -22,7 +31,9 @@ const JournalInlinePlayer = ({ load, label, disabled, target }: Props) => {
       {target ? (
         createPortal(controls, target)
       ) : (
-        <div className="relative flex items-center pb-3">{controls}</div>
+        <div className={compact ? 'journal-audio-header' : 'relative flex items-center pb-3'}>
+          {controls}
+        </div>
       )}
       {player.busy && (
         <p role="status" className="sr-only">

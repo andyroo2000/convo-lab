@@ -1,12 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
+function copyMenuLabel(copied: boolean) {
+  return copied ? 'Copied' : 'Copy text';
+}
+
+const CopyError = ({ error }: { error: boolean }) =>
+  error ? (
+    <p
+      role="alert"
+      className="absolute right-0 top-full z-10 w-64 rounded-lg border border-rose-100 bg-white p-3 text-sm text-rose-700 shadow-sm"
+    >
+      Could not copy. Select the text to copy it.
+    </p>
+  ) : null;
+
 const JournalCopyButton = ({
   text,
   label: copyLabel = 'Copy corrected version',
+  menu = false,
 }: {
   text: string;
   label?: string;
+  menu?: boolean;
 }) => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(false);
@@ -26,30 +42,29 @@ const JournalCopyButton = ({
   }
   const label = copied ? 'Copied' : copyLabel;
   const Icon = copied ? Check : Copy;
+  const menuLabel = copyMenuLabel(copied);
   return (
     <div className="relative">
       <button
         type="button"
-        aria-label={label}
+        aria-label={menu ? `${menuLabel} (${copyLabel})` : label}
         title={label}
-        className="flex h-10 w-10 items-center justify-center rounded-lg text-indigo hover:bg-indigo/5"
+        className={
+          menu
+            ? 'journal-menu-item'
+            : 'flex h-10 w-10 items-center justify-center rounded-lg text-indigo hover:bg-indigo/5'
+        }
         onClick={() => {
           copy().catch(() => undefined);
         }}
       >
         <Icon size={18} aria-hidden="true" />
+        {menu && menuLabel}
       </button>
       <span role="status" className="sr-only">
         {copied ? 'Copied' : ''}
       </span>
-      {error && (
-        <p
-          role="alert"
-          className="absolute right-0 top-full z-10 w-64 rounded-lg border border-rose-100 bg-white p-3 text-sm text-rose-700 shadow-sm"
-        >
-          Could not copy. Select the text to copy it.
-        </p>
-      )}
+      <CopyError error={error} />
     </div>
   );
 };
