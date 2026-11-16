@@ -1,3 +1,5 @@
+import { journalVersionPrefix } from './useJournalVersion';
+
 const pendingPrefix = 'convolab:journal-account-deletion:';
 
 function keys(storage: Storage): string[] {
@@ -15,6 +17,14 @@ function isConversationDraft(storage: Storage, key: string, rootId: string) {
 }
 
 export function removeJournalDeviceData(ownerId: string, entryId?: string, storage = localStorage) {
+  const versionPrefix = journalVersionPrefix(ownerId);
+  keys(storage)
+    .filter((key) =>
+      entryId
+        ? key === `${versionPrefix}${encodeURIComponent(entryId)}`
+        : key.startsWith(versionPrefix)
+    )
+    .forEach((key) => storage.removeItem(key));
   const draftPrefix = `convolab:journal:v1:${encodeURIComponent(ownerId)}:`;
   const answerPrefix = `convolab:journal-answer:${ownerId}:`;
   keys(storage).forEach((key) => {

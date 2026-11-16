@@ -6,6 +6,7 @@ import { versionText } from './journalVersionText';
 import JournalCopyButton from './JournalCopyButton';
 import JournalFollowUp from './JournalFollowUp';
 import useJournalDocument from './useJournalDocument';
+import useJournalVersion from './useJournalVersion';
 import type { JournalAnalysis } from './types';
 
 interface FeedbackProps {
@@ -17,8 +18,10 @@ interface FeedbackProps {
 }
 const JournalFeedback = (props: FeedbackProps) => {
   const { ownerId, entryId, analysis, followUp = true, heading } = props;
-  const [version, setVersion] = useState<'draft' | 'final'>(() =>
-    analysis.result && versionText(analysis, 'final').trim() ? 'final' : 'draft'
+  const [version, setVersion] = useJournalVersion(
+    ownerId,
+    entryId,
+    Boolean(analysis.result && versionText(analysis, 'final').trim())
   );
   const [toolbarTarget, setToolbarTarget] = useState<HTMLSpanElement | null>(null);
   const [listenTarget, setListenTarget] = useState<HTMLSpanElement | null>(null);

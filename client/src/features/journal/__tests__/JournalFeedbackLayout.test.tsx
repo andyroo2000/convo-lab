@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 import JournalFeedback from '../JournalFeedback';
 import JournalEntryHeading from '../JournalEntryHeading';
 import type { JournalAnalysis } from '../types';
 
 vi.mock('../JournalAudioPlayer', () => ({ default: () => <div>Audio player</div> }));
+beforeEach(() => localStorage.clear());
 vi.mock('../JournalFollowUp', () => ({ default: () => <section aria-label="Follow-up" /> }));
 vi.mock('../useJournalDocument', () => ({
   default: () => ({ busy: false, error: '', reset: vi.fn(), change: vi.fn() }),
@@ -97,12 +98,19 @@ it('switches between highlighted draft and final without showing both', () => {
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 });
 
-it('opens Final again after remounting even when the previous visit showed Draft', () => {
+it('reopens the last viewed version after remounting', () => {
   const { unmount } = render(
     <JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />
   );
   fireEvent.click(screen.getByRole('button', { name: 'Draft' }));
   unmount();
+  const { unmount: closeSecondVisit } = render(
+    <JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />
+  );
+  expect(screen.getByRole('button', { name: 'Draft' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByText('Audio player')).not.toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Final' }));
+  closeSecondVisit();
   render(<JournalFeedback ownerId="owner" entryId="entry" analysis={analysis} />);
   expect(screen.getByRole('button', { name: 'Final' })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getByText('Audio player')).toBeVisible();
