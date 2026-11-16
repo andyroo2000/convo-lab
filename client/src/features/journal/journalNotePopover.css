@@ -21,12 +21,12 @@
 .journal-note-content > .journal-correction {
   gap: 12px 78px;
   margin: 0 -16px 15px;
-  padding: 16px 18px 14px;
+  padding: 12px 18px 14px;
   background: var(--journal-note-header);
   border-bottom: 3px double var(--journal-note-divider);
 }
 .journal-note-content > .journal-correction:has(rt:not([aria-hidden='true'])) {
-  padding-top: 28px;
+  padding-top: 14px;
 }
 .journal-note-content .journal-correction rt[aria-hidden='true'] {
   display: none;

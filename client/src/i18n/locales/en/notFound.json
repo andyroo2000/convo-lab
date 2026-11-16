@@ -9,6 +9,10 @@
   },
   "buttons": {
     "goBack": "Go Back",
-    "goToStudy": "Go to Study"
-  }
+    "goToStudy": "Go to Study",
+    "goToJournal": "Back to Journal"
+  },
+  "phraseLabel": "Today’s phrase",
+  "tutorMessage": "Useful for missing keys, missing socks… and, apparently, missing pages. Let’s try your journal instead.",
+  "tutor": "Your tutor"
 }

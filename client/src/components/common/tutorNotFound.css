@@ -1,0 +1,125 @@
+.tutor-not-found {
+  width: 100%;
+  padding: 32px 34px 28px;
+  border: 1px solid #dfd8c9;
+  border-radius: 14px;
+  background: #fffdf6;
+  color: #542006;
+  text-align: center;
+}
+.tutor-not-found-code {
+  margin: 0 0 24px;
+  color: #657960;
+  font:
+    500 13px/1.4 system-ui,
+    sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tutor-not-found-avatar {
+  display: block;
+  width: 94px;
+  height: 94px;
+  object-fit: contain;
+  margin: 0 auto 22px;
+}
+.tutor-not-found-label {
+  margin: 0;
+  color: #7b6d5d;
+  font:
+    400 19px/1.4 Georgia,
+    'Times New Roman',
+    serif;
+}
+.tutor-not-found-phrase {
+  margin: 10px auto 8px;
+  font:
+    400 32px/1.95 'Noto Serif JP',
+    'Yu Mincho',
+    serif;
+  overflow-wrap: anywhere;
+  line-break: strict;
+}
+.tutor-not-found-phrase ruby {
+  ruby-position: over;
+  ruby-align: center;
+}
+.tutor-not-found-phrase rt {
+  font-size: 0.42em;
+  line-height: 1.2;
+  color: #88705e;
+}
+.tutor-not-found-meaning {
+  margin: 0 0 17px;
+  color: #3d694c;
+  font:
+    400 23px/1.35 Georgia,
+    'Times New Roman',
+    serif;
+}
+.tutor-not-found-copy {
+  max-width: 490px;
+  margin: 0 auto;
+  color: #62564d;
+  font:
+    400 19px/1.5 Georgia,
+    'Times New Roman',
+    serif;
+  overflow-wrap: anywhere;
+}
+.tutor-not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid #ddd8c9;
+}
+.tutor-not-found-button {
+  min-height: 46px;
+  padding: 11px 19px;
+  border: 1px solid #9ab39d;
+  border-radius: 6px;
+  background: #edf3e9;
+  color: #47664c;
+  font:
+    500 18px/1.2 Georgia,
+    'Times New Roman',
+    serif;
+  text-decoration: none;
+}
+.tutor-not-found-button--paper {
+  background: #fbf5f1;
+  border-color: #cdbdae;
+  color: #756150;
+}
+.tutor-not-found-button:hover {
+  filter: brightness(0.97);
+}
+.tutor-not-found-button:focus-visible {
+  outline: 3px solid #7294b0;
+  outline-offset: 3px;
+}
+@media (max-width: 520px) {
+  .tutor-not-found {
+    padding: 26px 20px;
+  }
+  .tutor-not-found-phrase {
+    font-size: 27px;
+    margin-top: 13px;
+  }
+  .tutor-not-found-meaning {
+    font-size: 21px;
+  }
+  .tutor-not-found-copy {
+    font-size: 18px;
+  }
+  .tutor-not-found-actions {
+    gap: 10px;
+  }
+  .tutor-not-found-button {
+    font-size: 17px;
+    padding-inline: 15px;
+  }
+}

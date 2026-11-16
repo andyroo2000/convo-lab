@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import JournalEditor from '../JournalEditor';
 import useJournalEditor from '../useJournalEditor';
 import useJournalAnalysis from '../useJournalAnalysis';
@@ -39,4 +40,26 @@ it.each(['processing', 'ready'] as const)('shows %s only for the current diary t
   expect(
     screen.getByText(status === 'ready' ? 'Corrections' : 'Your tutor is thinking')
   ).toBeInTheDocument();
+});
+
+it('shows the tutor 404 for a missing entry without displaying raw errors or feedback', () => {
+  vi.mocked(useJournalEditor).mockReturnValue({
+    draft: null,
+    notFound: true,
+    error: 'No query results for model App\\JournalEntry',
+    clarification: { active: false },
+  } as unknown as ReturnType<typeof useJournalEditor>);
+  vi.mocked(useJournalAnalysis).mockReturnValue({} as ReturnType<typeof useJournalAnalysis>);
+  render(
+    <MemoryRouter>
+      <JournalEditor ownerId="a" entryId="missing" onSaved={vi.fn()} onOpen={vi.fn()} />
+    </MemoryRouter>
+  );
+  expect(screen.getByRole('heading', { name: /404.*Page Not Found/ })).toBeInTheDocument();
+  expect(screen.queryByText(/No query results/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Loading entry…')).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Back to Journal' })).toHaveAttribute(
+    'href',
+    '/app/journal'
+  );
 });

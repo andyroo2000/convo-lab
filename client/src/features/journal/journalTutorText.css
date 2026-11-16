@@ -65,11 +65,14 @@
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+.journal-correction:has(rt:not([aria-hidden='true'])) {
+  line-height: 1.95;
+}
 .journal-correction .journal-correction-original {
   color: #897064;
 }
 .journal-correction-original {
-  /* Clone the overhang for each wrapped line; ruby readings stay above the strike. */
+  /* This inline span fragments per line inside the outer flex item. */
   padding-inline: 6px;
   margin-inline: -6px;
   background: linear-gradient(#bf616d, #bf616d) left 58% / 100% 1.5px no-repeat;

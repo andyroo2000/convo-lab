@@ -237,3 +237,46 @@ it('opens new feedback on Draft even if Final was last viewed, but preserves pre
   await act(() => result.current.save(true));
   expect(localStorage.getItem(key)).toBe('draft');
 });
+
+it('recognizes missing entries without exposing the server exception and resets on navigation', async () => {
+  vi.mocked(getJournalEntry).mockRejectedValueOnce(
+    new JsonRequestError('No query results for model App\\JournalEntry', 404, {})
+  );
+  const { result, rerender } = renderHook(
+    ({ entryId }) => useJournalEditor({ ownerId: 'a', entryId, onSaved: vi.fn() }),
+    { initialProps: { entryId: 'missing' } }
+  );
+  await waitFor(() => expect(result.current.notFound).toBe(true));
+  expect(result.current.error).toBe('');
+  expect(result.current.draft).toBeNull();
+  const draft = newJournalDraft();
+  vi.mocked(getJournalEntry).mockResolvedValue({
+    ...draft,
+    version: 1,
+    createdAt: 'now',
+    updatedAt: 'now',
+  });
+  rerender({ entryId: draft.id });
+  await waitFor(() => expect(result.current.draft?.id).toBe(draft.id));
+  expect(result.current.notFound).toBe(false);
+});
+
+it('does not turn a server outage into a missing-page message', async () => {
+  vi.mocked(getJournalEntry).mockRejectedValue(new JsonRequestError('Unavailable', 503, {}));
+  const { result } = renderHook(() =>
+    useJournalEditor({ ownerId: 'a', entryId: 'entry', onSaved: vi.fn() })
+  );
+  await waitFor(() =>
+    expect(result.current.error).toBe('Could not load this entry. Please try again.')
+  );
+  expect(result.current.notFound).toBe(false);
+});
+
+it('keeps local writing editable if saving returns a missing-entry response', async () => {
+  const { result, store, draft } = setup();
+  vi.mocked(saveJournalDraft).mockRejectedValue(new JsonRequestError('Not found', 404, {}));
+  await act(() => result.current.save());
+  expect(result.current.notFound).toBe(false);
+  expect(result.current.draft?.body).toBe(draft.body);
+  expect(store.get(draft.id)?.body).toBe(draft.body);
+});

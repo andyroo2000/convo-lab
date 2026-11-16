@@ -9,6 +9,10 @@
   },
   "buttons": {
     "goBack": "戻る",
-    "goToStudy": "学習に移動"
-  }
+    "goToStudy": "学習に移動",
+    "goToJournal": "日記に戻る"
+  },
+  "phraseLabel": "今日のフレーズ",
+  "tutorMessage": "鍵や靴下が見つからないときに使えるフレーズです。どうやらページが見つからないときにも使えますね。日記に戻ってみましょう。",
+  "tutor": "先生"
 }

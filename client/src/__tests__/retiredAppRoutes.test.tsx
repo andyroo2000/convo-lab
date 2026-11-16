@@ -35,8 +35,8 @@ describe('App route retirement', () => {
   ])('shows not found for retired route %s', async (path) => {
     window.history.replaceState(null, '', path);
     render(<App />);
-    expect(await screen.findByRole('heading', { name: '404' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Go to Study' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: /404.*Page Not Found/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Go to Study' })).toBeVisible();
   });
 
   it('opens Study from the app index', async () => {
