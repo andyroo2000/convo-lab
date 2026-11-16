@@ -30,6 +30,10 @@
   outline: none;
 }
 
-.journal-final-writing:focus-within {
+.journal-writing-field--paper:focus-within {
   box-shadow: -2px 0 #a5b9a1;
+}
+
+.journal-writing-field--draft > * {
+  padding: 1.25rem;
 }

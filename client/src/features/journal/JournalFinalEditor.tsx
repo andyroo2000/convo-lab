@@ -47,7 +47,7 @@ const JournalFinalEditor = ({ text, revision, controls, onClose, heading }: Prop
     >
       <JournalPaper heading={heading}>
         <JournalWritingField
-          className="journal-final-writing"
+          className="journal-writing-field--paper"
           fieldRef={field}
           aria-label="Final text"
           value={value}

@@ -11,13 +11,14 @@ const JournalWritingField = ({
   fieldRef,
   className = '',
   style,
+  lang,
   rows = 3,
   ...props
 }: Props) => (
-  <div className={`journal-writing-field ${className}`} style={style}>
-    <div aria-hidden="true" className="journal-writing-field-size">
+  <div className={`journal-writing-field ${className}`} style={style} lang={lang}>
+    <span aria-hidden="true" className="journal-writing-field-size">
       {`${value} `}
-    </div>
+    </span>
     <textarea {...props} ref={fieldRef} value={value} rows={rows} />
   </div>
 );
