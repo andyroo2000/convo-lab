@@ -139,3 +139,19 @@ test('manual boundaries preserve the full reading and reject invalid cuts before
   assert.equal((await send({ ...body, boundaries: [2, 1] })).status, 400);
   assert.equal(calls.length, 1);
 });
+
+test('worker ranking failures reject the matching request without hanging or losing other work', async () => {
+  const client = new EngineClient('/unused');
+  const failed = new Promise((resolve, reject) => {
+    client.pending.set('failed', { resolve, reject });
+  });
+  const success = new Promise((resolve, reject) => {
+    client.pending.set('next', { resolve, reject });
+  });
+  client.receive(JSON.stringify({ id: 'failed', error: 'Neural ranking failed.' }));
+  await assert.rejects(failed, /Neural ranking failed/);
+  assert.equal(client.pending.size, 1);
+  client.receive(JSON.stringify({ id: 'next', candidates: [{ text: '箸' }] }));
+  assert.equal((await success).candidates[0].text, '箸');
+  assert.equal(client.pending.size, 0);
+});

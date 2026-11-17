@@ -554,6 +554,13 @@ test('resizing inside a kanji reading obtains newly constrained candidates', asy
   await input.press('Shift+ArrowLeft');
   const result = await (await constrained).json();
   assert.ok(result.candidates.length > 10);
+  const scores = result.candidates.map((candidate) => candidate.neuralScore);
+  assert.ok(scores.every(Number.isFinite));
+  assert.deepEqual(
+    scores,
+    [...scores].sort((a, b) => b - a)
+  );
+  assert.equal(result.candidates[0].text, 'はしで食べました');
   for (const candidate of result.candidates) {
     assert.equal(candidate.units[0].reading, 'は');
     assert.equal(candidate.units.map((unit) => unit.reading).join(''), 'はしでたべました');

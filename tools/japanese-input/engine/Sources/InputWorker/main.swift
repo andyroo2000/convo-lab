@@ -13,6 +13,7 @@ struct ConversionCandidate: Encodable {
     let reading: String
     let sections: [ConversionSection]
     let units: [ConversionSection]
+    var neuralScore: Float? = nil
 }
 
 struct ConversionOutput: Encodable {
@@ -47,6 +48,7 @@ guard CommandLine.arguments.count == 3,
 }
 let neuralInferenceLimit = inferenceLimit
 let modelURL = URL(fileURLWithPath: CommandLine.arguments[1])
+let boundaryRanker = try NeuralBoundaryRanker(modelURL: modelURL)
 options.zenzaiMode = .on(
     weight: modelURL,
     inferenceLimit: inferenceLimit,
@@ -55,7 +57,7 @@ options.zenzaiMode = .on(
 )
 #endif
 
-@MainActor func convert(_ request: ConversionInput) -> ConversionOutput {
+@MainActor func convert(_ request: ConversionInput) throws -> ConversionOutput {
     converter.stopComposition()
     var composition = ComposingText()
     composition.insertAtCursorPosition(request.reading, inputStyle: .direct)
@@ -70,14 +72,34 @@ options.zenzaiMode = .on(
     #endif
     var pool = results.mainResults
     if let boundaries = request.boundaries, !boundaries.isEmpty {
-        pool = boundaryCandidates(reading: request.reading, boundaries: boundaries, neural: pool, options: options)
+        pool = try boundaryCandidates(reading: request.reading, boundaries: boundaries, neural: pool, options: options)
     } else if request.expanded == true {
         pool += expandedCandidates(composition, converter: converter, options: options, reference: results.mainResults.first)
     }
-    let candidates = serializeCandidates(pool, reading: request.reading)
+    let candidates = serializeCandidates(pool, reading: request.reading, neuralRanked: isNeuralBoundaryRequest(request))
     let elapsed = start.duration(to: .now).components
     let milliseconds = Double(elapsed.seconds) * 1000 + Double(elapsed.attoseconds) / 1e15
     return ConversionOutput(id: request.id, candidates: Array(candidates.prefix(request.expanded == true ? 160 : 10)), engineMs: milliseconds, expansion: request.expanded == true ? "whole-phrase-neural-and-dictionary" : nil)
+}
+
+func isNeuralBoundaryRequest(_ request: ConversionInput) -> Bool {
+    #if Neural
+    return request.boundaries?.isEmpty == false
+    #else
+    return false
+    #endif
+}
+
+struct ConversionFailure: Encodable { let id: String; let error: String }
+
+@MainActor func conversionPayload(_ request: ConversionInput) throws -> Data {
+    do {
+        return try encoder.encode(convert(request))
+    } catch {
+        return try encoder.encode(ConversionFailure(
+            id: request.id, error: "Neural ranking failed. Your text has been kept; try again."
+        ))
+    }
 }
 
 let encoder = JSONEncoder()
@@ -85,7 +107,7 @@ encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
 while let line = readLine() {
     do {
         let request = try JSONDecoder().decode(ConversionInput.self, from: Data(line.utf8))
-        let output = try encoder.encode(convert(request))
+        let output = try conversionPayload(request)
         FileHandle.standardOutput.write(output + Data([10]))
     } catch {
         FileHandle.standardError.write(Data("Invalid conversion request\n".utf8))

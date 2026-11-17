@@ -64,16 +64,24 @@ fragment recombinations. This is broader, but bounded rather than an exhaustive
 native dictionary lookup. Some rare spellings or alternative word boundaries
 may still be absent. Expansion never changes the selected spelling or section.
 
-Manual breaks use the same complete reading. Compatible neural suggestions stay
-first; a constrained dictionary lattice supplies alternatives that respect every
-requested break. It removes dictionary edges crossing those breaks, while retaining
-connection and meaning scoring across the entire phrase. The neural model itself
-has no forced-reading-boundary API in this pinned version, so newly forced splits
-use statistical rather than neural ranking. No section is sent for isolated
-conversion. Until a lookup finishes, only safely aligned text is shown; an opaque
-kanji split falls back to kana. Unaffected sections keep their chosen text.
-This mode intentionally permits alternate word boundaries, so its dictionary
-suggestions do not use the ordinary menu's lexical-core filter.
+Manual breaks use the same complete reading. A constrained dictionary lattice
+removes edges crossing a requested break while retaining whole-phrase scoring.
+In neural builds, up to 160 unique, complete, boundary-compatible sentences are
+then reranked by the **same pinned Zenz-v3-small model**, using conditional
+log-likelihood of the full output plus EOS given the full kana reading. The
+response includes `neuralScore` on these candidates. A separate preloaded model
+context isolates scoring from live conversion; it uses additional memory and
+currently recomputes each sentence rather than batching or sharing prefix work.
+Normal live conversion still uses inference limit 1 unchanged.
+
+The initial native reranker takes roughly one second for a broad menu on this M3
+in a small four-phrase probe; this is not a cross-device performance benchmark.
+Resizing responds immediately with safely aligned cached choices, then updates
+pending sections when ranked results arrive. Explicit choices made while waiting
+are preserved. No section is sent for isolated conversion, and opaque kanji
+splits temporarily fall back to kana. Dictionary-only builds retain their
+statistical ranking. A neural scoring failure returns a recoverable error;
+it is never silently presented as successful neural ranking.
 
 Live typing coalesces into the newest pending phrase. Menu expansion is a
 separate on-demand request, reused while navigating the same composition; it
@@ -176,7 +184,7 @@ AzooKey v0.11.2 is pinned by commit; dictionaries are pinned via its submodules,
 and transitive Swift dependencies are recorded in `engine/Package.resolved`.
 The initial dictionary experiment used the pinned release's API with Zenzai
 disabled. The current menu expansion adds a small, version-checked adapter:
-`engine/adapter/WholePhraseCandidates.swift` is copied into the downloaded module
+The tracked Swift files in `engine/adapter/` are copied into the downloaded module
 by both setup commands and `npm run build:engine`. It exposes the same internal
 full-phrase query used by AzooKey's bundled CLI, avoiding the normal UI result
 truncation. It does not change the conversion algorithm or existing upstream

@@ -46,7 +46,8 @@ export class EngineClient {
     if (!request) return;
     clearTimeout(request.timer);
     this.pending.delete(result.id);
-    request.resolve(result);
+    if (result.error) request.reject(new Error(result.error));
+    else request.resolve(result);
   }
 
   convert(reading, { expanded = false, boundaries } = {}) {

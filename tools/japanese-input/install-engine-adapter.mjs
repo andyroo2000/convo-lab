@@ -11,11 +11,15 @@ export function installEngineAdapter() {
   }).trim();
   if (revision !== engineInfo.revision)
     throw new Error('Engine adapter requires the pinned AzooKey revision.');
-  const source = readFileSync(
-    new URL('./engine/adapter/WholePhraseCandidates.swift', import.meta.url)
-  );
+  for (const name of ['WholePhraseCandidates', 'NeuralBoundaryRanker']) {
+    installAdapterFile(engine, name);
+  }
+}
+
+function installAdapterFile(engine, name) {
+  const source = readFileSync(new URL(`./engine/adapter/${name}.swift`, import.meta.url));
   const destination = new URL(
-    'Sources/KanaKanjiConverterModule/ConverterAPI/ConvoLabWholePhrase.swift',
+    `Sources/KanaKanjiConverterModule/ConverterAPI/${name === 'WholePhraseCandidates' ? 'ConvoLabWholePhrase' : 'ConvoLabNeuralBoundaryRanker'}.swift`,
     engine
   );
   if (existsSync(destination) && readFileSync(destination).equals(source)) return;

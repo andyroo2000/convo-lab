@@ -34,7 +34,7 @@ import KanaKanjiConverterModuleWithDefaultDictionary
     return pool
 }
 
-func serializeCandidates(_ pool: [Candidate], reading: String) -> [ConversionCandidate] {
+func serializeCandidates(_ pool: [Candidate], reading: String, neuralRanked: Bool = false) -> [ConversionCandidate] {
     var seen = Set<String>()
     let katakana = reading.applyingTransform(.hiraganaToKatakana, reverse: false)
     return pool.compactMap { candidate in
@@ -44,7 +44,8 @@ func serializeCandidates(_ pool: [Candidate], reading: String) -> [ConversionCan
             text: candidate.text,
             reading: reading,
             sections: sections(of: candidate, reading: reading),
-            units: units(of: candidate, reading: reading)
+            units: units(of: candidate, reading: reading),
+            neuralScore: neuralRanked ? candidate.value : nil
         )
     }
 }
