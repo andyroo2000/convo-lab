@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteJournalEntry, listJournalEntries } from './journalApi';
-import { JournalDraftStore, newJournalDraft } from './journalDrafts';
+import { JournalDraftStore } from './journalDrafts';
 import renameJournalEntry from './journalRename';
 import { removeJournalDeviceData } from './journalDeviceCleanup';
 import type { JournalDraft, JournalEntry } from './types';
@@ -52,19 +52,6 @@ export default function useJournalArchive(ownerId: string) {
     );
   }, [drafts, query.data]);
 
-  function create() {
-    try {
-      const draft = newJournalDraft();
-      store.put(draft);
-      refresh();
-      setError('');
-      return draft.id;
-    } catch {
-      setError('Could not create a draft on this device. Check your browser storage.');
-      return null;
-    }
-  }
-
   const saved = useCallback(() => {
     refresh();
     client.invalidateQueries({ queryKey: ['journal-archive', ownerId] }).catch(() => undefined);
@@ -105,5 +92,5 @@ export default function useJournalArchive(ownerId: string) {
     return local ? { ...entry, title: local.title, body: local.body } : entry;
   }
 
-  return { query, entries, error, create, saved, remove, rename, snapshot, refresh };
+  return { query, entries, drafts, error, saved, remove, rename, snapshot, refresh };
 }

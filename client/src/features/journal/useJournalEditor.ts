@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
+import isUnwrittenJournalDraft from './journalDraftPersistence';
 import useJournalClarification from './useJournalClarification';
 import { rememberJournalVersion } from './useJournalVersion';
 import { JsonRequestError } from '../../lib/apiClient';
@@ -12,6 +13,7 @@ interface EditorOptions {
   entryId: string;
   onSaved: (entry: JournalEntry) => void;
   initialEntry?: JournalEntry;
+  initialDraft?: JournalDraft;
 }
 
 function loadEntry(initial: JournalEntry | undefined, id: string, signal: AbortSignal) {
@@ -23,9 +25,11 @@ export default function useJournalEditor({
   entryId,
   onSaved,
   initialEntry,
+  initialDraft,
 }: EditorOptions) {
   const clarification = useJournalClarification(`${ownerId}:${entryId}`);
   const initialRef = useRef(initialEntry);
+  const blankRef = useRef(initialDraft);
   const store = useMemo(() => new JournalDraftStore(ownerId), [ownerId]);
   const [draft, setDraft] = useState<JournalDraft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,7 +74,9 @@ export default function useJournalEditor({
     } catch {
       setError('Device storage is unavailable. Keep this page open to preserve your writing.');
     }
-    if (!local) {
+    if (!local && blankRef.current?.id === entryId) {
+      setDraft(blankRef.current);
+    } else if (!local) {
       loadEntry(initialRef.current, entryId, controller.signal)
         .then((entry) => {
           if (scope.current !== epoch || entry.version <= acceptedVersion.current) return;
@@ -90,8 +96,12 @@ export default function useJournalEditor({
 
   function change(patch: Partial<Pick<JournalDraft, 'title' | 'body' | 'entryDate'>>) {
     if (!draft || busy) return;
-    const next = { ...draft, ...patch, editId: ulid().toLowerCase() };
+    const entryDate = isUnwrittenJournalDraft(draft, locallySaved)
+      ? newJournalDraft().entryDate
+      : draft.entryDate;
+    const next = { ...draft, entryDate, ...patch, editId: ulid().toLowerCase() };
     setDraft(next);
+    if (isUnwrittenJournalDraft(next, locallySaved)) return;
     try {
       store.put(next);
       setLocallySaved(true);
@@ -213,6 +223,7 @@ export default function useJournalEditor({
     notFound,
     conflict,
     locallySaved,
+    pristine: isUnwrittenJournalDraft(draft, locallySaved),
     submitted,
     submission,
     change,

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useNavigationType,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import JournalEntriesDrawer from '../features/journal/JournalEntriesDrawer';
 import JournalOverflow from '../features/journal/JournalOverflow';
 import JournalDeskContext from '../features/journal/JournalDeskContext';
@@ -15,8 +21,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { KnownKanjiProvider } from '../contexts/KnownKanjiContext';
 import useJournalActivity from '../features/journal/useJournalActivity';
 import JournalArchive from '../features/journal/JournalArchive';
-import JournalEditor from '../features/journal/JournalEditor';
-import JournalConversation from '../features/journal/JournalConversation';
+import JournalEntryContent from '../features/journal/JournalEntryContent';
+import JournalLanding from '../features/journal/JournalLanding';
 import useJournalArchive from '../features/journal/useJournalArchive';
 
 const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
@@ -25,9 +31,13 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   const [typography, setTypography] = useState(readTypography);
   const [appearanceSaved, setAppearanceSaved] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigationType = useNavigationType();
   const archive = useJournalArchive(ownerId);
   const [editorRevision, setEditorRevision] = useState(0);
   const [editorBusy, setEditorBusy] = useState(false);
+  const [blankDraftId, setBlankDraftId] = useState<string>();
+  const activeId = entryId ?? blankDraftId;
   const { refresh } = archive;
   useEffect(() => {
     refresh();
@@ -38,12 +48,11 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
     []
   );
   const [target, setTarget] = useState<HTMLDivElement | null>(null);
-  const close = () => navigate('/app/journal');
-  const open = (id: string) => navigate(`/app/journal/${id}`);
-  const create = () => {
-    const id = archive.create();
-    if (id) open(id);
+  const close = () => {
+    archive.refresh();
+    navigate('/app/journal', { state: { blank: true } });
   };
+  const open = (id: string) => navigate(`/app/journal/${id}`);
 
   const appearance = useMemo(
     () => (
@@ -67,17 +76,23 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
     <JournalDeskContext.Provider value={deskValue}>
       <div className="journal-desk">
         <header className="journal-desk-toolbar">
-          <JournalEntriesDrawer entryId={entryId} disabled={editingCount > 0}>
+          <JournalEntriesDrawer
+            entryId={entryId ?? location.key}
+            onOpen={archive.refresh}
+            disabled={editingCount > 0}
+          >
             <JournalArchive
               archive={archive}
-              selectedId={entryId}
-              onCreate={create}
-              busyId={editorBusy ? entryId : undefined}
+              selectedId={activeId}
+              onCreate={close}
+              busyId={editorBusy ? activeId : undefined}
               onDeleted={(id) => {
-                if (id === entryId) navigate('/app/journal');
+                if (id === activeId) close();
               }}
               onRenamed={(id) => {
-                if (id === entryId) setEditorRevision((value) => value + 1);
+                if (id !== activeId) return;
+                if (entryId) setEditorRevision((value) => value + 1);
+                else open(id);
               }}
             />
           </JournalEntriesDrawer>
@@ -98,7 +113,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
           className="min-w-0"
         >
           {entryId ? (
-            <JournalEditor
+            <JournalEntryContent
               key={`${ownerId}:${entryId}:${editorRevision}`}
               ownerId={ownerId}
               entryId={entryId}
@@ -106,20 +121,20 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
               onSaved={archive.saved}
               onOpen={open}
               onClose={close}
-              renderFeedback={(analysis, heading) => (
-                <JournalConversation
-                  key={analysis.id}
-                  ownerId={ownerId}
-                  entryId={entryId}
-                  analysis={analysis}
-                  heading={heading}
-                  onOpen={open}
-                  onClose={close}
-                />
-              )}
             />
           ) : (
-            <p className="p-12 text-gray-500">Select an entry or start a new one.</p>
+            <JournalLanding
+              key={location.key}
+              ownerId={ownerId}
+              archive={archive}
+              blank={navigationType === 'PUSH' && location.state?.blank === true}
+              onActiveDraft={setBlankDraftId}
+              onSelectToday={(id) => navigate(`/app/journal/${id}`, { replace: true })}
+              onBusyChange={setEditorBusy}
+              onSaved={archive.saved}
+              onOpen={open}
+              onClose={close}
+            />
           )}
         </section>
       </div>

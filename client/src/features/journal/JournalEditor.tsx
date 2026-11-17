@@ -6,7 +6,7 @@ import JournalEntryHeading from './JournalEntryHeading';
 import JournalEditorForm from './JournalEditorForm';
 import JournalClarificationDialog from './JournalClarificationDialog';
 import { EditorMessages, FeedbackStatus } from './JournalEditorMessages';
-import type { JournalAnalysis, JournalEntry } from './types';
+import type { JournalAnalysis, JournalDraft, JournalEntry } from './types';
 
 interface JournalEditorProps {
   ownerId: string;
@@ -16,6 +16,8 @@ interface JournalEditorProps {
   onClose?: () => void;
   nested?: boolean;
   onBusyChange?: (busy: boolean) => void;
+  onWritingChange?: (writing: boolean) => void;
+  initialDraft?: JournalDraft;
   initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
   pendingHeader?: ReactNode;
   renderFeedback?: (analysis: JournalAnalysis, heading: ReactNode) => ReactNode;
@@ -45,8 +47,20 @@ function isProcessing(analysis: JournalAnalysis | null | undefined) {
   return analysis?.status === 'queued' || analysis?.status === 'processing';
 }
 
-function useEditorFeedback({ ownerId, entryId, onSaved, initial }: JournalEditorProps) {
-  const editor = useJournalEditor({ ownerId, entryId, onSaved, initialEntry: initial?.entry });
+function useEditorFeedback({
+  ownerId,
+  entryId,
+  onSaved,
+  initial,
+  initialDraft,
+}: JournalEditorProps) {
+  const editor = useJournalEditor({
+    ownerId,
+    entryId,
+    onSaved,
+    initialEntry: initial?.entry,
+    initialDraft,
+  });
   const analysis = useJournalAnalysis({
     ownerId,
     entryId,
@@ -77,6 +91,13 @@ function useEditorBusy(
   }, [busy, notify]);
 }
 
+function useEditorWriting(editor: Editor, notify: JournalEditorProps['onWritingChange']) {
+  const body = editor.draft?.body;
+  useEffect(() => {
+    notify?.(Boolean(body?.trim()));
+  }, [body, notify]);
+}
+
 const JournalEditor = ({
   ownerId,
   entryId,
@@ -85,9 +106,11 @@ const JournalEditor = ({
   onClose,
   renderFeedback,
   onBusyChange,
+  onWritingChange,
   nested = false,
   initial,
   pendingHeader,
+  initialDraft,
 }: JournalEditorProps) => {
   const { editor, analysis, current, processing, waiting, retryFeedback } = useEditorFeedback({
     ownerId,
@@ -95,9 +118,11 @@ const JournalEditor = ({
     onSaved,
     onOpen,
     initial,
+    initialDraft,
   });
   const reviewing = current?.status === 'ready';
   useEditorBusy(editor, processing, onBusyChange);
+  useEditorWriting(editor, onWritingChange);
 
   if (isMissingEntry(editor))
     return (

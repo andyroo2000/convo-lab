@@ -88,7 +88,7 @@ const TeacherRibbon = ({
           <JournalAvatar
             src={tutorAvatar(tutor)}
             alt={`${tutor.name}, your tutor`}
-            className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10"
+            className="h-9 w-9 shrink-0 rounded-full bg-white object-cover sm:h-10 sm:w-10"
           />
         )
       }

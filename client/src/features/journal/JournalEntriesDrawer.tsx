@@ -18,10 +18,12 @@ const JournalEntriesDrawer = ({
   children,
   entryId,
   disabled = false,
+  onOpen,
 }: {
   children: ReactNode;
   entryId?: string;
   disabled?: boolean;
+  onOpen?: () => void;
 }) => {
   const dialog = useRef<HTMLDialogElement>(null);
   useDialogDismissal(dialog);
@@ -36,7 +38,10 @@ const JournalEntriesDrawer = ({
         type="button"
         disabled={disabled}
         aria-haspopup="dialog"
-        onClick={() => dialog.current?.showModal()}
+        onClick={() => {
+          onOpen?.();
+          dialog.current?.showModal();
+        }}
       >
         <BookOpen size={18} aria-hidden="true" /> My entries
       </button>

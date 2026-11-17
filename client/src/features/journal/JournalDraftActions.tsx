@@ -29,7 +29,10 @@ const JournalDraftActions = ({
           type="button"
           className="journal-draft-button"
           disabled={busy || processing}
-          onClick={() => setClosing(true)}
+          onClick={() => {
+            if (editor.pristine) onClose();
+            else setClosing(true);
+          }}
         >
           Close
         </button>

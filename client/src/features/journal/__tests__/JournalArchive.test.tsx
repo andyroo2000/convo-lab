@@ -36,15 +36,16 @@ function setup(owner = 'a') {
   return renderHook(() => useJournalArchive(owner), { wrapper });
 }
 
-it('creates and deletes an offline draft without sending a server delete', async () => {
+it('lists and deletes an offline draft without sending a server delete', async () => {
   vi.mocked(listJournalEntries).mockRejectedValue(new Error('Offline'));
   const { result } = setup();
   await waitFor(() => expect(result.current.query.isError).toBe(true));
-  let id: string | null = null;
+  const draft = { ...newJournalDraft(), body: '映画を見た。' };
   act(() => {
-    id = result.current.create();
+    new JournalDraftStore('a').put(draft);
+    result.current.refresh();
   });
-  expect(result.current.entries[0].id).toBe(id);
+  expect(result.current.entries[0].id).toBe(draft.id);
   await act(() => result.current.remove(result.current.entries[0]));
   expect(result.current.entries).toHaveLength(0);
   expect(deleteJournalEntry).not.toHaveBeenCalled();
