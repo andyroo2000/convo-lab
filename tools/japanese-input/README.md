@@ -113,15 +113,57 @@ example, the long-sentence first choice uses valid `晩ごはん` instead of the
 examples are `強はいい天気です`, `橋で食べました`, and `雨を食べました`, where the intended
 choice is lower in the list. The deliberately difficult repeated-`きしゃ` phrase
 misses the expected spelling entirely. There are no invented timing figures or
-Mozc scores in the report.
+Mozc scores in that initial report.
 
-**Decision: provisional AzooKey for learning about the interface, not a final
-cross-platform engine selection.** Its library packaging made a working prototype
-possible without adapting a desktop application. Mozc's explicit segment-resize,
-reconversion, and Android interfaces make it a worthwhile next comparator if
-candidate quality or offline Android becomes the priority. A Mozc runtime was
-not built or measured during this experiment. The HTTP boundary permits an
-alternate adapter without changing the client protocol.
+The subsequent [Mozc comparison](benchmarks/COMPARISON.md) uses the same fixtures
+and 20 timing passes per engine. AzooKey matched 18/24 first choices; Mozc OSS
+matched 16/24. Mozc was much faster, but both were fast locally. All 24 Mozc
+first-choice results matched its upstream conversion tool. Native mobile
+behavior remains untested.
+
+To reproduce it on Apple Silicon macOS with Xcode installed:
+
+```sh
+npm run setup:mozc
+npm run benchmark:compare
+```
+
+Mozc source and Bazelisk are pinned; the downloaded executable is checksum-verified.
+Only the conversion worker and OSS dictionary are built, without installing an OS
+keyboard. The comparison writes ignored `comparison.local.json`, preserving the
+checked-in reports. Mozc returns alternatives per phrase, so they are stored as
+segments rather than misrepresented as ranked whole-sentence alternatives.
+
+### Neural experiment
+
+The [neural comparison report](benchmarks/NEURAL-COMPARISON.md) records 22/24 exact
+first choices with Zenzai, versus 18/24 for dictionary-only AzooKey. One neural
+miss is valid 珈琲 instead of コーヒー. Complete warm requests were about 30 ms
+median / 42 ms p95 on this Mac; first-use startup can take seconds. Inference
+limit 5 did not improve first choices over limit 1.
+
+```sh
+npm run setup:neural
+npm run benchmark:neural
+```
+
+Run the ordinary `npm run setup` and `npm run setup:mozc` first. The neural setup
+builds the same Swift worker with the optional `Neural` trait into a separate
+ignored build directory. Its dependency enables upstream's GPU-backed `Zenzai`
+trait. It downloads the pinned, checksum-verified zenz-v3-small Q5_K_M model
+(72,298,816 bytes), without changing the browser playground's dictionary-only
+worker. The model manifest records its revision, checksum, and license.
+
+The neural benchmark compares dictionary-only AzooKey, Mozc, and Zenzai with
+inference limits 1 and 5. It uses the same 24 unchanged fixtures, 20 alternating
+passes, and five fresh-process startup trials. No personalized context or history
+is supplied. `stopComposition()` resets the neural session and conversion cache
+before every phrase. Model-loading failure terminates the worker instead of
+silently reporting dictionary fallback as neural conversion. Results go to ignored
+`neural-comparison.local.json`.
+
+The browser still uses dictionary-only AzooKey; these are local engine experiments,
+not a production or cross-platform engine selection.
 
 Useful upstream references:
 
@@ -152,6 +194,11 @@ and mobile overflow. They are browser viewport tests, not simulator/native tests
 - AzooKeyKanaKanjiConverter: MIT; see its downloaded `LICENSE`.
 - Its default dictionary: Apache-2.0; see the dictionary submodule's `LICENSE`.
 - Additional bundled dictionaries/dependencies retain their own upstream notices.
+- Mozc: BSD-3-Clause, with separately licensed dictionary/dependency data; see its
+  downloaded `LICENSE` and `src/data/dictionary_oss` notices.
+- Zenz-v3-small model: Miwa-Keita, CC-BY-SA-4.0; see
+  [the model repository](https://huggingface.co/Miwa-Keita/zenz-v3-small-gguf).
+  Model weights are downloaded locally and are not committed to this repository.
 - WanaKana: MIT; its license is included in the installed package.
 - Tutor artwork is the existing ConvoLab `client/public/images/tutor-hana.webp`.
 

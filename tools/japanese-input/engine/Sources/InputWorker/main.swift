@@ -17,10 +17,10 @@ struct ConversionOutput: Encodable {
     let engineMs: Double
 }
 
-// One sequential worker. No user history, prediction, or neural rewriting.
+// One sequential worker. Neural inference is an explicit experimental build trait.
 let converter = KanaKanjiConverter.withDefaultDictionary()
 let scratch = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-let options = ConvertRequestOptions(
+var options = ConvertRequestOptions(
     requireJapanesePrediction: false,
     requireEnglishPrediction: false,
     keyboardLanguage: .ja_JP,
@@ -32,12 +32,35 @@ let options = ConvertRequestOptions(
     metadata: .init(versionString: "ConvoLab playground")
 )
 
+#if Neural
+guard CommandLine.arguments.count == 3,
+      let inferenceLimit = Int(CommandLine.arguments[2]),
+      [1, 5].contains(inferenceLimit),
+      FileManager.default.fileExists(atPath: CommandLine.arguments[1]) else {
+    fatalError("Neural worker requires a model path and inference limit of 1 or 5")
+}
+let modelURL = URL(fileURLWithPath: CommandLine.arguments[1])
+options.zenzaiMode = .on(
+    weight: modelURL,
+    inferenceLimit: inferenceLimit,
+    personalizationMode: nil,
+    versionDependentMode: .v3(.init())
+)
+#endif
+
 @MainActor func convert(_ request: ConversionInput) -> ConversionOutput {
     converter.stopComposition()
     var composition = ComposingText()
     composition.insertAtCursorPosition(request.reading, inputStyle: .direct)
     let start = ContinuousClock.now
     let results = converter.requestCandidates(composition, options: options)
+    #if Neural
+    // Upstream can fall back to dictionary conversion if model loading fails.
+    // Do not accidentally report that fallback as a successful neural run.
+    guard converter.zenzStatus == "load \(modelURL.absoluteString)" else {
+        fatalError("Neural model did not load")
+    }
+    #endif
     var seen = Set<String>()
     let candidates = results.mainResults.compactMap { candidate -> ConversionCandidate? in
         let reading = candidate.data.map(\.ruby).joined()

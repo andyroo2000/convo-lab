@@ -1,0 +1,6154 @@
+{
+  "host": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M3"
+  },
+  "measuredAt": "2026-11-17T20:46:16.938Z",
+  "rounds": 20,
+  "methodology": "Unchanged 24 fixtures. Release builds. Fresh processes/profiles, no learning, no neural model. One cold request then one full warmup pass, followed by 20 passes alternating engine order. Then five fresh-process startup trials per engine, alternating order, with OS file caches warm. Sequential subprocess calls, no HTTP. Exact whole-sentence first-choice comparison only; Mozc alternatives are per segment. Valid spelling variants count as misses. Internal timers have slightly different boundaries; subprocess round trips include serialization for both.",
+  "engines": [
+    {
+      "engine": {
+        "id": "azookey-dictionary",
+        "version": "0.11.2",
+        "revision": "80b8204f1cdfb364bb2ed355cf52c7ebb2519a0c",
+        "neural": false,
+        "learning": false
+      },
+      "summary": {
+        "total": 24,
+        "exactTop1": 18,
+        "warmSamples": 480,
+        "engineMedianMs": 3.721167,
+        "engineP95Ms": 6.597125,
+        "roundTripMedianMs": 3.9607090000000085,
+        "roundTripP95Ms": 6.88779199999999,
+        "coldRoundTripMs": 45.42750000000001,
+        "freshProcessMedianMs": 43.97708300000022
+      },
+      "startupSamplesMs": [
+        44.42374999999993, 43.97708300000022, 42.72220900000002, 43.549209000000246,
+        44.13979199999994
+      ],
+      "results": [
+        {
+          "reading": "きのうえいがをみました",
+          "expected": ["昨日映画を見ました", "昨日映画を観ました"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "きのうえいがをみました",
+              "text": "昨日映画を見ました"
+            },
+            {
+              "reading": "きのうえいがをみました",
+              "text": "昨日映画を観ました"
+            },
+            {
+              "reading": "きのうえいがをみました",
+              "text": "昨日映画をみました"
+            },
+            {
+              "reading": "きのうえいがをみました",
+              "text": "機能映画を見ました"
+            },
+            {
+              "reading": "きのうえいがをみました",
+              "text": "機能映画を観ました"
+            },
+            {
+              "reading": "きのうえいがをみました",
+              "text": "キノウエイガヲミマシタ"
+            },
+            {
+              "reading": "きのうえいがをみました",
+              "text": "きのうえいがをみました"
+            }
+          ],
+          "engineMs": 3.47875,
+          "id": "a7faef21-6a1d-43d0-87c8-379e49f14b0b",
+          "roundTripMs": 3.780791000000008,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 3.9605,
+              "roundTripMs": 4.708416
+            },
+            {
+              "engineMs": 3.676541,
+              "roundTripMs": 4.119708000000003
+            },
+            {
+              "engineMs": 3.459584,
+              "roundTripMs": 3.8180000000000405
+            },
+            {
+              "engineMs": 3.683041,
+              "roundTripMs": 4.125749999999925
+            },
+            {
+              "engineMs": 3.686292,
+              "roundTripMs": 4.136875000000032
+            },
+            {
+              "engineMs": 3.85525,
+              "roundTripMs": 4.318416999999954
+            },
+            {
+              "engineMs": 3.547542,
+              "roundTripMs": 3.9526670000000195
+            },
+            {
+              "engineMs": 3.722292,
+              "roundTripMs": 4.1900419999999485
+            },
+            {
+              "engineMs": 3.454459,
+              "roundTripMs": 3.8110830000000533
+            },
+            {
+              "engineMs": 3.631208,
+              "roundTripMs": 4.052249999999958
+            },
+            {
+              "engineMs": 3.461292,
+              "roundTripMs": 3.811333999999988
+            },
+            {
+              "engineMs": 3.582334,
+              "roundTripMs": 3.9942909999999756
+            },
+            {
+              "engineMs": 3.427917,
+              "roundTripMs": 3.7745420000001104
+            },
+            {
+              "engineMs": 3.681209,
+              "roundTripMs": 4.095333999999866
+            },
+            {
+              "engineMs": 3.446542,
+              "roundTripMs": 3.787458000000015
+            },
+            {
+              "engineMs": 3.681791,
+              "roundTripMs": 4.109083999999939
+            },
+            {
+              "engineMs": 3.416167,
+              "roundTripMs": 3.756125000000111
+            },
+            {
+              "engineMs": 3.691875,
+              "roundTripMs": 4.120957999999973
+            },
+            {
+              "engineMs": 3.493292,
+              "roundTripMs": 3.8384580000001733
+            },
+            {
+              "engineMs": 3.563041,
+              "roundTripMs": 3.9591660000000957
+            }
+          ]
+        },
+        {
+          "reading": "きょうはいいてんきです",
+          "expected": ["今日はいい天気です", "今日は良い天気です"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "きょうはいいてんきです",
+              "text": "強はいい天気です"
+            },
+            {
+              "reading": "きょうはいいてんきです",
+              "text": "今日はいい天気です"
+            },
+            {
+              "reading": "きょうはいいてんきです",
+              "text": "強はいい転機です"
+            },
+            {
+              "reading": "きょうはいいてんきです",
+              "text": "今日はいい天気デス"
+            },
+            {
+              "reading": "きょうはいいてんきです",
+              "text": "今日はいい天気でス"
+            },
+            {
+              "reading": "きょうはいいてんきです",
+              "text": "キョウハイイテンキデス"
+            },
+            {
+              "reading": "きょうはいいてんきです",
+              "text": "きょうはいいてんきです"
+            }
+          ],
+          "engineMs": 9.098958,
+          "id": "a4697f11-a6af-436a-94f8-3705a904b1b8",
+          "roundTripMs": 9.381084000000001,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 5.119583,
+              "roundTripMs": 5.689707999999996
+            },
+            {
+              "engineMs": 4.537666,
+              "roundTripMs": 4.772208000000035
+            },
+            {
+              "engineMs": 4.538375,
+              "roundTripMs": 4.7355420000000095
+            },
+            {
+              "engineMs": 4.644459,
+              "roundTripMs": 4.868333000000007
+            },
+            {
+              "engineMs": 4.921875,
+              "roundTripMs": 5.213499999999954
+            },
+            {
+              "engineMs": 4.998042,
+              "roundTripMs": 5.436166999999955
+            },
+            {
+              "engineMs": 4.556708,
+              "roundTripMs": 4.79037500000004
+            },
+            {
+              "engineMs": 4.568458,
+              "roundTripMs": 4.787333999999873
+            },
+            {
+              "engineMs": 4.482666,
+              "roundTripMs": 4.673332999999957
+            },
+            {
+              "engineMs": 4.556916,
+              "roundTripMs": 4.760583000000224
+            },
+            {
+              "engineMs": 4.541875,
+              "roundTripMs": 4.739125000000058
+            },
+            {
+              "engineMs": 4.554459,
+              "roundTripMs": 4.755125000000135
+            },
+            {
+              "engineMs": 4.5185,
+              "roundTripMs": 4.709792000000107
+            },
+            {
+              "engineMs": 4.610625,
+              "roundTripMs": 4.835790999999972
+            },
+            {
+              "engineMs": 4.576084,
+              "roundTripMs": 4.769416999999976
+            },
+            {
+              "engineMs": 4.678125,
+              "roundTripMs": 4.89320900000007
+            },
+            {
+              "engineMs": 4.58725,
+              "roundTripMs": 4.791166999999859
+            },
+            {
+              "engineMs": 4.589333,
+              "roundTripMs": 4.792582999999922
+            },
+            {
+              "engineMs": 4.547208,
+              "roundTripMs": 4.739083999999821
+            },
+            {
+              "engineMs": 4.514375,
+              "roundTripMs": 4.71545900000001
+            }
+          ]
+        },
+        {
+          "reading": "あたらしいほんをかいました",
+          "expected": ["新しい本を買いました"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "あたらしいほんをかいました",
+              "text": "新しい本を買いました"
+            },
+            {
+              "reading": "あたらしいほんをかいました",
+              "text": "あたらしい本を買いました"
+            },
+            {
+              "reading": "あたらしいほんをかいました",
+              "text": "新しいほんを買いました"
+            },
+            {
+              "reading": "あたらしいほんをかいました",
+              "text": "あたらしいほんを買いました"
+            },
+            {
+              "reading": "あたらしいほんをかいました",
+              "text": "新しいホンを買いました"
+            },
+            {
+              "reading": "あたらしいほんをかいました",
+              "text": "アタラシイホンヲカイマシタ"
+            },
+            {
+              "reading": "あたらしいほんをかいました",
+              "text": "あたらしいほんをかいました"
+            }
+          ],
+          "engineMs": 8.236459,
+          "id": "fd1a8cab-b285-4384-a256-f5d9f699519a",
+          "roundTripMs": 8.527917000000002,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 4.352375,
+              "roundTripMs": 4.61862499999998
+            },
+            {
+              "engineMs": 4.32425,
+              "roundTripMs": 4.564166999999998
+            },
+            {
+              "engineMs": 4.262875,
+              "roundTripMs": 4.477582999999981
+            },
+            {
+              "engineMs": 4.381208,
+              "roundTripMs": 4.630708000000027
+            },
+            {
+              "engineMs": 4.644292,
+              "roundTripMs": 4.972292000000039
+            },
+            {
+              "engineMs": 4.894958,
+              "roundTripMs": 5.2787080000000515
+            },
+            {
+              "engineMs": 5.574542,
+              "roundTripMs": 5.9096250000000055
+            },
+            {
+              "engineMs": 4.258625,
+              "roundTripMs": 4.4816249999998945
+            },
+            {
+              "engineMs": 4.205084,
+              "roundTripMs": 4.415332999999919
+            },
+            {
+              "engineMs": 4.343875,
+              "roundTripMs": 4.570124999999962
+            },
+            {
+              "engineMs": 4.320083,
+              "roundTripMs": 4.535458000000062
+            },
+            {
+              "engineMs": 4.368125,
+              "roundTripMs": 4.603166999999985
+            },
+            {
+              "engineMs": 4.32,
+              "roundTripMs": 4.542666999999938
+            },
+            {
+              "engineMs": 4.293042,
+              "roundTripMs": 4.507000000000062
+            },
+            {
+              "engineMs": 4.289458,
+              "roundTripMs": 4.500084000000015
+            },
+            {
+              "engineMs": 4.349125,
+              "roundTripMs": 4.571292000000085
+            },
+            {
+              "engineMs": 4.33525,
+              "roundTripMs": 4.552791999999954
+            },
+            {
+              "engineMs": 4.284458,
+              "roundTripMs": 4.4997089999997115
+            },
+            {
+              "engineMs": 4.273916,
+              "roundTripMs": 4.4839170000000195
+            },
+            {
+              "engineMs": 4.335625,
+              "roundTripMs": 4.569250000000011
+            }
+          ]
+        },
+        {
+          "reading": "にほんごをべんきょうしています",
+          "expected": ["日本語を勉強しています"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "にほんごをべんきょうしています",
+              "text": "日本語を勉強しています"
+            },
+            {
+              "reading": "にほんごをべんきょうしています",
+              "text": "にほんごを勉強しています"
+            },
+            {
+              "reading": "にほんごをべんきょうしています",
+              "text": "日本語を勉強して居ます"
+            },
+            {
+              "reading": "にほんごをべんきょうしています",
+              "text": "日本語をべんきょうしています"
+            },
+            {
+              "reading": "にほんごをべんきょうしています",
+              "text": "日本語ヲ勉強しています"
+            },
+            {
+              "reading": "にほんごをべんきょうしています",
+              "text": "ニホンゴヲベンキョウシテイマス"
+            },
+            {
+              "reading": "にほんごをべんきょうしています",
+              "text": "にほんごをべんきょうしています"
+            }
+          ],
+          "engineMs": 5.535208,
+          "id": "09e5e7fd-199a-430f-8b59-ab26186ad9b3",
+          "roundTripMs": 5.850540999999993,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 4.312959,
+              "roundTripMs": 4.574040999999966
+            },
+            {
+              "engineMs": 4.291375,
+              "roundTripMs": 4.537167000000011
+            },
+            {
+              "engineMs": 4.477083,
+              "roundTripMs": 4.727624999999989
+            },
+            {
+              "engineMs": 4.291,
+              "roundTripMs": 4.531500000000051
+            },
+            {
+              "engineMs": 4.718834,
+              "roundTripMs": 5.0943340000000035
+            },
+            {
+              "engineMs": 4.823667,
+              "roundTripMs": 5.218500000000063
+            },
+            {
+              "engineMs": 4.678625,
+              "roundTripMs": 5.040292000000022
+            },
+            {
+              "engineMs": 4.416875,
+              "roundTripMs": 4.673500000000104
+            },
+            {
+              "engineMs": 4.222875,
+              "roundTripMs": 4.455582999999933
+            },
+            {
+              "engineMs": 4.309875,
+              "roundTripMs": 4.560582999999951
+            },
+            {
+              "engineMs": 4.342667,
+              "roundTripMs": 4.588792000000012
+            },
+            {
+              "engineMs": 4.273083,
+              "roundTripMs": 4.509083000000146
+            },
+            {
+              "engineMs": 4.267042,
+              "roundTripMs": 4.499207999999953
+            },
+            {
+              "engineMs": 4.282042,
+              "roundTripMs": 4.517958000000135
+            },
+            {
+              "engineMs": 4.265416,
+              "roundTripMs": 4.49737499999992
+            },
+            {
+              "engineMs": 4.317459,
+              "roundTripMs": 4.555041999999958
+            },
+            {
+              "engineMs": 4.306917,
+              "roundTripMs": 4.543458999999984
+            },
+            {
+              "engineMs": 4.30525,
+              "roundTripMs": 4.540209000000232
+            },
+            {
+              "engineMs": 4.292541,
+              "roundTripMs": 4.525042000000212
+            },
+            {
+              "engineMs": 4.346917,
+              "roundTripMs": 4.585291000000325
+            }
+          ]
+        },
+        {
+          "reading": "そのあとともだちにあいました",
+          "expected": ["その後友達に会いました", "そのあと友達に会いました"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "そのあとともだちにあいました",
+              "text": "そのあと友達に会いました"
+            },
+            {
+              "reading": "そのあとともだちにあいました",
+              "text": "そのあと友達に遭いました"
+            },
+            {
+              "reading": "そのあとともだちにあいました",
+              "text": "その後友達に会いました"
+            },
+            {
+              "reading": "そのあとともだちにあいました",
+              "text": "そのあと友達に合いました"
+            },
+            {
+              "reading": "そのあとともだちにあいました",
+              "text": "その後友達に合いました"
+            },
+            {
+              "reading": "そのあとともだちにあいました",
+              "text": "ソノアトトモダチニアイマシタ"
+            },
+            {
+              "reading": "そのあとともだちにあいました",
+              "text": "そのあとともだちにあいました"
+            }
+          ],
+          "engineMs": 7.009416,
+          "id": "df982a09-5fd2-4d98-b464-df7896888f2d",
+          "roundTripMs": 7.318624999999997,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 4.355583,
+              "roundTripMs": 4.608499999999992
+            },
+            {
+              "engineMs": 3.9575,
+              "roundTripMs": 4.185708000000034
+            },
+            {
+              "engineMs": 4.022292,
+              "roundTripMs": 4.254458999999997
+            },
+            {
+              "engineMs": 3.979334,
+              "roundTripMs": 4.20474999999999
+            },
+            {
+              "engineMs": 4.463,
+              "roundTripMs": 4.828750000000014
+            },
+            {
+              "engineMs": 4.186875,
+              "roundTripMs": 4.489459000000011
+            },
+            {
+              "engineMs": 4.209917,
+              "roundTripMs": 4.49795800000004
+            },
+            {
+              "engineMs": 4.0735,
+              "roundTripMs": 4.314834000000019
+            },
+            {
+              "engineMs": 3.95925,
+              "roundTripMs": 4.191958999999997
+            },
+            {
+              "engineMs": 4.11625,
+              "roundTripMs": 4.526749999999993
+            },
+            {
+              "engineMs": 3.996917,
+              "roundTripMs": 4.222416000000067
+            },
+            {
+              "engineMs": 3.993666,
+              "roundTripMs": 4.21545900000001
+            },
+            {
+              "engineMs": 3.955291,
+              "roundTripMs": 4.1752080000001115
+            },
+            {
+              "engineMs": 3.957375,
+              "roundTripMs": 4.179125000000113
+            },
+            {
+              "engineMs": 3.951,
+              "roundTripMs": 4.1720000000000255
+            },
+            {
+              "engineMs": 4.105917,
+              "roundTripMs": 4.34395799999993
+            },
+            {
+              "engineMs": 3.994458,
+              "roundTripMs": 4.2182500000001255
+            },
+            {
+              "engineMs": 4.000709,
+              "roundTripMs": 4.222707999999784
+            },
+            {
+              "engineMs": 3.992333,
+              "roundTripMs": 4.217083000000002
+            },
+            {
+              "engineMs": 3.984041,
+              "roundTripMs": 4.204999999999927
+            }
+          ]
+        },
+        {
+          "reading": "あしたはやくおきます",
+          "expected": ["明日早く起きます"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日早く起きます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "あした早く起きます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日早く置きます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日速く起きます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日速く置きます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日は約おきます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日は約お来ます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日は約折きます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日は約お決ます"
+            },
+            {
+              "reading": "あしたはやくおきます",
+              "text": "明日は約折来ます"
+            }
+          ],
+          "engineMs": 6.812542,
+          "id": "16a2be97-01d3-4e44-8ab0-65c6644a477b",
+          "roundTripMs": 7.159334000000001,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 3.761958,
+              "roundTripMs": 4.011624999999981
+            },
+            {
+              "engineMs": 3.592,
+              "roundTripMs": 3.818375000000003
+            },
+            {
+              "engineMs": 3.632542,
+              "roundTripMs": 3.8674159999999915
+            },
+            {
+              "engineMs": 3.732666,
+              "roundTripMs": 3.97950000000003
+            },
+            {
+              "engineMs": 3.9795,
+              "roundTripMs": 4.337957999999958
+            },
+            {
+              "engineMs": 3.771625,
+              "roundTripMs": 4.051333
+            },
+            {
+              "engineMs": 4.058959,
+              "roundTripMs": 4.405917000000045
+            },
+            {
+              "engineMs": 3.62275,
+              "roundTripMs": 3.8516250000000127
+            },
+            {
+              "engineMs": 3.673084,
+              "roundTripMs": 3.9161249999999654
+            },
+            {
+              "engineMs": 3.630875,
+              "roundTripMs": 3.9053749999998217
+            },
+            {
+              "engineMs": 3.622208,
+              "roundTripMs": 3.8421659999999065
+            },
+            {
+              "engineMs": 3.663917,
+              "roundTripMs": 3.8957499999999072
+            },
+            {
+              "engineMs": 3.613083,
+              "roundTripMs": 3.829625000000078
+            },
+            {
+              "engineMs": 3.718041,
+              "roundTripMs": 3.9377920000001723
+            },
+            {
+              "engineMs": 3.648459,
+              "roundTripMs": 3.8780410000001666
+            },
+            {
+              "engineMs": 3.669584,
+              "roundTripMs": 3.9049170000000686
+            },
+            {
+              "engineMs": 3.66675,
+              "roundTripMs": 3.9023749999998927
+            },
+            {
+              "engineMs": 3.624417,
+              "roundTripMs": 3.842457999999624
+            },
+            {
+              "engineMs": 3.627834,
+              "roundTripMs": 3.8472500000002583
+            },
+            {
+              "engineMs": 3.575083,
+              "roundTripMs": 3.790125000000444
+            }
+          ]
+        },
+        {
+          "reading": "きんようびにかえります",
+          "expected": ["金曜日に帰ります"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "きんようびにかえります",
+              "text": "金曜日に帰ります"
+            },
+            {
+              "reading": "きんようびにかえります",
+              "text": "金曜日にかえります"
+            },
+            {
+              "reading": "きんようびにかえります",
+              "text": "金曜日に替ります"
+            },
+            {
+              "reading": "きんようびにかえります",
+              "text": "金曜日に返ります"
+            },
+            {
+              "reading": "きんようびにかえります",
+              "text": "金曜日に還ります"
+            },
+            {
+              "reading": "きんようびにかえります",
+              "text": "キンヨウビニカエリマス"
+            },
+            {
+              "reading": "きんようびにかえります",
+              "text": "きんようびにかえります"
+            }
+          ],
+          "engineMs": 6.465583,
+          "id": "a046c69e-ca8a-4dfd-ac94-28e0c9163292",
+          "roundTripMs": 6.741249999999994,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 4.319584,
+              "roundTripMs": 4.526874999999961
+            },
+            {
+              "engineMs": 4.311459,
+              "roundTripMs": 4.523666999999989
+            },
+            {
+              "engineMs": 4.314875,
+              "roundTripMs": 4.512499999999989
+            },
+            {
+              "engineMs": 4.299166,
+              "roundTripMs": 4.503125000000068
+            },
+            {
+              "engineMs": 4.530625,
+              "roundTripMs": 4.798084000000017
+            },
+            {
+              "engineMs": 4.647125,
+              "roundTripMs": 4.94333400000005
+            },
+            {
+              "engineMs": 4.647583,
+              "roundTripMs": 5.025750000000016
+            },
+            {
+              "engineMs": 4.3045,
+              "roundTripMs": 4.501250000000027
+            },
+            {
+              "engineMs": 4.298333,
+              "roundTripMs": 4.495333000000073
+            },
+            {
+              "engineMs": 4.372583,
+              "roundTripMs": 4.597415999999839
+            },
+            {
+              "engineMs": 4.297167,
+              "roundTripMs": 4.486458999999968
+            },
+            {
+              "engineMs": 4.353208,
+              "roundTripMs": 4.553416999999854
+            },
+            {
+              "engineMs": 4.333041,
+              "roundTripMs": 4.531040999999959
+            },
+            {
+              "engineMs": 4.31525,
+              "roundTripMs": 4.511207999999897
+            },
+            {
+              "engineMs": 4.321041,
+              "roundTripMs": 4.51908299999991
+            },
+            {
+              "engineMs": 4.30725,
+              "roundTripMs": 4.498541000000159
+            },
+            {
+              "engineMs": 4.309375,
+              "roundTripMs": 4.498708000000079
+            },
+            {
+              "engineMs": 4.270709,
+              "roundTripMs": 4.459374999999909
+            },
+            {
+              "engineMs": 4.259083,
+              "roundTripMs": 4.446207999999842
+            },
+            {
+              "engineMs": 4.259042,
+              "roundTripMs": 4.443041999999878
+            }
+          ]
+        },
+        {
+          "reading": "くるまをうんてんしました",
+          "expected": ["車を運転しました"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "くるまをうんてんしました",
+              "text": "車を運転しました"
+            },
+            {
+              "reading": "くるまをうんてんしました",
+              "text": "クルマを運転しました"
+            },
+            {
+              "reading": "くるまをうんてんしました",
+              "text": "車を運転しまし多"
+            },
+            {
+              "reading": "くるまをうんてんしました",
+              "text": "車を運転しまし他"
+            },
+            {
+              "reading": "くるまをうんてんしました",
+              "text": "車を運転士真下"
+            },
+            {
+              "reading": "くるまをうんてんしました",
+              "text": "クルマヲウンテンシマシタ"
+            },
+            {
+              "reading": "くるまをうんてんしました",
+              "text": "くるまをうんてんしました"
+            }
+          ],
+          "engineMs": 4.619583,
+          "id": "c7b121a2-0298-4393-8b91-75cb2400a79f",
+          "roundTripMs": 4.890540999999999,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 3.288292,
+              "roundTripMs": 3.503334000000052
+            },
+            {
+              "engineMs": 3.371167,
+              "roundTripMs": 3.598957999999982
+            },
+            {
+              "engineMs": 3.339375,
+              "roundTripMs": 3.572249999999997
+            },
+            {
+              "engineMs": 3.257875,
+              "roundTripMs": 3.466833000000065
+            },
+            {
+              "engineMs": 3.32575,
+              "roundTripMs": 3.62829099999999
+            },
+            {
+              "engineMs": 3.509291,
+              "roundTripMs": 3.8128330000000688
+            },
+            {
+              "engineMs": 3.553125,
+              "roundTripMs": 3.865707999999927
+            },
+            {
+              "engineMs": 3.369958,
+              "roundTripMs": 3.5950000000000273
+            },
+            {
+              "engineMs": 3.272167,
+              "roundTripMs": 3.478749999999991
+            },
+            {
+              "engineMs": 3.30875,
+              "roundTripMs": 3.5319999999999254
+            },
+            {
+              "engineMs": 3.289209,
+              "roundTripMs": 3.491457999999966
+            },
+            {
+              "engineMs": 3.261417,
+              "roundTripMs": 3.4674999999999727
+            },
+            {
+              "engineMs": 3.324334,
+              "roundTripMs": 3.534708000000137
+            },
+            {
+              "engineMs": 3.29775,
+              "roundTripMs": 3.500333999999839
+            },
+            {
+              "engineMs": 3.257125,
+              "roundTripMs": 3.4630829999998696
+            },
+            {
+              "engineMs": 3.292333,
+              "roundTripMs": 3.4936669999999594
+            },
+            {
+              "engineMs": 3.28725,
+              "roundTripMs": 3.488916000000245
+            },
+            {
+              "engineMs": 3.302917,
+              "roundTripMs": 3.503791999999976
+            },
+            {
+              "engineMs": 3.283875,
+              "roundTripMs": 3.4825409999998556
+            },
+            {
+              "engineMs": 3.28975,
+              "roundTripMs": 3.494792000000416
+            }
+          ]
+        },
+        {
+          "reading": "えいごのじまくがありました",
+          "expected": ["英語の字幕がありました"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "えいごのじまくがありました",
+              "text": "英語の字幕がありました"
+            },
+            {
+              "reading": "えいごのじまくがありました",
+              "text": "英語の字幕が有りました"
+            },
+            {
+              "reading": "えいごのじまくがありました",
+              "text": "英後の字幕がありました"
+            },
+            {
+              "reading": "えいごのじまくがありました",
+              "text": "栄吾の字幕がありました"
+            },
+            {
+              "reading": "えいごのじまくがありました",
+              "text": "英語の字幕がありまし多"
+            },
+            {
+              "reading": "えいごのじまくがありました",
+              "text": "エイゴノジマクガアリマシタ"
+            },
+            {
+              "reading": "えいごのじまくがありました",
+              "text": "えいごのじまくがありました"
+            }
+          ],
+          "engineMs": 4.686834,
+          "id": "57d04c13-dcad-4ba6-8658-c2ff33698c1d",
+          "roundTripMs": 4.9491669999999885,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 3.764583,
+              "roundTripMs": 3.9607090000000085
+            },
+            {
+              "engineMs": 3.749083,
+              "roundTripMs": 3.943833999999981
+            },
+            {
+              "engineMs": 3.719291,
+              "roundTripMs": 3.9096660000000156
+            },
+            {
+              "engineMs": 3.681708,
+              "roundTripMs": 3.864750000000072
+            },
+            {
+              "engineMs": 3.793375,
+              "roundTripMs": 4.015999999999963
+            },
+            {
+              "engineMs": 3.891958,
+              "roundTripMs": 4.140333000000055
+            },
+            {
+              "engineMs": 3.815875,
+              "roundTripMs": 4.0467499999999745
+            },
+            {
+              "engineMs": 3.70475,
+              "roundTripMs": 3.8927920000000995
+            },
+            {
+              "engineMs": 3.804333,
+              "roundTripMs": 4.020332999999937
+            },
+            {
+              "engineMs": 3.752333,
+              "roundTripMs": 3.951374999999871
+            },
+            {
+              "engineMs": 3.710375,
+              "roundTripMs": 3.8848330000000715
+            },
+            {
+              "engineMs": 3.697792,
+              "roundTripMs": 3.880374999999958
+            },
+            {
+              "engineMs": 3.718667,
+              "roundTripMs": 3.903500000000122
+            },
+            {
+              "engineMs": 3.726875,
+              "roundTripMs": 3.9075000000000273
+            },
+            {
+              "engineMs": 3.69175,
+              "roundTripMs": 3.8714590000001863
+            },
+            {
+              "engineMs": 3.74425,
+              "roundTripMs": 3.9270420000000286
+            },
+            {
+              "engineMs": 3.721375,
+              "roundTripMs": 3.906209000000217
+            },
+            {
+              "engineMs": 3.72125,
+              "roundTripMs": 3.9144169999999576
+            },
+            {
+              "engineMs": 3.736875,
+              "roundTripMs": 3.916041999999834
+            },
+            {
+              "engineMs": 3.721167,
+              "roundTripMs": 3.906167000000096
+            }
+          ]
+        },
+        {
+          "reading": "ひこうきがとべなくなりました",
+          "expected": ["飛行機が飛べなくなりました"],
+          "category": "journal",
+          "candidates": [
+            {
+              "reading": "ひこうきがとべなくなりました",
+              "text": "飛行機が飛べなくなりました"
+            },
+            {
+              "reading": "ひこうきがとべなくなりました",
+              "text": "ひこうきが飛べなくなりました"
+            },
+            {
+              "reading": "ひこうきがとべなくなりました",
+              "text": "飛行機が跳べなくなりました"
+            },
+            {
+              "reading": "ひこうきがとべなくなりました",
+              "text": "非後期が飛べなくなりました"
+            },
+            {
+              "reading": "ひこうきがとべなくなりました",
+              "text": "飛行期が飛べなくなりました"
+            },
+            {
+              "reading": "ひこうきがとべなくなりました",
+              "text": "ヒコウキガトベナクナリマシタ"
+            },
+            {
+              "reading": "ひこうきがとべなくなりました",
+              "text": "ひこうきがとべなくなりました"
+            }
+          ],
+          "engineMs": 9.113083,
+          "id": "38e01c21-d494-42b5-8426-ec08f2bedc4d",
+          "roundTripMs": 9.391500000000008,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 5.364792,
+              "roundTripMs": 5.572667000000024
+            },
+            {
+              "engineMs": 5.416625,
+              "roundTripMs": 5.628541999999982
+            },
+            {
+              "engineMs": 5.378209,
+              "roundTripMs": 5.590541999999971
+            },
+            {
+              "engineMs": 5.403834,
+              "roundTripMs": 5.6194169999999986
+            },
+            {
+              "engineMs": 5.547333,
+              "roundTripMs": 5.8174999999999955
+            },
+            {
+              "engineMs": 5.713583,
+              "roundTripMs": 6.024584000000004
+            },
+            {
+              "engineMs": 5.605625,
+              "roundTripMs": 5.870957999999973
+            },
+            {
+              "engineMs": 5.325292,
+              "roundTripMs": 5.530207999999902
+            },
+            {
+              "engineMs": 5.414834,
+              "roundTripMs": 5.627374999999802
+            },
+            {
+              "engineMs": 5.371041,
+              "roundTripMs": 5.578500000000076
+            },
+            {
+              "engineMs": 5.393,
+              "roundTripMs": 5.592791999999918
+            },
+            {
+              "engineMs": 5.374083,
+              "roundTripMs": 5.578333000000157
+            },
+            {
+              "engineMs": 5.382375,
+              "roundTripMs": 5.584625000000187
+            },
+            {
+              "engineMs": 5.463042,
+              "roundTripMs": 5.66495800000007
+            },
+            {
+              "engineMs": 5.40675,
+              "roundTripMs": 5.61262499999998
+            },
+            {
+              "engineMs": 5.495041,
+              "roundTripMs": 5.704624999999851
+            },
+            {
+              "engineMs": 5.429208,
+              "roundTripMs": 5.627250000000004
+            },
+            {
+              "engineMs": 5.389458,
+              "roundTripMs": 5.5830409999998665
+            },
+            {
+              "engineMs": 5.348875,
+              "roundTripMs": 5.542124999999942
+            },
+            {
+              "engineMs": 5.407959,
+              "roundTripMs": 5.610833000000184
+            }
+          ]
+        },
+        {
+          "reading": "はしをわたりました",
+          "expected": ["橋を渡りました"],
+          "category": "homophone",
+          "candidates": [
+            {
+              "reading": "はしをわたりました",
+              "text": "橋を渡りました"
+            },
+            {
+              "reading": "はしをわたりました",
+              "text": "橋をわたりました"
+            },
+            {
+              "reading": "はしをわたりました",
+              "text": "箸をわたりました"
+            },
+            {
+              "reading": "はしをわたりました",
+              "text": "箸を渡りました"
+            },
+            {
+              "reading": "はしをわたりました",
+              "text": "はしをわたりました"
+            },
+            {
+              "reading": "はしをわたりました",
+              "text": "ハシヲワタリマシタ"
+            }
+          ],
+          "engineMs": 3.1395,
+          "id": "84b1b239-9945-48b2-afed-6d4e553da12d",
+          "roundTripMs": 3.469208000000009,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 2.100208,
+              "roundTripMs": 2.3653340000000185
+            },
+            {
+              "engineMs": 2.1935,
+              "roundTripMs": 2.484292000000039
+            },
+            {
+              "engineMs": 2.102917,
+              "roundTripMs": 2.3710829999999987
+            },
+            {
+              "engineMs": 2.113333,
+              "roundTripMs": 2.3821249999999736
+            },
+            {
+              "engineMs": 2.147833,
+              "roundTripMs": 2.458250000000021
+            },
+            {
+              "engineMs": 2.28625,
+              "roundTripMs": 2.6304999999999836
+            },
+            {
+              "engineMs": 2.16375,
+              "roundTripMs": 2.454791
+            },
+            {
+              "engineMs": 2.093791,
+              "roundTripMs": 2.3574579999999514
+            },
+            {
+              "engineMs": 2.118583,
+              "roundTripMs": 2.3845420000000104
+            },
+            {
+              "engineMs": 2.150541,
+              "roundTripMs": 2.4208330000001297
+            },
+            {
+              "engineMs": 2.10675,
+              "roundTripMs": 2.3662500000000364
+            },
+            {
+              "engineMs": 2.117709,
+              "roundTripMs": 2.3769589999999425
+            },
+            {
+              "engineMs": 2.132041,
+              "roundTripMs": 2.39975000000004
+            },
+            {
+              "engineMs": 2.11525,
+              "roundTripMs": 2.3745829999998023
+            },
+            {
+              "engineMs": 2.144,
+              "roundTripMs": 2.420334000000139
+            },
+            {
+              "engineMs": 2.1235,
+              "roundTripMs": 2.3871250000001965
+            },
+            {
+              "engineMs": 2.112959,
+              "roundTripMs": 2.3724160000001575
+            },
+            {
+              "engineMs": 2.129292,
+              "roundTripMs": 2.383874999999989
+            },
+            {
+              "engineMs": 2.098042,
+              "roundTripMs": 2.356416999999965
+            },
+            {
+              "engineMs": 2.103459,
+              "roundTripMs": 2.363166000000092
+            }
+          ]
+        },
+        {
+          "reading": "はしでたべました",
+          "expected": ["箸で食べました"],
+          "category": "homophone",
+          "candidates": [
+            {
+              "reading": "はしでたべました",
+              "text": "橋で食べました"
+            },
+            {
+              "reading": "はしでたべました",
+              "text": "箸で食べました"
+            },
+            {
+              "reading": "はしでたべました",
+              "text": "はしで食べました"
+            },
+            {
+              "reading": "はしでたべました",
+              "text": "ハシで食べました"
+            },
+            {
+              "reading": "はしでたべました",
+              "text": "橋で食べ増した"
+            },
+            {
+              "reading": "はしでたべました",
+              "text": "ハシデタベマシタ"
+            },
+            {
+              "reading": "はしでたべました",
+              "text": "はしでたべました"
+            }
+          ],
+          "engineMs": 2.360667,
+          "id": "b114098f-2120-4bf4-a709-877b705838e2",
+          "roundTripMs": 2.5596249999999827,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 2.003875,
+              "roundTripMs": 2.159417000000019
+            },
+            {
+              "engineMs": 2.028708,
+              "roundTripMs": 2.1871659999999906
+            },
+            {
+              "engineMs": 2.030833,
+              "roundTripMs": 2.1919169999999895
+            },
+            {
+              "engineMs": 1.98025,
+              "roundTripMs": 2.1255409999999983
+            },
+            {
+              "engineMs": 2.006375,
+              "roundTripMs": 2.172458000000006
+            },
+            {
+              "engineMs": 2.093125,
+              "roundTripMs": 2.275082999999995
+            },
+            {
+              "engineMs": 2.041,
+              "roundTripMs": 2.2064169999999876
+            },
+            {
+              "engineMs": 1.9905,
+              "roundTripMs": 2.14712499999996
+            },
+            {
+              "engineMs": 1.991458,
+              "roundTripMs": 2.1349170000000868
+            },
+            {
+              "engineMs": 2.050417,
+              "roundTripMs": 2.2030409999999847
+            },
+            {
+              "engineMs": 2.083833,
+              "roundTripMs": 2.230583000000024
+            },
+            {
+              "engineMs": 1.993541,
+              "roundTripMs": 2.132625000000189
+            },
+            {
+              "engineMs": 2.003333,
+              "roundTripMs": 2.138500000000022
+            },
+            {
+              "engineMs": 1.999417,
+              "roundTripMs": 2.141375000000153
+            },
+            {
+              "engineMs": 1.977,
+              "roundTripMs": 2.1177499999998872
+            },
+            {
+              "engineMs": 2.002125,
+              "roundTripMs": 2.1391669999998157
+            },
+            {
+              "engineMs": 1.982583,
+              "roundTripMs": 2.1209169999997357
+            },
+            {
+              "engineMs": 1.999375,
+              "roundTripMs": 2.139125000000149
+            },
+            {
+              "engineMs": 1.986916,
+              "roundTripMs": 2.125583000000006
+            },
+            {
+              "engineMs": 1.986583,
+              "roundTripMs": 2.124666000000161
+            }
+          ]
+        },
+        {
+          "reading": "あめがふっています",
+          "expected": ["雨が降っています"],
+          "category": "homophone",
+          "candidates": [
+            {
+              "reading": "あめがふっています",
+              "text": "雨が降っています"
+            },
+            {
+              "reading": "あめがふっています",
+              "text": "雨が降って居ます"
+            },
+            {
+              "reading": "あめがふっています",
+              "text": "飴が降っています"
+            },
+            {
+              "reading": "あめがふっています",
+              "text": "あめが降っています"
+            },
+            {
+              "reading": "あめがふっています",
+              "text": "雨がふっています"
+            },
+            {
+              "reading": "あめがふっています",
+              "text": "アメが降っています"
+            },
+            {
+              "reading": "あめがふっています",
+              "text": "アメガフッテイマス"
+            },
+            {
+              "reading": "あめがふっています",
+              "text": "あめがふっています"
+            }
+          ],
+          "engineMs": 3.821583,
+          "id": "c7f0f4c8-ccec-4640-bf42-f6ca9e142c60",
+          "roundTripMs": 3.999625000000009,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 2.698792,
+              "roundTripMs": 2.8408339999999725
+            },
+            {
+              "engineMs": 2.722875,
+              "roundTripMs": 2.867500000000007
+            },
+            {
+              "engineMs": 2.822708,
+              "roundTripMs": 2.9959579999999733
+            },
+            {
+              "engineMs": 2.687291,
+              "roundTripMs": 2.8233339999999316
+            },
+            {
+              "engineMs": 2.755209,
+              "roundTripMs": 2.914041999999995
+            },
+            {
+              "engineMs": 2.862625,
+              "roundTripMs": 3.04262499999993
+            },
+            {
+              "engineMs": 2.720542,
+              "roundTripMs": 2.8727079999999887
+            },
+            {
+              "engineMs": 2.785833,
+              "roundTripMs": 2.9468329999999696
+            },
+            {
+              "engineMs": 2.723041,
+              "roundTripMs": 2.860332999999855
+            },
+            {
+              "engineMs": 2.703167,
+              "roundTripMs": 2.8380829999998696
+            },
+            {
+              "engineMs": 2.695042,
+              "roundTripMs": 2.833041000000094
+            },
+            {
+              "engineMs": 2.689958,
+              "roundTripMs": 2.82166600000005
+            },
+            {
+              "engineMs": 2.697208,
+              "roundTripMs": 2.830832999999984
+            },
+            {
+              "engineMs": 2.71275,
+              "roundTripMs": 2.8489580000000387
+            },
+            {
+              "engineMs": 2.681875,
+              "roundTripMs": 2.8153330000000096
+            },
+            {
+              "engineMs": 2.709708,
+              "roundTripMs": 2.843165999999883
+            },
+            {
+              "engineMs": 2.746042,
+              "roundTripMs": 2.891834000000017
+            },
+            {
+              "engineMs": 2.711792,
+              "roundTripMs": 2.8453330000002097
+            },
+            {
+              "engineMs": 2.685459,
+              "roundTripMs": 2.8173329999999623
+            },
+            {
+              "engineMs": 2.741375,
+              "roundTripMs": 2.8739590000000135
+            }
+          ]
+        },
+        {
+          "reading": "あめをたべました",
+          "expected": ["飴を食べました"],
+          "category": "homophone",
+          "candidates": [
+            {
+              "reading": "あめをたべました",
+              "text": "雨を食べました"
+            },
+            {
+              "reading": "あめをたべました",
+              "text": "あめを食べました"
+            },
+            {
+              "reading": "あめをたべました",
+              "text": "飴を食べました"
+            },
+            {
+              "reading": "あめをたべました",
+              "text": "アメを食べました"
+            },
+            {
+              "reading": "あめをたべました",
+              "text": "あ目を食べました"
+            },
+            {
+              "reading": "あめをたべました",
+              "text": "アメヲタベマシタ"
+            },
+            {
+              "reading": "あめをたべました",
+              "text": "あめをたべました"
+            }
+          ],
+          "engineMs": 1.751,
+          "id": "cfdb8377-f1f3-4d54-900c-a9ca2e3bc7c6",
+          "roundTripMs": 1.9035000000000082,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 1.741667,
+              "roundTripMs": 1.8909170000000017
+            },
+            {
+              "engineMs": 1.728542,
+              "roundTripMs": 1.8750830000000178
+            },
+            {
+              "engineMs": 1.77875,
+              "roundTripMs": 1.941208999999958
+            },
+            {
+              "engineMs": 1.723542,
+              "roundTripMs": 1.8670419999999694
+            },
+            {
+              "engineMs": 1.727834,
+              "roundTripMs": 1.8937080000000606
+            },
+            {
+              "engineMs": 1.861667,
+              "roundTripMs": 2.0322079999999687
+            },
+            {
+              "engineMs": 1.723292,
+              "roundTripMs": 1.8736670000000686
+            },
+            {
+              "engineMs": 1.7315,
+              "roundTripMs": 1.8823750000001382
+            },
+            {
+              "engineMs": 1.795916,
+              "roundTripMs": 1.9513750000000982
+            },
+            {
+              "engineMs": 1.72275,
+              "roundTripMs": 1.8649580000001151
+            },
+            {
+              "engineMs": 1.718292,
+              "roundTripMs": 1.858791999999994
+            },
+            {
+              "engineMs": 1.716084,
+              "roundTripMs": 1.8540419999999358
+            },
+            {
+              "engineMs": 1.753291,
+              "roundTripMs": 1.8896250000000236
+            },
+            {
+              "engineMs": 1.729916,
+              "roundTripMs": 1.8703749999999673
+            },
+            {
+              "engineMs": 1.704417,
+              "roundTripMs": 1.8451250000000528
+            },
+            {
+              "engineMs": 1.755583,
+              "roundTripMs": 1.8974170000001322
+            },
+            {
+              "engineMs": 1.728042,
+              "roundTripMs": 1.8762079999996786
+            },
+            {
+              "engineMs": 1.732416,
+              "roundTripMs": 1.8722499999998945
+            },
+            {
+              "engineMs": 1.723041,
+              "roundTripMs": 1.8623750000001564
+            },
+            {
+              "engineMs": 1.722667,
+              "roundTripMs": 1.857082999999875
+            }
+          ]
+        },
+        {
+          "reading": "かみをきりました",
+          "expected": ["髪を切りました", "紙を切りました"],
+          "category": "ambiguous",
+          "candidates": [
+            {
+              "reading": "かみをきりました",
+              "text": "神を切りました"
+            },
+            {
+              "reading": "かみをきりました",
+              "text": "髪を切りました"
+            },
+            {
+              "reading": "かみをきりました",
+              "text": "紙を切りました"
+            },
+            {
+              "reading": "かみをきりました",
+              "text": "髪を斬りました"
+            },
+            {
+              "reading": "かみをきりました",
+              "text": "神を切り増した"
+            },
+            {
+              "reading": "かみをきりました",
+              "text": "カミヲキリマシタ"
+            },
+            {
+              "reading": "かみをきりました",
+              "text": "かみをきりました"
+            }
+          ],
+          "engineMs": 3.033542,
+          "id": "9d80e6a1-b365-4086-b148-e0e2eb18fed0",
+          "roundTripMs": 3.150541000000004,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 2.444292,
+              "roundTripMs": 2.5620839999999703
+            },
+            {
+              "engineMs": 2.472083,
+              "roundTripMs": 2.58887500000003
+            },
+            {
+              "engineMs": 2.4805,
+              "roundTripMs": 2.6039590000000317
+            },
+            {
+              "engineMs": 2.4335,
+              "roundTripMs": 2.546666000000073
+            },
+            {
+              "engineMs": 2.517083,
+              "roundTripMs": 2.655167000000006
+            },
+            {
+              "engineMs": 2.570333,
+              "roundTripMs": 2.7373750000000427
+            },
+            {
+              "engineMs": 2.474792,
+              "roundTripMs": 2.592375000000061
+            },
+            {
+              "engineMs": 2.442875,
+              "roundTripMs": 2.5599999999999454
+            },
+            {
+              "engineMs": 2.474291,
+              "roundTripMs": 2.595458000000008
+            },
+            {
+              "engineMs": 2.443667,
+              "roundTripMs": 2.556957999999895
+            },
+            {
+              "engineMs": 2.450375,
+              "roundTripMs": 2.5566250000001673
+            },
+            {
+              "engineMs": 2.45675,
+              "roundTripMs": 2.5611670000000686
+            },
+            {
+              "engineMs": 2.455375,
+              "roundTripMs": 2.566833000000088
+            },
+            {
+              "engineMs": 2.454125,
+              "roundTripMs": 2.560916000000134
+            },
+            {
+              "engineMs": 2.438083,
+              "roundTripMs": 2.552500000000009
+            },
+            {
+              "engineMs": 2.507708,
+              "roundTripMs": 2.6201249999999163
+            },
+            {
+              "engineMs": 2.456292,
+              "roundTripMs": 2.572124999999687
+            },
+            {
+              "engineMs": 2.45575,
+              "roundTripMs": 2.5660829999997077
+            },
+            {
+              "engineMs": 2.514166,
+              "roundTripMs": 2.635834000000159
+            },
+            {
+              "engineMs": 2.450541,
+              "roundTripMs": 2.559625000000324
+            }
+          ]
+        },
+        {
+          "reading": "きしゃがきしゃできしゃにきた",
+          "expected": ["記者が汽車で貴社に来た"],
+          "category": "stress",
+          "candidates": [
+            {
+              "reading": "きしゃがきしゃできしゃにきた",
+              "text": "記者が記者で記者に来た"
+            },
+            {
+              "reading": "きしゃがきしゃできしゃにきた",
+              "text": "記者が記者で記者にきた"
+            },
+            {
+              "reading": "きしゃがきしゃできしゃにきた",
+              "text": "記者が記者出来者に来た"
+            },
+            {
+              "reading": "きしゃがきしゃできしゃにきた",
+              "text": "記者が記者出来者にきた"
+            },
+            {
+              "reading": "きしゃがきしゃできしゃにきた",
+              "text": "記者が記者出来車に来た"
+            },
+            {
+              "reading": "きしゃがきしゃできしゃにきた",
+              "text": "キシャガキシャデキシャニキタ"
+            },
+            {
+              "reading": "きしゃがきしゃできしゃにきた",
+              "text": "きしゃがきしゃできしゃにきた"
+            }
+          ],
+          "engineMs": 5.536042,
+          "id": "c66720c2-f0de-4523-8aee-b32228874dd0",
+          "roundTripMs": 5.704666000000003,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 5.095042,
+              "roundTripMs": 5.252207999999996
+            },
+            {
+              "engineMs": 5.148083,
+              "roundTripMs": 5.3043329999999855
+            },
+            {
+              "engineMs": 5.174,
+              "roundTripMs": 5.332166999999913
+            },
+            {
+              "engineMs": 5.176167,
+              "roundTripMs": 5.339417000000026
+            },
+            {
+              "engineMs": 5.15875,
+              "roundTripMs": 5.33033300000011
+            },
+            {
+              "engineMs": 5.377166,
+              "roundTripMs": 5.616374999999948
+            },
+            {
+              "engineMs": 5.237417,
+              "roundTripMs": 5.419834000000037
+            },
+            {
+              "engineMs": 5.076292,
+              "roundTripMs": 5.232250000000022
+            },
+            {
+              "engineMs": 5.13475,
+              "roundTripMs": 5.291541000000052
+            },
+            {
+              "engineMs": 5.100458,
+              "roundTripMs": 5.277082999999948
+            },
+            {
+              "engineMs": 5.125208,
+              "roundTripMs": 5.277290999999877
+            },
+            {
+              "engineMs": 5.143625,
+              "roundTripMs": 5.296708999999964
+            },
+            {
+              "engineMs": 5.139209,
+              "roundTripMs": 5.291165999999976
+            },
+            {
+              "engineMs": 5.150625,
+              "roundTripMs": 5.302916000000096
+            },
+            {
+              "engineMs": 5.12725,
+              "roundTripMs": 5.278124999999818
+            },
+            {
+              "engineMs": 5.134458,
+              "roundTripMs": 5.2876249999999345
+            },
+            {
+              "engineMs": 5.150708,
+              "roundTripMs": 5.308875000000171
+            },
+            {
+              "engineMs": 5.119083,
+              "roundTripMs": 5.271291000000019
+            },
+            {
+              "engineMs": 5.108792,
+              "roundTripMs": 5.267790999999761
+            },
+            {
+              "engineMs": 5.122958,
+              "roundTripMs": 5.2735829999996895
+            }
+          ]
+        },
+        {
+          "reading": "とうきょうえきでまちあわせしました",
+          "expected": ["東京駅で待ち合わせしました"],
+          "category": "place",
+          "candidates": [
+            {
+              "reading": "とうきょうえきでまちあわせしました",
+              "text": "東京駅で待ち合わせしました"
+            },
+            {
+              "reading": "とうきょうえきでまちあわせしました",
+              "text": "東京駅出待ち合わせしました"
+            },
+            {
+              "reading": "とうきょうえきでまちあわせしました",
+              "text": "東京駅で待ち合わせ島下"
+            },
+            {
+              "reading": "とうきょうえきでまちあわせしました",
+              "text": "東京駅出待ち合わせ島下"
+            },
+            {
+              "reading": "とうきょうえきでまちあわせしました",
+              "text": "東京駅で待ち合わせ島した"
+            },
+            {
+              "reading": "とうきょうえきでまちあわせしました",
+              "text": "トウキョウエキデマチアワセシマシタ"
+            },
+            {
+              "reading": "とうきょうえきでまちあわせしました",
+              "text": "とうきょうえきでまちあわせしました"
+            }
+          ],
+          "engineMs": 7.816,
+          "id": "a7fdb0ea-4ed7-48af-868b-f51948754eb4",
+          "roundTripMs": 8.121250000000003,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 6.440291,
+              "roundTripMs": 6.714583000000005
+            },
+            {
+              "engineMs": 6.597125,
+              "roundTripMs": 6.880917000000011
+            },
+            {
+              "engineMs": 6.698,
+              "roundTripMs": 6.985125000000039
+            },
+            {
+              "engineMs": 6.553708,
+              "roundTripMs": 6.8337080000000014
+            },
+            {
+              "engineMs": 6.477167,
+              "roundTripMs": 6.760083000000009
+            },
+            {
+              "engineMs": 6.884459,
+              "roundTripMs": 7.2517500000000155
+            },
+            {
+              "engineMs": 6.5955,
+              "roundTripMs": 6.904708000000028
+            },
+            {
+              "engineMs": 6.514416,
+              "roundTripMs": 6.7934999999999945
+            },
+            {
+              "engineMs": 6.599792,
+              "roundTripMs": 6.88779199999999
+            },
+            {
+              "engineMs": 6.766041,
+              "roundTripMs": 7.102624999999989
+            },
+            {
+              "engineMs": 6.53925,
+              "roundTripMs": 6.818915999999945
+            },
+            {
+              "engineMs": 6.481416,
+              "roundTripMs": 6.753083000000061
+            },
+            {
+              "engineMs": 6.52125,
+              "roundTripMs": 6.800375000000031
+            },
+            {
+              "engineMs": 6.478667,
+              "roundTripMs": 6.746417000000065
+            },
+            {
+              "engineMs": 6.47625,
+              "roundTripMs": 6.742542000000185
+            },
+            {
+              "engineMs": 6.504375,
+              "roundTripMs": 6.776249999999891
+            },
+            {
+              "engineMs": 6.439459,
+              "roundTripMs": 6.70983299999989
+            },
+            {
+              "engineMs": 6.518583,
+              "roundTripMs": 6.782916000000114
+            },
+            {
+              "engineMs": 6.470125,
+              "roundTripMs": 6.742499999999836
+            },
+            {
+              "engineMs": 6.488375,
+              "roundTripMs": 6.753541999999925
+            }
+          ]
+        },
+        {
+          "reading": "しんじゅくにいきました",
+          "expected": ["新宿に行きました"],
+          "category": "place",
+          "candidates": [
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "新宿に行きました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "しんじゅくに行きました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "新宿にいきました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "新宿に生きました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "シンジュクに行きました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "新塾に行きました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "親塾に行きました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "新熟に行きました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "しんじゅくにいきました"
+            },
+            {
+              "reading": "しんじゅくにいきました",
+              "text": "しんじゅくに生きました"
+            }
+          ],
+          "engineMs": 5.548667,
+          "id": "e70f6d4d-1187-4baa-9a1f-e6736575e55f",
+          "roundTripMs": 5.872040999999996,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 5.04375,
+              "roundTripMs": 5.355707999999993
+            },
+            {
+              "engineMs": 5.019875,
+              "roundTripMs": 5.352915999999993
+            },
+            {
+              "engineMs": 5.069291,
+              "roundTripMs": 5.389958999999976
+            },
+            {
+              "engineMs": 5.022834,
+              "roundTripMs": 5.327834000000053
+            },
+            {
+              "engineMs": 5.102208,
+              "roundTripMs": 5.419457999999963
+            },
+            {
+              "engineMs": 5.362667,
+              "roundTripMs": 5.779166000000032
+            },
+            {
+              "engineMs": 5.182583,
+              "roundTripMs": 5.533749999999941
+            },
+            {
+              "engineMs": 4.991584,
+              "roundTripMs": 5.294208000000026
+            },
+            {
+              "engineMs": 5.102167,
+              "roundTripMs": 5.427959000000101
+            },
+            {
+              "engineMs": 5.11525,
+              "roundTripMs": 5.51320799999985
+            },
+            {
+              "engineMs": 5.117625,
+              "roundTripMs": 5.426333000000113
+            },
+            {
+              "engineMs": 4.976125,
+              "roundTripMs": 5.270709000000124
+            },
+            {
+              "engineMs": 4.996708,
+              "roundTripMs": 5.291875000000118
+            },
+            {
+              "engineMs": 5.051125,
+              "roundTripMs": 5.355375000000095
+            },
+            {
+              "engineMs": 4.990459,
+              "roundTripMs": 5.285209000000123
+            },
+            {
+              "engineMs": 5.149792,
+              "roundTripMs": 5.465542000000141
+            },
+            {
+              "engineMs": 5.007167,
+              "roundTripMs": 5.305166999999983
+            },
+            {
+              "engineMs": 5.031333,
+              "roundTripMs": 5.336667000000034
+            },
+            {
+              "engineMs": 5.061666,
+              "roundTripMs": 5.362749999999778
+            },
+            {
+              "engineMs": 5.008791,
+              "roundTripMs": 5.304291999999805
+            }
+          ]
+        },
+        {
+          "reading": "らーめんをたべました",
+          "expected": ["ラーメンを食べました"],
+          "category": "katakana",
+          "candidates": [
+            {
+              "reading": "らーめんをたべました",
+              "text": "ラーメンを食べました"
+            },
+            {
+              "reading": "らーめんをたべました",
+              "text": "らーめんを食べました"
+            },
+            {
+              "reading": "らーめんをたべました",
+              "text": "拉麺を食べました"
+            },
+            {
+              "reading": "らーめんをたべました",
+              "text": "ラーメンをたべました"
+            },
+            {
+              "reading": "らーめんをたべました",
+              "text": "ラーメンを食べまし多"
+            },
+            {
+              "reading": "らーめんをたべました",
+              "text": "ラーメンヲタベマシタ"
+            },
+            {
+              "reading": "らーめんをたべました",
+              "text": "らーめんをたべました"
+            }
+          ],
+          "engineMs": 2.199834,
+          "id": "44a51864-fac0-4ea5-ac2d-ac1001d64de5",
+          "roundTripMs": 2.4400420000000054,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 1.843292,
+              "roundTripMs": 2.0898750000000064
+            },
+            {
+              "engineMs": 1.839292,
+              "roundTripMs": 2.0634579999999687
+            },
+            {
+              "engineMs": 1.836,
+              "roundTripMs": 2.0599170000000413
+            },
+            {
+              "engineMs": 1.860542,
+              "roundTripMs": 2.0846250000000737
+            },
+            {
+              "engineMs": 1.847875,
+              "roundTripMs": 2.080832999999984
+            },
+            {
+              "engineMs": 1.93275,
+              "roundTripMs": 2.2204169999999976
+            },
+            {
+              "engineMs": 1.924208,
+              "roundTripMs": 2.193667000000005
+            },
+            {
+              "engineMs": 1.805958,
+              "roundTripMs": 2.023792000000185
+            },
+            {
+              "engineMs": 1.8365,
+              "roundTripMs": 2.059208000000126
+            },
+            {
+              "engineMs": 1.941583,
+              "roundTripMs": 2.2309580000001006
+            },
+            {
+              "engineMs": 1.8395,
+              "roundTripMs": 2.0651249999998527
+            },
+            {
+              "engineMs": 1.807208,
+              "roundTripMs": 2.021250000000009
+            },
+            {
+              "engineMs": 1.8265,
+              "roundTripMs": 2.0454999999999472
+            },
+            {
+              "engineMs": 1.84525,
+              "roundTripMs": 2.076041000000032
+            },
+            {
+              "engineMs": 1.803583,
+              "roundTripMs": 2.017417000000023
+            },
+            {
+              "engineMs": 1.877042,
+              "roundTripMs": 2.1123329999998077
+            },
+            {
+              "engineMs": 1.834791,
+              "roundTripMs": 2.067374999999629
+            },
+            {
+              "engineMs": 1.813334,
+              "roundTripMs": 2.029417000000194
+            },
+            {
+              "engineMs": 1.853625,
+              "roundTripMs": 2.072791000000052
+            },
+            {
+              "engineMs": 1.80775,
+              "roundTripMs": 2.0218340000001263
+            }
+          ]
+        },
+        {
+          "reading": "こーひーをのみました",
+          "expected": ["コーヒーを飲みました"],
+          "category": "katakana",
+          "candidates": [
+            {
+              "reading": "こーひーをのみました",
+              "text": "コーヒーを飲みました"
+            },
+            {
+              "reading": "こーひーをのみました",
+              "text": "珈琲を飲みました"
+            },
+            {
+              "reading": "こーひーをのみました",
+              "text": "Coffeeを飲みました"
+            },
+            {
+              "reading": "こーひーをのみました",
+              "text": "コーヒーを呑みました"
+            },
+            {
+              "reading": "こーひーをのみました",
+              "text": "コーヒーをのみました"
+            },
+            {
+              "reading": "こーひーをのみました",
+              "text": "コーヒーヲノミマシタ"
+            },
+            {
+              "reading": "こーひーをのみました",
+              "text": "こーひーをのみました"
+            }
+          ],
+          "engineMs": 2.904417,
+          "id": "aec31902-2fb8-4253-aed0-c375f6a24f62",
+          "roundTripMs": 3.068916999999999,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 2.610792,
+              "roundTripMs": 2.7424589999999966
+            },
+            {
+              "engineMs": 2.606375,
+              "roundTripMs": 2.7269999999999754
+            },
+            {
+              "engineMs": 2.621791,
+              "roundTripMs": 2.7439170000000104
+            },
+            {
+              "engineMs": 2.795333,
+              "roundTripMs": 2.9511250000000473
+            },
+            {
+              "engineMs": 2.646625,
+              "roundTripMs": 2.7739170000000968
+            },
+            {
+              "engineMs": 2.825125,
+              "roundTripMs": 3.007333000000017
+            },
+            {
+              "engineMs": 2.666333,
+              "roundTripMs": 2.7998750000000427
+            },
+            {
+              "engineMs": 2.615958,
+              "roundTripMs": 2.734124999999949
+            },
+            {
+              "engineMs": 2.610458,
+              "roundTripMs": 2.7313329999999496
+            },
+            {
+              "engineMs": 2.639167,
+              "roundTripMs": 2.7763749999999163
+            },
+            {
+              "engineMs": 2.638792,
+              "roundTripMs": 2.761792000000014
+            },
+            {
+              "engineMs": 2.652833,
+              "roundTripMs": 2.7817079999999805
+            },
+            {
+              "engineMs": 2.623625,
+              "roundTripMs": 2.736417000000074
+            },
+            {
+              "engineMs": 2.617542,
+              "roundTripMs": 2.727374999999938
+            },
+            {
+              "engineMs": 2.654709,
+              "roundTripMs": 2.770583000000215
+            },
+            {
+              "engineMs": 2.639459,
+              "roundTripMs": 2.7592919999999594
+            },
+            {
+              "engineMs": 2.610708,
+              "roundTripMs": 2.727374999999938
+            },
+            {
+              "engineMs": 2.609458,
+              "roundTripMs": 2.724917000000005
+            },
+            {
+              "engineMs": 2.650958,
+              "roundTripMs": 2.767417000000023
+            },
+            {
+              "engineMs": 2.599958,
+              "roundTripMs": 2.7136249999998654
+            }
+          ]
+        },
+        {
+          "reading": "えいがはおもしろかったです。",
+          "expected": ["映画は面白かったです。", "映画はおもしろかったです。"],
+          "category": "punctuation",
+          "candidates": [
+            {
+              "reading": "えいがはおもしろかったです。",
+              "text": "映画は面白かったです。"
+            },
+            {
+              "reading": "えいがはおもしろかったです。",
+              "text": "映画はおもしろかったです。"
+            },
+            {
+              "reading": "えいがはおもしろかったです。",
+              "text": "エイガハオモシロカッタデス。"
+            },
+            {
+              "reading": "えいがはおもしろかったです。",
+              "text": "えいがはおもしろかったです。"
+            }
+          ],
+          "engineMs": 5.235791,
+          "id": "da25a9a6-fcb4-4b09-82ff-fd162dae754c",
+          "roundTripMs": 5.402375000000006,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 3.492541,
+              "roundTripMs": 3.6524579999999673
+            },
+            {
+              "engineMs": 3.587583,
+              "roundTripMs": 3.7528330000000096
+            },
+            {
+              "engineMs": 3.563584,
+              "roundTripMs": 3.7258750000000873
+            },
+            {
+              "engineMs": 3.547,
+              "roundTripMs": 3.7124999999999773
+            },
+            {
+              "engineMs": 3.490666,
+              "roundTripMs": 3.6414579999999432
+            },
+            {
+              "engineMs": 3.705458,
+              "roundTripMs": 3.897625000000062
+            },
+            {
+              "engineMs": 3.516542,
+              "roundTripMs": 3.67025000000001
+            },
+            {
+              "engineMs": 3.471125,
+              "roundTripMs": 3.6168750000001637
+            },
+            {
+              "engineMs": 3.4975,
+              "roundTripMs": 3.643916999999874
+            },
+            {
+              "engineMs": 3.597666,
+              "roundTripMs": 3.8314170000001013
+            },
+            {
+              "engineMs": 3.574667,
+              "roundTripMs": 3.7235829999999623
+            },
+            {
+              "engineMs": 3.488625,
+              "roundTripMs": 3.6380420000000413
+            },
+            {
+              "engineMs": 3.503708,
+              "roundTripMs": 3.6432499999998527
+            },
+            {
+              "engineMs": 3.482,
+              "roundTripMs": 3.6253340000000662
+            },
+            {
+              "engineMs": 3.481833,
+              "roundTripMs": 3.61974999999984
+            },
+            {
+              "engineMs": 3.499292,
+              "roundTripMs": 3.6479170000000067
+            },
+            {
+              "engineMs": 3.473416,
+              "roundTripMs": 3.6155840000001263
+            },
+            {
+              "engineMs": 3.482625,
+              "roundTripMs": 3.624916000000212
+            },
+            {
+              "engineMs": 3.470709,
+              "roundTripMs": 3.6172080000001188
+            },
+            {
+              "engineMs": 3.465666,
+              "roundTripMs": 3.6069579999998496
+            }
+          ]
+        },
+        {
+          "reading": "わたしはがっこうにいきませんでした",
+          "expected": ["私は学校に行きませんでした"],
+          "category": "conjugation",
+          "candidates": [
+            {
+              "reading": "わたしはがっこうにいきませんでした",
+              "text": "私は学校に行きませんでした"
+            },
+            {
+              "reading": "わたしはがっこうにいきませんでした",
+              "text": "私は学校にいきませんでした"
+            },
+            {
+              "reading": "わたしはがっこうにいきませんでした",
+              "text": "私は学校に生きませんでした"
+            },
+            {
+              "reading": "わたしはがっこうにいきませんでした",
+              "text": "私は学校に行きませんでし多"
+            },
+            {
+              "reading": "わたしはがっこうにいきませんでした",
+              "text": "私は学校に行きませんでし他"
+            },
+            {
+              "reading": "わたしはがっこうにいきませんでした",
+              "text": "ワタシハガッコウニイキマセンデシタ"
+            },
+            {
+              "reading": "わたしはがっこうにいきませんでした",
+              "text": "わたしはがっこうにいきませんでした"
+            }
+          ],
+          "engineMs": 6.744125,
+          "id": "fe400fec-b545-4454-a9bc-88cadbcb3665",
+          "roundTripMs": 6.97637499999999,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 5.3065,
+              "roundTripMs": 5.556166000000019
+            },
+            {
+              "engineMs": 5.301709,
+              "roundTripMs": 5.522083000000009
+            },
+            {
+              "engineMs": 5.31575,
+              "roundTripMs": 5.53774999999996
+            },
+            {
+              "engineMs": 5.548959,
+              "roundTripMs": 5.8223330000000715
+            },
+            {
+              "engineMs": 5.257375,
+              "roundTripMs": 5.470583000000033
+            },
+            {
+              "engineMs": 5.490666,
+              "roundTripMs": 5.7616669999999885
+            },
+            {
+              "engineMs": 5.287833,
+              "roundTripMs": 5.502624999999966
+            },
+            {
+              "engineMs": 5.291792,
+              "roundTripMs": 5.516958999999815
+            },
+            {
+              "engineMs": 5.260667,
+              "roundTripMs": 5.474292000000105
+            },
+            {
+              "engineMs": 5.454167,
+              "roundTripMs": 5.7227080000000115
+            },
+            {
+              "engineMs": 5.2845,
+              "roundTripMs": 5.492124999999987
+            },
+            {
+              "engineMs": 5.262,
+              "roundTripMs": 5.47199999999998
+            },
+            {
+              "engineMs": 5.2845,
+              "roundTripMs": 5.494040999999925
+            },
+            {
+              "engineMs": 5.227167,
+              "roundTripMs": 5.43487499999992
+            },
+            {
+              "engineMs": 5.275416,
+              "roundTripMs": 5.475750000000062
+            },
+            {
+              "engineMs": 5.332333,
+              "roundTripMs": 5.575416000000132
+            },
+            {
+              "engineMs": 5.262041,
+              "roundTripMs": 5.469583000000057
+            },
+            {
+              "engineMs": 5.310833,
+              "roundTripMs": 5.528999999999996
+            },
+            {
+              "engineMs": 5.28225,
+              "roundTripMs": 5.494999999999891
+            },
+            {
+              "engineMs": 5.317334,
+              "roundTripMs": 5.526166999999987
+            }
+          ]
+        },
+        {
+          "reading": "たべなければなりません",
+          "expected": ["食べなければなりません"],
+          "category": "conjugation",
+          "candidates": [
+            {
+              "reading": "たべなければなりません",
+              "text": "食べなければなりません"
+            },
+            {
+              "reading": "たべなければなりません",
+              "text": "たべなければなりません"
+            },
+            {
+              "reading": "たべなければなりません",
+              "text": "食べ無ければなりません"
+            },
+            {
+              "reading": "たべなければなりません",
+              "text": "食べ泣ければなりません"
+            },
+            {
+              "reading": "たべなければなりません",
+              "text": "食べなければなりませン"
+            },
+            {
+              "reading": "たべなければなりません",
+              "text": "たべなければなりませン"
+            },
+            {
+              "reading": "たべなければなりません",
+              "text": "タベナケレバナリマセン"
+            }
+          ],
+          "engineMs": 5.96275,
+          "id": "1d3c21b3-38e6-46a2-9131-11f42f662509",
+          "roundTripMs": 6.272750000000002,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 3.369792,
+              "roundTripMs": 3.810375000000022
+            },
+            {
+              "engineMs": 3.051334,
+              "roundTripMs": 3.350541000000021
+            },
+            {
+              "engineMs": 3.080708,
+              "roundTripMs": 3.3795000000000073
+            },
+            {
+              "engineMs": 3.322292,
+              "roundTripMs": 3.7136659999999893
+            },
+            {
+              "engineMs": 3.129667,
+              "roundTripMs": 3.4244999999999663
+            },
+            {
+              "engineMs": 3.220666,
+              "roundTripMs": 3.6129170000000386
+            },
+            {
+              "engineMs": 3.191041,
+              "roundTripMs": 3.5105839999999944
+            },
+            {
+              "engineMs": 3.046875,
+              "roundTripMs": 3.335499999999911
+            },
+            {
+              "engineMs": 3.101166,
+              "roundTripMs": 3.3928750000000036
+            },
+            {
+              "engineMs": 3.075292,
+              "roundTripMs": 3.373874999999998
+            },
+            {
+              "engineMs": 3.046084,
+              "roundTripMs": 3.3301249999999527
+            },
+            {
+              "engineMs": 3.049917,
+              "roundTripMs": 3.3374579999999696
+            },
+            {
+              "engineMs": 3.086042,
+              "roundTripMs": 3.3759160000001884
+            },
+            {
+              "engineMs": 3.08075,
+              "roundTripMs": 3.366749999999911
+            },
+            {
+              "engineMs": 3.073875,
+              "roundTripMs": 3.3590409999999338
+            },
+            {
+              "engineMs": 3.136417,
+              "roundTripMs": 3.4590420000001814
+            },
+            {
+              "engineMs": 3.144042,
+              "roundTripMs": 3.4445840000003045
+            },
+            {
+              "engineMs": 3.157,
+              "roundTripMs": 3.4532090000002427
+            },
+            {
+              "engineMs": 3.070584,
+              "roundTripMs": 3.3594170000001213
+            },
+            {
+              "engineMs": 3.037292,
+              "roundTripMs": 3.3209999999999127
+            }
+          ]
+        },
+        {
+          "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+          "expected": [
+            "昨日友達と映画を見てから晩ご飯を食べました",
+            "昨日友達と映画を観てから晩ご飯を食べました",
+            "昨日友達と映画を見てから晩御飯を食べました"
+          ],
+          "category": "long",
+          "candidates": [
+            {
+              "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+              "text": "昨日友達と映画を見てから晩ごはんを食べました"
+            },
+            {
+              "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+              "text": "昨日友達と映画を見てから晩御飯を食べました"
+            },
+            {
+              "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+              "text": "昨日友達と映画を見てから晩ご飯を食べました"
+            },
+            {
+              "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+              "text": "機能友達と映画を見てから晩ごはんを食べました"
+            },
+            {
+              "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+              "text": "機能友達と映画を見てから晩御飯を食べました"
+            },
+            {
+              "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+              "text": "キノウトモダチトエイガヲミテカラバンゴハンヲタベマシタ"
+            },
+            {
+              "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+              "text": "きのうともだちとえいがをみてからばんごはんをたべました"
+            }
+          ],
+          "engineMs": 8.17825,
+          "id": "e67fe10e-401b-438e-b68b-e27139b7f0d2",
+          "roundTripMs": 8.375374999999991,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 7.796625,
+              "roundTripMs": 8.023459000000003
+            },
+            {
+              "engineMs": 7.678959,
+              "roundTripMs": 7.856334000000004
+            },
+            {
+              "engineMs": 7.649791,
+              "roundTripMs": 7.822499999999991
+            },
+            {
+              "engineMs": 8.432166,
+              "roundTripMs": 8.710582999999929
+            },
+            {
+              "engineMs": 7.628958,
+              "roundTripMs": 7.7905000000000655
+            },
+            {
+              "engineMs": 8.215875,
+              "roundTripMs": 8.498207999999977
+            },
+            {
+              "engineMs": 7.771,
+              "roundTripMs": 7.963374999999928
+            },
+            {
+              "engineMs": 7.506083,
+              "roundTripMs": 7.658500000000004
+            },
+            {
+              "engineMs": 7.521291,
+              "roundTripMs": 7.677083000000039
+            },
+            {
+              "engineMs": 7.639833,
+              "roundTripMs": 7.7981660000000375
+            },
+            {
+              "engineMs": 7.583875,
+              "roundTripMs": 7.726124999999911
+            },
+            {
+              "engineMs": 7.654792,
+              "roundTripMs": 7.817667000000029
+            },
+            {
+              "engineMs": 7.849125,
+              "roundTripMs": 8.071124999999938
+            },
+            {
+              "engineMs": 7.615958,
+              "roundTripMs": 7.769415999999865
+            },
+            {
+              "engineMs": 7.657625,
+              "roundTripMs": 7.834833000000117
+            },
+            {
+              "engineMs": 7.632291,
+              "roundTripMs": 7.790292000000136
+            },
+            {
+              "engineMs": 7.68325,
+              "roundTripMs": 7.837916999999834
+            },
+            {
+              "engineMs": 7.646333,
+              "roundTripMs": 7.801375000000007
+            },
+            {
+              "engineMs": 7.51975,
+              "roundTripMs": 7.668916000000081
+            },
+            {
+              "engineMs": 7.554167,
+              "roundTripMs": 7.70291700000007
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "engine": {
+        "id": "mozc-oss-desktop",
+        "revision": "a4541df29db443b49f81cf54665873b68fde9efa",
+        "neural": false,
+        "learning": false
+      },
+      "summary": {
+        "total": 24,
+        "exactTop1": 16,
+        "warmSamples": 480,
+        "engineMedianMs": 0.390375,
+        "engineP95Ms": 1.16808,
+        "roundTripMedianMs": 0.422458000000006,
+        "roundTripP95Ms": 1.2102919999999813,
+        "coldRoundTripMs": 13.195166999999998,
+        "freshProcessMedianMs": 11.550874999999905
+      },
+      "startupSamplesMs": [
+        11.758249999999862, 11.246999999999844, 11.550874999999905, 11.37124999999969,
+        11.704499999999825
+      ],
+      "results": [
+        {
+          "reading": "きのうえいがをみました",
+          "expected": ["昨日映画を見ました", "昨日映画を観ました"],
+          "category": "journal",
+          "engineMs": 0.5455,
+          "segments": [
+            {
+              "reading": "きのう",
+              "candidates": [
+                "機能",
+                "昨日",
+                "昨日",
+                "2026/11/16",
+                "2026-11-16",
+                "2026年11月16日",
+                "令和8年11月16日",
+                "月曜日",
+                "きのう",
+                "帰納"
+              ]
+            },
+            {
+              "reading": "えいがを",
+              "candidates": [
+                "映画を",
+                "栄華を",
+                "英賀を",
+                "栄花を",
+                "衛河を",
+                "エイガを",
+                "えいがを",
+                "エイガヲ"
+              ]
+            },
+            {
+              "reading": "みました",
+              "candidates": [
+                "見ました",
+                "みました",
+                "観ました",
+                "診ました",
+                "視ました",
+                "見ました",
+                "看ました",
+                "みました",
+                "觀ました",
+                "観ました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "機能映画を見ました",
+              "reading": "きのうえいがをみました"
+            }
+          ],
+          "roundTripMs": 0.8411669999999845,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 0.616209,
+              "roundTripMs": 0.6960840000000417
+            },
+            {
+              "engineMs": 0.491709,
+              "roundTripMs": 0.5325839999999857
+            },
+            {
+              "engineMs": 0.614208,
+              "roundTripMs": 0.6886250000000018
+            },
+            {
+              "engineMs": 0.491958,
+              "roundTripMs": 0.5271249999999554
+            },
+            {
+              "engineMs": 0.6295,
+              "roundTripMs": 0.7094580000000406
+            },
+            {
+              "engineMs": 0.504833,
+              "roundTripMs": 0.543207999999936
+            },
+            {
+              "engineMs": 0.65625,
+              "roundTripMs": 0.74187500000005
+            },
+            {
+              "engineMs": 0.492292,
+              "roundTripMs": 0.5347500000000309
+            },
+            {
+              "engineMs": 0.613208,
+              "roundTripMs": 0.6819169999998849
+            },
+            {
+              "engineMs": 0.486,
+              "roundTripMs": 0.5246250000000146
+            },
+            {
+              "engineMs": 0.615792,
+              "roundTripMs": 0.6781670000000304
+            },
+            {
+              "engineMs": 0.5205,
+              "roundTripMs": 0.562458000000106
+            },
+            {
+              "engineMs": 0.654083,
+              "roundTripMs": 0.7516249999998763
+            },
+            {
+              "engineMs": 0.523625,
+              "roundTripMs": 0.5619580000000042
+            },
+            {
+              "engineMs": 0.617125,
+              "roundTripMs": 0.6802920000000086
+            },
+            {
+              "engineMs": 0.515959,
+              "roundTripMs": 0.5550830000001952
+            },
+            {
+              "engineMs": 0.626,
+              "roundTripMs": 0.6939580000002934
+            },
+            {
+              "engineMs": 0.528083,
+              "roundTripMs": 0.5662080000001879
+            },
+            {
+              "engineMs": 0.600667,
+              "roundTripMs": 0.6517079999998714
+            },
+            {
+              "engineMs": 0.49325,
+              "roundTripMs": 0.5272079999999733
+            }
+          ]
+        },
+        {
+          "reading": "きょうはいいてんきです",
+          "expected": ["今日はいい天気です", "今日は良い天気です"],
+          "category": "journal",
+          "engineMs": 1.20054,
+          "segments": [
+            {
+              "reading": "きょうは",
+              "candidates": [
+                "今日は",
+                "きょうは",
+                "教は",
+                "強は",
+                "凶は",
+                "経は",
+                "卿は",
+                "興は",
+                "境は",
+                "供は"
+              ]
+            },
+            {
+              "reading": "いいてんきです",
+              "candidates": [
+                "いい天気です",
+                "良い天気です",
+                "イイ天気です",
+                "好い天気です",
+                "いい天気です",
+                "いい天気です",
+                "良い天気です",
+                "好い天気です",
+                "いい天気です",
+                "イイテンキです"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "今日はいい天気です",
+              "reading": "きょうはいいてんきです"
+            }
+          ],
+          "roundTripMs": 1.5372920000000079,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.559042,
+              "roundTripMs": 0.6026669999999967
+            },
+            {
+              "engineMs": 0.509917,
+              "roundTripMs": 0.54525000000001
+            },
+            {
+              "engineMs": 0.5505,
+              "roundTripMs": 0.5909580000000005
+            },
+            {
+              "engineMs": 0.457584,
+              "roundTripMs": 0.49041700000009314
+            },
+            {
+              "engineMs": 0.542583,
+              "roundTripMs": 0.5932500000000118
+            },
+            {
+              "engineMs": 0.507334,
+              "roundTripMs": 0.5394170000000713
+            },
+            {
+              "engineMs": 0.56075,
+              "roundTripMs": 0.6068750000000591
+            },
+            {
+              "engineMs": 0.499834,
+              "roundTripMs": 0.5411249999999654
+            },
+            {
+              "engineMs": 0.5455,
+              "roundTripMs": 0.5856659999999465
+            },
+            {
+              "engineMs": 0.510166,
+              "roundTripMs": 0.5439579999999751
+            },
+            {
+              "engineMs": 0.536667,
+              "roundTripMs": 0.5684160000000702
+            },
+            {
+              "engineMs": 0.512375,
+              "roundTripMs": 0.5450419999999667
+            },
+            {
+              "engineMs": 0.567,
+              "roundTripMs": 0.6056249999999181
+            },
+            {
+              "engineMs": 0.531125,
+              "roundTripMs": 0.5672920000001795
+            },
+            {
+              "engineMs": 0.543792,
+              "roundTripMs": 0.5752500000000964
+            },
+            {
+              "engineMs": 0.503208,
+              "roundTripMs": 0.5333329999998568
+            },
+            {
+              "engineMs": 0.54375,
+              "roundTripMs": 0.5766250000001492
+            },
+            {
+              "engineMs": 0.51,
+              "roundTripMs": 0.5392919999999322
+            },
+            {
+              "engineMs": 0.531042,
+              "roundTripMs": 0.5639169999999467
+            },
+            {
+              "engineMs": 0.500792,
+              "roundTripMs": 0.5276659999999538
+            }
+          ]
+        },
+        {
+          "reading": "あたらしいほんをかいました",
+          "expected": ["新しい本を買いました"],
+          "category": "journal",
+          "engineMs": 1.02871,
+          "segments": [
+            {
+              "reading": "あたらしいほんを",
+              "candidates": [
+                "新しい本を",
+                "あたらしい本を",
+                "アタラシイホンを",
+                "あたらしいほんを",
+                "アタラシイホンヲ"
+              ]
+            },
+            {
+              "reading": "かいました",
+              "candidates": [
+                "買いました",
+                "飼いました",
+                "かいました",
+                "買い増した",
+                "交いました",
+                "かいました",
+                "海魔した",
+                "支いました",
+                "買ました",
+                "嗅いました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "新しい本を買いました",
+              "reading": "あたらしいほんをかいました"
+            }
+          ],
+          "roundTripMs": 1.3726249999999993,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.339583,
+              "roundTripMs": 0.37941699999998946
+            },
+            {
+              "engineMs": 0.3255,
+              "roundTripMs": 0.35966600000000426
+            },
+            {
+              "engineMs": 0.329792,
+              "roundTripMs": 0.36312499999996817
+            },
+            {
+              "engineMs": 0.272167,
+              "roundTripMs": 0.3022079999999505
+            },
+            {
+              "engineMs": 0.333459,
+              "roundTripMs": 0.3691669999999476
+            },
+            {
+              "engineMs": 0.307208,
+              "roundTripMs": 0.33770800000002055
+            },
+            {
+              "engineMs": 0.3575,
+              "roundTripMs": 0.39208399999995436
+            },
+            {
+              "engineMs": 0.298334,
+              "roundTripMs": 0.32704100000000835
+            },
+            {
+              "engineMs": 0.332542,
+              "roundTripMs": 0.3647920000000795
+            },
+            {
+              "engineMs": 0.308333,
+              "roundTripMs": 0.3377499999999145
+            },
+            {
+              "engineMs": 0.343041,
+              "roundTripMs": 0.37095799999997325
+            },
+            {
+              "engineMs": 0.309083,
+              "roundTripMs": 0.33725000000004
+            },
+            {
+              "engineMs": 0.331916,
+              "roundTripMs": 0.36154199999987213
+            },
+            {
+              "engineMs": 0.3025,
+              "roundTripMs": 0.3328750000000582
+            },
+            {
+              "engineMs": 0.329625,
+              "roundTripMs": 0.3569999999999709
+            },
+            {
+              "engineMs": 0.311084,
+              "roundTripMs": 0.3380409999999756
+            },
+            {
+              "engineMs": 0.33625,
+              "roundTripMs": 0.36524999999983265
+            },
+            {
+              "engineMs": 0.308375,
+              "roundTripMs": 0.33450000000038926
+            },
+            {
+              "engineMs": 0.326542,
+              "roundTripMs": 0.3519579999997404
+            },
+            {
+              "engineMs": 0.297875,
+              "roundTripMs": 0.32262500000024374
+            }
+          ]
+        },
+        {
+          "reading": "にほんごをべんきょうしています",
+          "expected": ["日本語を勉強しています"],
+          "category": "journal",
+          "engineMs": 0.861084,
+          "segments": [
+            {
+              "reading": "にほんごを",
+              "candidates": [
+                "日本語を",
+                "ニホンゴを",
+                "日本語を",
+                "ニホンゴを",
+                "にほんごを",
+                "ニホンゴヲ"
+              ]
+            },
+            {
+              "reading": "べんきょうしています",
+              "candidates": [
+                "勉強しています",
+                "ベンキョウシています",
+                "べんきょうしています",
+                "ベンキョウシテイマス"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "日本語を勉強しています",
+              "reading": "にほんごをべんきょうしています"
+            }
+          ],
+          "roundTripMs": 1.0937079999999924,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.331041,
+              "roundTripMs": 0.3628750000000309
+            },
+            {
+              "engineMs": 0.3335,
+              "roundTripMs": 0.3669999999999618
+            },
+            {
+              "engineMs": 0.326041,
+              "roundTripMs": 0.35608300000001236
+            },
+            {
+              "engineMs": 0.297,
+              "roundTripMs": 0.32349999999996726
+            },
+            {
+              "engineMs": 0.32375,
+              "roundTripMs": 0.3536659999999756
+            },
+            {
+              "engineMs": 0.310709,
+              "roundTripMs": 0.3377500000000282
+            },
+            {
+              "engineMs": 0.349916,
+              "roundTripMs": 0.39866700000015953
+            },
+            {
+              "engineMs": 0.313959,
+              "roundTripMs": 0.34050000000002
+            },
+            {
+              "engineMs": 0.322625,
+              "roundTripMs": 0.35154099999999744
+            },
+            {
+              "engineMs": 0.310042,
+              "roundTripMs": 0.33741699999995944
+            },
+            {
+              "engineMs": 0.339458,
+              "roundTripMs": 0.36383299999988594
+            },
+            {
+              "engineMs": 0.311292,
+              "roundTripMs": 0.33579200000008314
+            },
+            {
+              "engineMs": 0.322542,
+              "roundTripMs": 0.34700000000020736
+            },
+            {
+              "engineMs": 0.305791,
+              "roundTripMs": 0.3293750000000273
+            },
+            {
+              "engineMs": 0.32175,
+              "roundTripMs": 0.3504159999999956
+            },
+            {
+              "engineMs": 0.311417,
+              "roundTripMs": 0.3347080000000915
+            },
+            {
+              "engineMs": 0.32825,
+              "roundTripMs": 0.35416699999996126
+            },
+            {
+              "engineMs": 0.30825,
+              "roundTripMs": 0.33095800000000963
+            },
+            {
+              "engineMs": 0.321834,
+              "roundTripMs": 0.344166999999743
+            },
+            {
+              "engineMs": 0.303584,
+              "roundTripMs": 0.3251669999999649
+            }
+          ]
+        },
+        {
+          "reading": "そのあとともだちにあいました",
+          "expected": ["その後友達に会いました", "そのあと友達に会いました"],
+          "category": "journal",
+          "engineMs": 1.04971,
+          "segments": [
+            {
+              "reading": "そのあと",
+              "candidates": ["その後", "そのあと", "ソノアト"]
+            },
+            {
+              "reading": "ともだちに",
+              "candidates": [
+                "友達に",
+                "友達に",
+                "友だちに",
+                "ともだちに",
+                "友達に",
+                "トモダチに",
+                "友だちに",
+                "ともだちに",
+                "トモダチに",
+                "友達に"
+              ]
+            },
+            {
+              "reading": "あいました",
+              "candidates": [
+                "会いました",
+                "合いました",
+                "あいました",
+                "遭いました",
+                "逢いました",
+                "遇いました",
+                "あいました",
+                "會いました",
+                "合間した",
+                "愛ました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "その後友達に会いました",
+              "reading": "そのあとともだちにあいました"
+            }
+          ],
+          "roundTripMs": 1.3646249999999895,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.447708,
+              "roundTripMs": 0.485541000000012
+            },
+            {
+              "engineMs": 0.4365,
+              "roundTripMs": 0.47412499999995816
+            },
+            {
+              "engineMs": 0.442125,
+              "roundTripMs": 0.4789580000000342
+            },
+            {
+              "engineMs": 0.412834,
+              "roundTripMs": 0.44595800000001873
+            },
+            {
+              "engineMs": 0.4395,
+              "roundTripMs": 0.4748329999999896
+            },
+            {
+              "engineMs": 0.426833,
+              "roundTripMs": 0.4603749999999991
+            },
+            {
+              "engineMs": 0.441625,
+              "roundTripMs": 0.48375000000010004
+            },
+            {
+              "engineMs": 0.418833,
+              "roundTripMs": 0.45062499999994543
+            },
+            {
+              "engineMs": 0.443667,
+              "roundTripMs": 0.4783750000001419
+            },
+            {
+              "engineMs": 0.426833,
+              "roundTripMs": 0.46054199999980483
+            },
+            {
+              "engineMs": 0.445959,
+              "roundTripMs": 0.4799160000000029
+            },
+            {
+              "engineMs": 0.420333,
+              "roundTripMs": 0.4512499999998454
+            },
+            {
+              "engineMs": 0.441291,
+              "roundTripMs": 0.4703340000000935
+            },
+            {
+              "engineMs": 0.419334,
+              "roundTripMs": 0.4473329999998441
+            },
+            {
+              "engineMs": 0.439542,
+              "roundTripMs": 0.4685829999998532
+            },
+            {
+              "engineMs": 0.4295,
+              "roundTripMs": 0.45900000000006
+            },
+            {
+              "engineMs": 0.448958,
+              "roundTripMs": 0.48274999999966894
+            },
+            {
+              "engineMs": 0.42525,
+              "roundTripMs": 0.4534590000002936
+            },
+            {
+              "engineMs": 0.438167,
+              "roundTripMs": 0.46512499999971624
+            },
+            {
+              "engineMs": 0.412917,
+              "roundTripMs": 0.4398750000000291
+            }
+          ]
+        },
+        {
+          "reading": "あしたはやくおきます",
+          "expected": ["明日早く起きます"],
+          "category": "journal",
+          "engineMs": 0.83375,
+          "segments": [
+            {
+              "reading": "あした",
+              "candidates": [
+                "明日",
+                "あした",
+                "芦田",
+                "2026/11/18",
+                "2026-11-18",
+                "2026年11月18日",
+                "令和8年11月18日",
+                "水曜日",
+                "朝",
+                "足田"
+              ]
+            },
+            {
+              "reading": "はやく",
+              "candidates": [
+                "早く",
+                "速く",
+                "はやく",
+                "早く",
+                "疾く",
+                "端役",
+                "早く",
+                "破約",
+                "捷く",
+                "夙く"
+              ]
+            },
+            {
+              "reading": "おきます",
+              "candidates": [
+                "起きます",
+                "置きます",
+                "おきます",
+                "おきます",
+                "起きます",
+                "於きます",
+                "措きます",
+                "おきます",
+                "熾きます",
+                "御来ます"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "明日早く起きます",
+              "reading": "あしたはやくおきます"
+            }
+          ],
+          "roundTripMs": 1.0404169999999908,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.470375,
+              "roundTripMs": 0.5258750000000418
+            },
+            {
+              "engineMs": 0.4395,
+              "roundTripMs": 0.4778749999999832
+            },
+            {
+              "engineMs": 0.442917,
+              "roundTripMs": 0.48083299999996143
+            },
+            {
+              "engineMs": 0.414792,
+              "roundTripMs": 0.45204100000000835
+            },
+            {
+              "engineMs": 0.442541,
+              "roundTripMs": 0.4816250000000082
+            },
+            {
+              "engineMs": 0.426542,
+              "roundTripMs": 0.46366599999998925
+            },
+            {
+              "engineMs": 0.444208,
+              "roundTripMs": 0.4975000000001728
+            },
+            {
+              "engineMs": 0.4265,
+              "roundTripMs": 0.46087499999998727
+            },
+            {
+              "engineMs": 0.477458,
+              "roundTripMs": 0.5149169999999685
+            },
+            {
+              "engineMs": 0.432375,
+              "roundTripMs": 0.4679160000000593
+            },
+            {
+              "engineMs": 0.446625,
+              "roundTripMs": 0.4785830000000715
+            },
+            {
+              "engineMs": 0.451125,
+              "roundTripMs": 0.48450000000002547
+            },
+            {
+              "engineMs": 0.444458,
+              "roundTripMs": 0.47566699999993034
+            },
+            {
+              "engineMs": 0.43025,
+              "roundTripMs": 0.4620840000000044
+            },
+            {
+              "engineMs": 0.441334,
+              "roundTripMs": 0.47291599999994105
+            },
+            {
+              "engineMs": 0.428542,
+              "roundTripMs": 0.46033299999999144
+            },
+            {
+              "engineMs": 0.455417,
+              "roundTripMs": 0.5046669999996993
+            },
+            {
+              "engineMs": 0.42875,
+              "roundTripMs": 0.45920799999976225
+            },
+            {
+              "engineMs": 0.440542,
+              "roundTripMs": 0.4695830000000569
+            },
+            {
+              "engineMs": 0.423875,
+              "roundTripMs": 0.45299999999997453
+            }
+          ]
+        },
+        {
+          "reading": "きんようびにかえります",
+          "expected": ["金曜日に帰ります"],
+          "category": "journal",
+          "engineMs": 0.659042,
+          "segments": [
+            {
+              "reading": "きんようびに",
+              "candidates": [
+                "金曜日に",
+                "金曜日に",
+                "近曜日に",
+                "近妖美に",
+                "近曜日に",
+                "近ヨウビに",
+                "近妖美に",
+                "近ヨウビに",
+                "キンヨウビに",
+                "きんようびに"
+              ]
+            },
+            {
+              "reading": "かえります",
+              "candidates": [
+                "帰ります",
+                "返ります",
+                "かえります",
+                "還ります",
+                "反ります",
+                "歸ります",
+                "孵ります",
+                "カエります",
+                "帰ります",
+                "カエリます"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "金曜日に帰ります",
+              "reading": "きんようびにかえります"
+            }
+          ],
+          "roundTripMs": 0.794542000000007,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.598083,
+              "roundTripMs": 0.6550409999999829
+            },
+            {
+              "engineMs": 0.558208,
+              "roundTripMs": 0.5916250000000218
+            },
+            {
+              "engineMs": 0.567125,
+              "roundTripMs": 0.6108750000000782
+            },
+            {
+              "engineMs": 0.579334,
+              "roundTripMs": 0.6229580000000396
+            },
+            {
+              "engineMs": 0.564209,
+              "roundTripMs": 0.5952499999999645
+            },
+            {
+              "engineMs": 0.558459,
+              "roundTripMs": 0.5906670000000531
+            },
+            {
+              "engineMs": 0.568875,
+              "roundTripMs": 0.6054579999999987
+            },
+            {
+              "engineMs": 0.552916,
+              "roundTripMs": 0.5829170000001795
+            },
+            {
+              "engineMs": 0.590167,
+              "roundTripMs": 0.6247499999999491
+            },
+            {
+              "engineMs": 0.557583,
+              "roundTripMs": 0.5879580000000715
+            },
+            {
+              "engineMs": 0.57725,
+              "roundTripMs": 0.612666999999874
+            },
+            {
+              "engineMs": 0.58775,
+              "roundTripMs": 0.6153749999998581
+            },
+            {
+              "engineMs": 0.56975,
+              "roundTripMs": 0.5970830000001115
+            },
+            {
+              "engineMs": 0.55475,
+              "roundTripMs": 0.5801669999998467
+            },
+            {
+              "engineMs": 0.568708,
+              "roundTripMs": 0.5973750000000564
+            },
+            {
+              "engineMs": 0.560708,
+              "roundTripMs": 0.7047079999999823
+            },
+            {
+              "engineMs": 0.586167,
+              "roundTripMs": 0.6272500000000036
+            },
+            {
+              "engineMs": 0.562333,
+              "roundTripMs": 0.5888340000001335
+            },
+            {
+              "engineMs": 0.570792,
+              "roundTripMs": 0.5956669999995938
+            },
+            {
+              "engineMs": 0.556167,
+              "roundTripMs": 0.58075000000008
+            }
+          ]
+        },
+        {
+          "reading": "くるまをうんてんしました",
+          "expected": ["車を運転しました"],
+          "category": "journal",
+          "engineMs": 0.498834,
+          "segments": [
+            {
+              "reading": "くるまを",
+              "candidates": [
+                "車を",
+                "クルマを",
+                "車を",
+                "車を",
+                "車を",
+                "くるまを",
+                "久留麻を",
+                "久留間を",
+                "包まを",
+                "久留間を"
+              ]
+            },
+            {
+              "reading": "うんてんしました",
+              "candidates": [
+                "運転しました",
+                "運転士ました",
+                "運転しました",
+                "運転士ました",
+                "ウンテンシました",
+                "うんてんしました",
+                "ウンテンシマシタ"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "車を運転しました",
+              "reading": "くるまをうんてんしました"
+            }
+          ],
+          "roundTripMs": 0.5767500000000041,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.432958,
+              "roundTripMs": 0.48012500000004366
+            },
+            {
+              "engineMs": 0.398875,
+              "roundTripMs": 0.43120800000002646
+            },
+            {
+              "engineMs": 0.398459,
+              "roundTripMs": 0.42820799999992687
+            },
+            {
+              "engineMs": 0.39925,
+              "roundTripMs": 0.4381660000000238
+            },
+            {
+              "engineMs": 0.402375,
+              "roundTripMs": 0.43241699999998673
+            },
+            {
+              "engineMs": 0.39725,
+              "roundTripMs": 0.4275830000000269
+            },
+            {
+              "engineMs": 0.403292,
+              "roundTripMs": 0.43287499999996726
+            },
+            {
+              "engineMs": 0.395791,
+              "roundTripMs": 0.4231250000000273
+            },
+            {
+              "engineMs": 0.409125,
+              "roundTripMs": 0.45470799999998235
+            },
+            {
+              "engineMs": 0.396,
+              "roundTripMs": 0.4243330000001606
+            },
+            {
+              "engineMs": 0.404875,
+              "roundTripMs": 0.43004100000007384
+            },
+            {
+              "engineMs": 0.396792,
+              "roundTripMs": 0.422458000000006
+            },
+            {
+              "engineMs": 0.402209,
+              "roundTripMs": 0.42775000000006
+            },
+            {
+              "engineMs": 0.393542,
+              "roundTripMs": 0.4184580000001006
+            },
+            {
+              "engineMs": 0.40325,
+              "roundTripMs": 0.4284579999998641
+            },
+            {
+              "engineMs": 0.403834,
+              "roundTripMs": 0.4312499999998636
+            },
+            {
+              "engineMs": 0.410041,
+              "roundTripMs": 0.4372080000002825
+            },
+            {
+              "engineMs": 0.395166,
+              "roundTripMs": 0.42399999999997817
+            },
+            {
+              "engineMs": 0.402959,
+              "roundTripMs": 0.4264589999997952
+            },
+            {
+              "engineMs": 0.394709,
+              "roundTripMs": 0.4185000000002219
+            }
+          ]
+        },
+        {
+          "reading": "えいごのじまくがありました",
+          "expected": ["英語の字幕がありました"],
+          "category": "journal",
+          "engineMs": 0.479667,
+          "segments": [
+            {
+              "reading": "えいごの",
+              "candidates": [
+                "英語の",
+                "Ａ５の",
+                "A5の",
+                "英五の",
+                "英吾の",
+                "詠吾の",
+                "穎悟の",
+                "頴悟の",
+                "英悟の",
+                "栄吾の"
+              ]
+            },
+            {
+              "reading": "じまくが",
+              "candidates": [
+                "字幕が",
+                "次膜が",
+                "自膜が",
+                "次幕が",
+                "自幕が",
+                "次マクが",
+                "自マクが",
+                "ジマクが",
+                "じまくが",
+                "ジマクガ"
+              ]
+            },
+            {
+              "reading": "ありました",
+              "candidates": [
+                "ありました",
+                "有りました",
+                "在りました",
+                "或りました",
+                "アリました",
+                "アリました",
+                "有りました",
+                "蟻ました",
+                "有ました",
+                "ありました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "英語の字幕がありました",
+              "reading": "えいごのじまくがありました"
+            }
+          ],
+          "roundTripMs": 0.575917000000004,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.436584,
+              "roundTripMs": 0.4816250000000082
+            },
+            {
+              "engineMs": 0.4065,
+              "roundTripMs": 0.44445799999999736
+            },
+            {
+              "engineMs": 0.412542,
+              "roundTripMs": 0.4513329999999769
+            },
+            {
+              "engineMs": 0.408042,
+              "roundTripMs": 0.46699999999998454
+            },
+            {
+              "engineMs": 0.414542,
+              "roundTripMs": 0.4513750000000982
+            },
+            {
+              "engineMs": 0.404167,
+              "roundTripMs": 0.44133399999998346
+            },
+            {
+              "engineMs": 0.415042,
+              "roundTripMs": 0.45354100000008657
+            },
+            {
+              "engineMs": 0.41175,
+              "roundTripMs": 0.4468749999998636
+            },
+            {
+              "engineMs": 0.428917,
+              "roundTripMs": 0.4730410000001939
+            },
+            {
+              "engineMs": 0.403208,
+              "roundTripMs": 0.4393750000001546
+            },
+            {
+              "engineMs": 0.416708,
+              "roundTripMs": 0.4485419999998612
+            },
+            {
+              "engineMs": 0.411,
+              "roundTripMs": 0.44374999999990905
+            },
+            {
+              "engineMs": 0.412042,
+              "roundTripMs": 0.44404099999997015
+            },
+            {
+              "engineMs": 0.398959,
+              "roundTripMs": 0.4317909999999756
+            },
+            {
+              "engineMs": 0.413333,
+              "roundTripMs": 0.4449580000000424
+            },
+            {
+              "engineMs": 0.41025,
+              "roundTripMs": 0.47116699999992306
+            },
+            {
+              "engineMs": 0.419458,
+              "roundTripMs": 0.4522910000000593
+            },
+            {
+              "engineMs": 0.402291,
+              "roundTripMs": 0.43370799999956944
+            },
+            {
+              "engineMs": 0.414334,
+              "roundTripMs": 0.4443750000000364
+            },
+            {
+              "engineMs": 0.393,
+              "roundTripMs": 0.422458000000006
+            }
+          ]
+        },
+        {
+          "reading": "ひこうきがとべなくなりました",
+          "expected": ["飛行機が飛べなくなりました"],
+          "category": "journal",
+          "engineMs": 0.684542,
+          "segments": [
+            {
+              "reading": "ひこうきが",
+              "candidates": [
+                "飛行機が",
+                "ヒコウキが",
+                "被後期が",
+                "非後期が",
+                "被工期が",
+                "非工期が",
+                "被好機が",
+                "非好機が",
+                "非後記が",
+                "被こうきが"
+              ]
+            },
+            {
+              "reading": "とべなくなりました",
+              "candidates": [
+                "飛べなくなりました",
+                "跳べなくなりました",
+                "飛べなくなりました",
+                "跳べなくなりました",
+                "トベナクナリました",
+                "とべなくなりました",
+                "トベナクナリマシタ"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "飛行機が飛べなくなりました",
+              "reading": "ひこうきがとべなくなりました"
+            }
+          ],
+          "roundTripMs": 0.8222080000000176,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.672792,
+              "roundTripMs": 0.7090840000000185
+            },
+            {
+              "engineMs": 0.591583,
+              "roundTripMs": 0.6229580000000396
+            },
+            {
+              "engineMs": 0.606375,
+              "roundTripMs": 0.6376249999999573
+            },
+            {
+              "engineMs": 0.630834,
+              "roundTripMs": 0.6658750000000282
+            },
+            {
+              "engineMs": 0.616959,
+              "roundTripMs": 0.6512500000000045
+            },
+            {
+              "engineMs": 0.591958,
+              "roundTripMs": 0.622957999999926
+            },
+            {
+              "engineMs": 0.61775,
+              "roundTripMs": 0.6492499999999382
+            },
+            {
+              "engineMs": 0.914292,
+              "roundTripMs": 0.9504169999997885
+            },
+            {
+              "engineMs": 0.619792,
+              "roundTripMs": 0.650124999999889
+            },
+            {
+              "engineMs": 0.592209,
+              "roundTripMs": 0.6240830000001552
+            },
+            {
+              "engineMs": 0.614625,
+              "roundTripMs": 0.6410829999999805
+            },
+            {
+              "engineMs": 0.593458,
+              "roundTripMs": 0.6205419999998867
+            },
+            {
+              "engineMs": 0.611041,
+              "roundTripMs": 0.6372079999998732
+            },
+            {
+              "engineMs": 0.586666,
+              "roundTripMs": 0.6119159999998374
+            },
+            {
+              "engineMs": 0.609417,
+              "roundTripMs": 0.6360839999999826
+            },
+            {
+              "engineMs": 0.597084,
+              "roundTripMs": 0.6296669999999267
+            },
+            {
+              "engineMs": 0.615208,
+              "roundTripMs": 0.642207999999755
+            },
+            {
+              "engineMs": 0.594958,
+              "roundTripMs": 0.6206250000000182
+            },
+            {
+              "engineMs": 0.654583,
+              "roundTripMs": 0.6804590000001554
+            },
+            {
+              "engineMs": 0.587,
+              "roundTripMs": 0.6117500000000291
+            }
+          ]
+        },
+        {
+          "reading": "はしをわたりました",
+          "expected": ["橋を渡りました"],
+          "category": "homophone",
+          "engineMs": 0.627833,
+          "segments": [
+            {
+              "reading": "はしを",
+              "candidates": [
+                "橋を",
+                "箸を",
+                "はしを",
+                "端を",
+                "ハシを",
+                "橋を",
+                "土師を",
+                "巴志を",
+                "波子を",
+                "端を"
+              ]
+            },
+            {
+              "reading": "わたりました",
+              "candidates": [
+                "わたりました",
+                "渡りました",
+                "亘りました",
+                "渉りました",
+                "亙りました",
+                "航りました",
+                "亂りました",
+                "済りました",
+                "彌りました",
+                "弥りました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "橋をわたりました",
+              "reading": "はしをわたりました"
+            }
+          ],
+          "roundTripMs": 0.7177920000000029,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 0.245917,
+              "roundTripMs": 0.28004199999998036
+            },
+            {
+              "engineMs": 0.234083,
+              "roundTripMs": 0.2647919999999999
+            },
+            {
+              "engineMs": 0.23825,
+              "roundTripMs": 0.27049999999997
+            },
+            {
+              "engineMs": 0.235916,
+              "roundTripMs": 0.26904100000001563
+            },
+            {
+              "engineMs": 0.239292,
+              "roundTripMs": 0.288915999999972
+            },
+            {
+              "engineMs": 0.234792,
+              "roundTripMs": 0.266208000000006
+            },
+            {
+              "engineMs": 0.238875,
+              "roundTripMs": 0.2705000000000837
+            },
+            {
+              "engineMs": 0.239792,
+              "roundTripMs": 0.27279199999998127
+            },
+            {
+              "engineMs": 0.240583,
+              "roundTripMs": 0.27062500000010914
+            },
+            {
+              "engineMs": 0.234667,
+              "roundTripMs": 0.2640830000000278
+            },
+            {
+              "engineMs": 0.239833,
+              "roundTripMs": 0.26575000000002547
+            },
+            {
+              "engineMs": 0.237166,
+              "roundTripMs": 0.26583300000015697
+            },
+            {
+              "engineMs": 0.238667,
+              "roundTripMs": 0.2643750000002001
+            },
+            {
+              "engineMs": 0.2325,
+              "roundTripMs": 0.25908300000014606
+            },
+            {
+              "engineMs": 0.23825,
+              "roundTripMs": 0.26387499999987085
+            },
+            {
+              "engineMs": 0.236667,
+              "roundTripMs": 0.26279199999999037
+            },
+            {
+              "engineMs": 0.241,
+              "roundTripMs": 0.2675829999998314
+            },
+            {
+              "engineMs": 0.234792,
+              "roundTripMs": 0.260124999999789
+            },
+            {
+              "engineMs": 0.2545,
+              "roundTripMs": 0.2798339999999371
+            },
+            {
+              "engineMs": 0.233167,
+              "roundTripMs": 0.257665999999972
+            }
+          ]
+        },
+        {
+          "reading": "はしでたべました",
+          "expected": ["箸で食べました"],
+          "category": "homophone",
+          "engineMs": 0.3065,
+          "segments": [
+            {
+              "reading": "はしで",
+              "candidates": [
+                "橋で",
+                "箸で",
+                "はしで",
+                "端で",
+                "ハシで",
+                "橋で",
+                "箸で",
+                "はしで",
+                "端で",
+                "波子で"
+              ]
+            },
+            {
+              "reading": "たべました",
+              "candidates": [
+                "食べました",
+                "たべました",
+                "食べました",
+                "たべました",
+                "賜べました",
+                "給べました",
+                "田辺ました",
+                "給べました",
+                "田部ました",
+                "賜べました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "橋で食べました",
+              "reading": "はしでたべました"
+            }
+          ],
+          "roundTripMs": 0.3775829999999871,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 0.263166,
+              "roundTripMs": 0.2949160000000006
+            },
+            {
+              "engineMs": 0.258375,
+              "roundTripMs": 0.2886249999999677
+            },
+            {
+              "engineMs": 0.265458,
+              "roundTripMs": 0.2970830000000433
+            },
+            {
+              "engineMs": 0.252959,
+              "roundTripMs": 0.30483300000003055
+            },
+            {
+              "engineMs": 0.261833,
+              "roundTripMs": 0.30637500000000273
+            },
+            {
+              "engineMs": 0.257625,
+              "roundTripMs": 0.3012499999999818
+            },
+            {
+              "engineMs": 0.261416,
+              "roundTripMs": 0.29195800000002237
+            },
+            {
+              "engineMs": 0.26125,
+              "roundTripMs": 0.29037500000004
+            },
+            {
+              "engineMs": 0.262292,
+              "roundTripMs": 0.29120799999986957
+            },
+            {
+              "engineMs": 0.257625,
+              "roundTripMs": 0.28691699999990306
+            },
+            {
+              "engineMs": 0.261833,
+              "roundTripMs": 0.28720899999984795
+            },
+            {
+              "engineMs": 0.259333,
+              "roundTripMs": 0.2846669999998994
+            },
+            {
+              "engineMs": 0.260375,
+              "roundTripMs": 0.2862079999999878
+            },
+            {
+              "engineMs": 0.25725,
+              "roundTripMs": 0.2826670000001741
+            },
+            {
+              "engineMs": 0.26,
+              "roundTripMs": 0.28483300000016243
+            },
+            {
+              "engineMs": 0.259,
+              "roundTripMs": 0.2838329999999587
+            },
+            {
+              "engineMs": 0.262084,
+              "roundTripMs": 0.28891699999985576
+            },
+            {
+              "engineMs": 0.259334,
+              "roundTripMs": 0.29658400000016627
+            },
+            {
+              "engineMs": 0.263417,
+              "roundTripMs": 0.2873749999998836
+            },
+            {
+              "engineMs": 0.256541,
+              "roundTripMs": 0.28104099999973187
+            }
+          ]
+        },
+        {
+          "reading": "あめがふっています",
+          "expected": ["雨が降っています"],
+          "category": "homophone",
+          "engineMs": 0.307625,
+          "segments": [
+            {
+              "reading": "あめが",
+              "candidates": [
+                "雨が",
+                "天が",
+                "アメが",
+                "飴が",
+                "あめが",
+                "あめが",
+                "編めが",
+                "飴が",
+                "編めが",
+                "編めが"
+              ]
+            },
+            {
+              "reading": "ふっています",
+              "candidates": [
+                "振っています",
+                "降っています",
+                "ふっています",
+                "触っています",
+                "ふっています",
+                "古っています",
+                "旧っています",
+                "フッています",
+                "震っています",
+                "フッています"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "雨が振っています",
+              "reading": "あめがふっています"
+            }
+          ],
+          "roundTripMs": 0.37070899999997664,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 0.2835,
+              "roundTripMs": 0.32408299999997325
+            },
+            {
+              "engineMs": 0.261792,
+              "roundTripMs": 0.29912500000000364
+            },
+            {
+              "engineMs": 0.277209,
+              "roundTripMs": 0.3222079999999323
+            },
+            {
+              "engineMs": 0.267584,
+              "roundTripMs": 0.29695799999990413
+            },
+            {
+              "engineMs": 0.26675,
+              "roundTripMs": 0.30320799999992687
+            },
+            {
+              "engineMs": 0.26425,
+              "roundTripMs": 0.29629099999999653
+            },
+            {
+              "engineMs": 0.268917,
+              "roundTripMs": 0.29958299999998417
+            },
+            {
+              "engineMs": 0.271459,
+              "roundTripMs": 0.30054199999995035
+            },
+            {
+              "engineMs": 0.2705,
+              "roundTripMs": 0.30145900000002257
+            },
+            {
+              "engineMs": 0.260792,
+              "roundTripMs": 0.2894579999999678
+            },
+            {
+              "engineMs": 0.267709,
+              "roundTripMs": 0.29349999999999454
+            },
+            {
+              "engineMs": 0.262833,
+              "roundTripMs": 0.2882079999999405
+            },
+            {
+              "engineMs": 0.267708,
+              "roundTripMs": 0.29300000000012005
+            },
+            {
+              "engineMs": 0.261167,
+              "roundTripMs": 0.2867919999998776
+            },
+            {
+              "engineMs": 0.268208,
+              "roundTripMs": 0.29358400000000984
+            },
+            {
+              "engineMs": 0.263417,
+              "roundTripMs": 0.2884590000001026
+            },
+            {
+              "engineMs": 0.272708,
+              "roundTripMs": 0.30245800000011513
+            },
+            {
+              "engineMs": 0.262583,
+              "roundTripMs": 0.28745900000012625
+            },
+            {
+              "engineMs": 0.269416,
+              "roundTripMs": 0.29304199999978664
+            },
+            {
+              "engineMs": 0.260542,
+              "roundTripMs": 0.2845830000001115
+            }
+          ]
+        },
+        {
+          "reading": "あめをたべました",
+          "expected": ["飴を食べました"],
+          "category": "homophone",
+          "engineMs": 0.214916,
+          "segments": [
+            {
+              "reading": "あめを",
+              "candidates": [
+                "雨を",
+                "天を",
+                "アメを",
+                "飴を",
+                "あめを",
+                "あめを",
+                "編めを",
+                "飴を",
+                "編めを",
+                "あめを"
+              ]
+            },
+            {
+              "reading": "たべました",
+              "candidates": [
+                "食べました",
+                "たべました",
+                "食べました",
+                "たべました",
+                "賜べました",
+                "給べました",
+                "給べました",
+                "賜べました",
+                "田辺ました",
+                "たべました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "雨を食べました",
+              "reading": "あめをたべました"
+            }
+          ],
+          "roundTripMs": 0.27283299999999144,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 0.231583,
+              "roundTripMs": 0.29199999999997317
+            },
+            {
+              "engineMs": 0.189875,
+              "roundTripMs": 0.21929199999999582
+            },
+            {
+              "engineMs": 0.210125,
+              "roundTripMs": 0.25162499999999
+            },
+            {
+              "engineMs": 0.20475,
+              "roundTripMs": 0.2450419999998985
+            },
+            {
+              "engineMs": 0.228959,
+              "roundTripMs": 0.2777499999999691
+            },
+            {
+              "engineMs": 0.191083,
+              "roundTripMs": 0.22137499999996635
+            },
+            {
+              "engineMs": 0.233166,
+              "roundTripMs": 0.28674999999998363
+            },
+            {
+              "engineMs": 0.191958,
+              "roundTripMs": 0.2201669999999467
+            },
+            {
+              "engineMs": 0.192792,
+              "roundTripMs": 0.22079100000019025
+            },
+            {
+              "engineMs": 0.19275,
+              "roundTripMs": 0.2197920000000977
+            },
+            {
+              "engineMs": 0.192708,
+              "roundTripMs": 0.2169579999999769
+            },
+            {
+              "engineMs": 0.20275,
+              "roundTripMs": 0.2275409999999738
+            },
+            {
+              "engineMs": 0.192375,
+              "roundTripMs": 0.21708300000000236
+            },
+            {
+              "engineMs": 0.19125,
+              "roundTripMs": 0.21574999999984357
+            },
+            {
+              "engineMs": 0.193292,
+              "roundTripMs": 0.2177079999999023
+            },
+            {
+              "engineMs": 0.193291,
+              "roundTripMs": 0.21779200000014498
+            },
+            {
+              "engineMs": 0.193417,
+              "roundTripMs": 0.21824999999989814
+            },
+            {
+              "engineMs": 0.192292,
+              "roundTripMs": 0.21641700000009223
+            },
+            {
+              "engineMs": 0.18775,
+              "roundTripMs": 0.21058300000004238
+            },
+            {
+              "engineMs": 0.190875,
+              "roundTripMs": 0.21454099999982645
+            }
+          ]
+        },
+        {
+          "reading": "かみをきりました",
+          "expected": ["髪を切りました", "紙を切りました"],
+          "category": "ambiguous",
+          "engineMs": 0.270458,
+          "segments": [
+            {
+              "reading": "かみを",
+              "candidates": [
+                "神を",
+                "髪を",
+                "上を",
+                "紙を",
+                "加味を",
+                "かみを",
+                "カミを",
+                "噛みを",
+                "祇を",
+                "咬みを"
+              ]
+            },
+            {
+              "reading": "きりました",
+              "candidates": [
+                "切りました",
+                "斬りました",
+                "きりました",
+                "伐りました",
+                "斫りました",
+                "剪りました",
+                "揃りました",
+                "刃りました",
+                "霧ました",
+                "切りました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "神を切りました",
+              "reading": "かみをきりました"
+            }
+          ],
+          "roundTripMs": 0.3373749999999802,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 0.245583,
+              "roundTripMs": 0.2864579999999819
+            },
+            {
+              "engineMs": 0.239209,
+              "roundTripMs": 0.2691250000000309
+            },
+            {
+              "engineMs": 0.250417,
+              "roundTripMs": 0.3050829999999678
+            },
+            {
+              "engineMs": 0.244792,
+              "roundTripMs": 0.28366700000003675
+            },
+            {
+              "engineMs": 0.273667,
+              "roundTripMs": 0.31625000000008185
+            },
+            {
+              "engineMs": 0.237583,
+              "roundTripMs": 0.2677080000000842
+            },
+            {
+              "engineMs": 0.257125,
+              "roundTripMs": 0.3057499999999891
+            },
+            {
+              "engineMs": 0.242416,
+              "roundTripMs": 0.2714169999999285
+            },
+            {
+              "engineMs": 0.241958,
+              "roundTripMs": 0.27212499999996
+            },
+            {
+              "engineMs": 0.237959,
+              "roundTripMs": 0.26595899999983885
+            },
+            {
+              "engineMs": 0.242667,
+              "roundTripMs": 0.2676250000001801
+            },
+            {
+              "engineMs": 0.238583,
+              "roundTripMs": 0.2641249999999218
+            },
+            {
+              "engineMs": 0.241917,
+              "roundTripMs": 0.2714579999999387
+            },
+            {
+              "engineMs": 0.237416,
+              "roundTripMs": 0.26279199999999037
+            },
+            {
+              "engineMs": 0.242458,
+              "roundTripMs": 0.26795800000013514
+            },
+            {
+              "engineMs": 0.239542,
+              "roundTripMs": 0.265041999999994
+            },
+            {
+              "engineMs": 0.245584,
+              "roundTripMs": 0.2709580000000642
+            },
+            {
+              "engineMs": 0.238417,
+              "roundTripMs": 0.2630420000000413
+            },
+            {
+              "engineMs": 0.239083,
+              "roundTripMs": 0.26220799999964584
+            },
+            {
+              "engineMs": 0.236458,
+              "roundTripMs": 0.2600840000000062
+            }
+          ]
+        },
+        {
+          "reading": "きしゃがきしゃできしゃにきた",
+          "expected": ["記者が汽車で貴社に来た"],
+          "category": "stress",
+          "engineMs": 1.24908,
+          "segments": [
+            {
+              "reading": "きしゃが",
+              "candidates": [
+                "記者が",
+                "貴社が",
+                "汽車が",
+                "記者が",
+                "帰社が",
+                "騎射が",
+                "喜捨が",
+                "キシャが",
+                "生車が",
+                "期社が"
+              ]
+            },
+            {
+              "reading": "きしゃで",
+              "candidates": [
+                "記者で",
+                "貴社で",
+                "汽車で",
+                "記者で",
+                "帰社で",
+                "騎射で",
+                "喜捨で",
+                "貴社で",
+                "汽車で",
+                "キシャで"
+              ]
+            },
+            {
+              "reading": "きしゃに",
+              "candidates": [
+                "記者に",
+                "貴社に",
+                "汽車に",
+                "帰社に",
+                "騎射に",
+                "喜捨に",
+                "記者に",
+                "キシャに",
+                "生車に",
+                "貴社に"
+              ]
+            },
+            {
+              "reading": "きた",
+              "candidates": [
+                "来た",
+                "きた",
+                "着た",
+                "北",
+                "きた",
+                "キタ",
+                "⬆️",
+                "北",
+                "喜多",
+                "喜多"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "記者が記者で記者に来た",
+              "reading": "きしゃがきしゃできしゃにきた"
+            }
+          ],
+          "roundTripMs": 1.3574999999999875,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 1.18267,
+              "roundTripMs": 1.2267499999999814
+            },
+            {
+              "engineMs": 1.169,
+              "roundTripMs": 1.2174170000000117
+            },
+            {
+              "engineMs": 1.17521,
+              "roundTripMs": 1.2273749999999382
+            },
+            {
+              "engineMs": 1.16746,
+              "roundTripMs": 1.213624999999979
+            },
+            {
+              "engineMs": 1.188,
+              "roundTripMs": 1.2332920000000058
+            },
+            {
+              "engineMs": 1.16133,
+              "roundTripMs": 1.2020420000000058
+            },
+            {
+              "engineMs": 1.23979,
+              "roundTripMs": 1.294291999999814
+            },
+            {
+              "engineMs": 1.17162,
+              "roundTripMs": 1.2331249999999727
+            },
+            {
+              "engineMs": 1.169,
+              "roundTripMs": 1.2124999999998636
+            },
+            {
+              "engineMs": 1.17733,
+              "roundTripMs": 1.2156250000000455
+            },
+            {
+              "engineMs": 1.16233,
+              "roundTripMs": 1.1985829999998714
+            },
+            {
+              "engineMs": 1.16754,
+              "roundTripMs": 1.2036669999999958
+            },
+            {
+              "engineMs": 1.16992,
+              "roundTripMs": 1.2070000000001073
+            },
+            {
+              "engineMs": 1.15758,
+              "roundTripMs": 1.1928749999999582
+            },
+            {
+              "engineMs": 1.17442,
+              "roundTripMs": 1.2102919999999813
+            },
+            {
+              "engineMs": 1.16808,
+              "roundTripMs": 1.2040830000000824
+            },
+            {
+              "engineMs": 1.19154,
+              "roundTripMs": 1.2450410000001284
+            },
+            {
+              "engineMs": 1.17375,
+              "roundTripMs": 1.2067080000001624
+            },
+            {
+              "engineMs": 1.17433,
+              "roundTripMs": 1.2081250000001091
+            },
+            {
+              "engineMs": 1.16267,
+              "roundTripMs": 1.1965000000000146
+            }
+          ]
+        },
+        {
+          "reading": "とうきょうえきでまちあわせしました",
+          "expected": ["東京駅で待ち合わせしました"],
+          "category": "place",
+          "engineMs": 0.875875,
+          "segments": [
+            {
+              "reading": "とうきょうえきで",
+              "candidates": [
+                "東京駅で",
+                "東京駅で",
+                "TOKYO駅で",
+                "tokyo駅で",
+                "Tokyo駅で",
+                "東京駅で",
+                "トウキョウ駅で",
+                "東京駅で",
+                "トウキョウ駅で",
+                "TOKYO駅で"
+              ]
+            },
+            {
+              "reading": "まちあわせしました",
+              "candidates": [
+                "待ち合わせしました",
+                "待ち合わせしました",
+                "待ち合せしました",
+                "待ちあわせしました",
+                "まちあわせしました",
+                "待合せしました",
+                "まちあわせしました",
+                "待ち合わせしました",
+                "待合せしました",
+                "待ち合わせしました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "東京駅で待ち合わせしました",
+              "reading": "とうきょうえきでまちあわせしました"
+            }
+          ],
+          "roundTripMs": 0.9339159999999822,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.791875,
+              "roundTripMs": 0.8312080000000037
+            },
+            {
+              "engineMs": 0.773958,
+              "roundTripMs": 0.81412499999999
+            },
+            {
+              "engineMs": 0.80175,
+              "roundTripMs": 0.8412910000000693
+            },
+            {
+              "engineMs": 0.782875,
+              "roundTripMs": 0.8214169999999967
+            },
+            {
+              "engineMs": 0.789708,
+              "roundTripMs": 0.8489580000000387
+            },
+            {
+              "engineMs": 0.76375,
+              "roundTripMs": 0.799082999999996
+            },
+            {
+              "engineMs": 0.827958,
+              "roundTripMs": 0.8712920000000395
+            },
+            {
+              "engineMs": 0.785708,
+              "roundTripMs": 0.8349169999999049
+            },
+            {
+              "engineMs": 0.781958,
+              "roundTripMs": 0.81512500000008
+            },
+            {
+              "engineMs": 0.76675,
+              "roundTripMs": 0.8004160000000411
+            },
+            {
+              "engineMs": 0.779167,
+              "roundTripMs": 0.8107919999999922
+            },
+            {
+              "engineMs": 0.769667,
+              "roundTripMs": 0.7996659999998883
+            },
+            {
+              "engineMs": 0.784541,
+              "roundTripMs": 0.8157920000001013
+            },
+            {
+              "engineMs": 0.762625,
+              "roundTripMs": 0.7929169999999885
+            },
+            {
+              "engineMs": 0.776584,
+              "roundTripMs": 0.8065839999999298
+            },
+            {
+              "engineMs": 0.77225,
+              "roundTripMs": 0.80337499999996
+            },
+            {
+              "engineMs": 0.809333,
+              "roundTripMs": 0.863582999999835
+            },
+            {
+              "engineMs": 0.757916,
+              "roundTripMs": 0.7871660000000702
+            },
+            {
+              "engineMs": 0.780542,
+              "roundTripMs": 0.8089580000000751
+            },
+            {
+              "engineMs": 0.759,
+              "roundTripMs": 0.7905000000000655
+            }
+          ]
+        },
+        {
+          "reading": "しんじゅくにいきました",
+          "expected": ["新宿に行きました"],
+          "category": "place",
+          "engineMs": 0.872458,
+          "segments": [
+            {
+              "reading": "しんじゅくに",
+              "candidates": [
+                "新宿に",
+                "しんじゅくに",
+                "新塾に",
+                "シンジュクに",
+                "新宿に",
+                "新宿に",
+                "新宿に",
+                "親塾に",
+                "新熟に",
+                "真塾に"
+              ]
+            },
+            {
+              "reading": "いきました",
+              "candidates": [
+                "行きました",
+                "いきました",
+                "生きました",
+                "いきました",
+                "いきました",
+                "活きました",
+                "生きました",
+                "往きました",
+                "逝きました",
+                "息ました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "新宿に行きました",
+              "reading": "しんじゅくにいきました"
+            }
+          ],
+          "roundTripMs": 1.0949999999999989,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.363917,
+              "roundTripMs": 0.4077079999999569
+            },
+            {
+              "engineMs": 0.357417,
+              "roundTripMs": 0.3894999999999982
+            },
+            {
+              "engineMs": 0.36775,
+              "roundTripMs": 0.40049999999996544
+            },
+            {
+              "engineMs": 0.358625,
+              "roundTripMs": 0.39583300000003874
+            },
+            {
+              "engineMs": 0.368417,
+              "roundTripMs": 0.40325000000007094
+            },
+            {
+              "engineMs": 0.35125,
+              "roundTripMs": 0.3813750000000482
+            },
+            {
+              "engineMs": 0.363125,
+              "roundTripMs": 0.3968330000000151
+            },
+            {
+              "engineMs": 0.360541,
+              "roundTripMs": 0.39108299999998053
+            },
+            {
+              "engineMs": 0.35975,
+              "roundTripMs": 0.3896669999999176
+            },
+            {
+              "engineMs": 0.351542,
+              "roundTripMs": 0.3805419999998776
+            },
+            {
+              "engineMs": 0.358875,
+              "roundTripMs": 0.38533400000005713
+            },
+            {
+              "engineMs": 0.354167,
+              "roundTripMs": 0.3805839999999989
+            },
+            {
+              "engineMs": 0.359709,
+              "roundTripMs": 0.38579200000003766
+            },
+            {
+              "engineMs": 0.349959,
+              "roundTripMs": 0.3755419999999958
+            },
+            {
+              "engineMs": 0.358417,
+              "roundTripMs": 0.384166999999934
+            },
+            {
+              "engineMs": 0.343375,
+              "roundTripMs": 0.38620800000012423
+            },
+            {
+              "engineMs": 0.36475,
+              "roundTripMs": 0.39029200000004494
+            },
+            {
+              "engineMs": 0.352917,
+              "roundTripMs": 0.37754199999972116
+            },
+            {
+              "engineMs": 0.361291,
+              "roundTripMs": 0.38508299999966766
+            },
+            {
+              "engineMs": 0.348875,
+              "roundTripMs": 0.373290999999881
+            }
+          ]
+        },
+        {
+          "reading": "らーめんをたべました",
+          "expected": ["ラーメンを食べました"],
+          "category": "katakana",
+          "engineMs": 0.246875,
+          "segments": [
+            {
+              "reading": "らーめんを",
+              "candidates": [
+                "ラーメンを",
+                "らーめんを",
+                "拉麺を",
+                "ラーメンを",
+                "らーめんを",
+                "ラーメンヲ"
+              ]
+            },
+            {
+              "reading": "たべました",
+              "candidates": [
+                "食べました",
+                "たべました",
+                "食べました",
+                "たべました",
+                "賜べました",
+                "給べました",
+                "給べました",
+                "賜べました",
+                "田辺ました",
+                "たべました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "ラーメンを食べました",
+              "reading": "らーめんをたべました"
+            }
+          ],
+          "roundTripMs": 0.3394999999999868,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.204375,
+              "roundTripMs": 0.2340419999999881
+            },
+            {
+              "engineMs": 0.213583,
+              "roundTripMs": 0.24058400000001257
+            },
+            {
+              "engineMs": 0.209583,
+              "roundTripMs": 0.2406660000000329
+            },
+            {
+              "engineMs": 0.208541,
+              "roundTripMs": 0.23745800000006057
+            },
+            {
+              "engineMs": 0.209208,
+              "roundTripMs": 0.24566699999991215
+            },
+            {
+              "engineMs": 0.200625,
+              "roundTripMs": 0.2274170000000595
+            },
+            {
+              "engineMs": 0.204583,
+              "roundTripMs": 0.2323750000000473
+            },
+            {
+              "engineMs": 0.203375,
+              "roundTripMs": 0.23587500000007822
+            },
+            {
+              "engineMs": 0.214458,
+              "roundTripMs": 0.2417080000000169
+            },
+            {
+              "engineMs": 0.202292,
+              "roundTripMs": 0.23025000000006912
+            },
+            {
+              "engineMs": 0.206041,
+              "roundTripMs": 0.22974999999996726
+            },
+            {
+              "engineMs": 0.201792,
+              "roundTripMs": 0.22504200000003038
+            },
+            {
+              "engineMs": 0.20625,
+              "roundTripMs": 0.2296249999999418
+            },
+            {
+              "engineMs": 0.200542,
+              "roundTripMs": 0.2237910000001193
+            },
+            {
+              "engineMs": 0.205416,
+              "roundTripMs": 0.2291250000000673
+            },
+            {
+              "engineMs": 0.199208,
+              "roundTripMs": 0.2247500000000855
+            },
+            {
+              "engineMs": 0.206584,
+              "roundTripMs": 0.22954200000003766
+            },
+            {
+              "engineMs": 0.203042,
+              "roundTripMs": 0.23383300000023155
+            },
+            {
+              "engineMs": 0.205166,
+              "roundTripMs": 0.22733299999981682
+            },
+            {
+              "engineMs": 0.201625,
+              "roundTripMs": 0.22362499999962893
+            }
+          ]
+        },
+        {
+          "reading": "こーひーをのみました",
+          "expected": ["コーヒーを飲みました"],
+          "category": "katakana",
+          "engineMs": 0.282208,
+          "segments": [
+            {
+              "reading": "こーひーを",
+              "candidates": ["コーヒーを", "珈琲を", "コーヒーを", "こーひーを", "コーヒーヲ"]
+            },
+            {
+              "reading": "のみました",
+              "candidates": [
+                "飲みました",
+                "呑みました",
+                "のみました",
+                "嚥みました",
+                "餐みました",
+                "咽みました",
+                "ノミました",
+                "のみました",
+                "蚤ました",
+                "野見ました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "コーヒーを飲みました",
+              "reading": "こーひーをのみました"
+            }
+          ],
+          "roundTripMs": 0.33225000000001614,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.250167,
+              "roundTripMs": 0.2787089999999921
+            },
+            {
+              "engineMs": 0.252417,
+              "roundTripMs": 0.28050000000001774
+            },
+            {
+              "engineMs": 0.253125,
+              "roundTripMs": 0.28720899999996163
+            },
+            {
+              "engineMs": 0.249666,
+              "roundTripMs": 0.282291999999984
+            },
+            {
+              "engineMs": 0.251916,
+              "roundTripMs": 0.27941600000008293
+            },
+            {
+              "engineMs": 0.24575,
+              "roundTripMs": 0.276958000000036
+            },
+            {
+              "engineMs": 0.251625,
+              "roundTripMs": 0.278583000000026
+            },
+            {
+              "engineMs": 0.248541,
+              "roundTripMs": 0.27862499999991996
+            },
+            {
+              "engineMs": 0.258,
+              "roundTripMs": 0.28470800000013696
+            },
+            {
+              "engineMs": 0.241584,
+              "roundTripMs": 0.27749999999991815
+            },
+            {
+              "engineMs": 0.250166,
+              "roundTripMs": 0.2734170000001086
+            },
+            {
+              "engineMs": 0.246875,
+              "roundTripMs": 0.2718330000000151
+            },
+            {
+              "engineMs": 0.249542,
+              "roundTripMs": 0.27441700000008495
+            },
+            {
+              "engineMs": 0.239042,
+              "roundTripMs": 0.2614579999999478
+            },
+            {
+              "engineMs": 0.248625,
+              "roundTripMs": 0.2710420000000795
+            },
+            {
+              "engineMs": 0.239583,
+              "roundTripMs": 0.26354200000014316
+            },
+            {
+              "engineMs": 0.249917,
+              "roundTripMs": 0.27229199999965203
+            },
+            {
+              "engineMs": 0.244875,
+              "roundTripMs": 0.26795799999990777
+            },
+            {
+              "engineMs": 0.249917,
+              "roundTripMs": 0.2723750000000109
+            },
+            {
+              "engineMs": 0.238708,
+              "roundTripMs": 0.2605839999996533
+            }
+          ]
+        },
+        {
+          "reading": "えいがはおもしろかったです。",
+          "expected": ["映画は面白かったです。", "映画はおもしろかったです。"],
+          "category": "punctuation",
+          "engineMs": 0.431292,
+          "segments": [
+            {
+              "reading": "えいがは",
+              "candidates": [
+                "映画は",
+                "栄華は",
+                "英賀は",
+                "栄花は",
+                "衛河は",
+                "英がは",
+                "エイがは",
+                "えいがは",
+                "栄がは",
+                "栄がは"
+              ]
+            },
+            {
+              "reading": "おもしろかったです",
+              "candidates": [
+                "面白かったです",
+                "おもしろかったです",
+                "面白かったです",
+                "おもしろかったです",
+                "オモシロカッたです",
+                "おもしろかったです",
+                "オモシロカッタデス"
+              ]
+            },
+            {
+              "reading": "。",
+              "candidates": ["。", "。", "．", ".", "‥", "…", "。", "⋮", "⋯", "⋰"]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "映画は面白かったです。",
+              "reading": "えいがはおもしろかったです。"
+            }
+          ],
+          "roundTripMs": 0.5304999999999893,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.386583,
+              "roundTripMs": 0.4240419999999858
+            },
+            {
+              "engineMs": 0.390375,
+              "roundTripMs": 0.44566700000001447
+            },
+            {
+              "engineMs": 0.388041,
+              "roundTripMs": 0.4286669999999049
+            },
+            {
+              "engineMs": 0.381708,
+              "roundTripMs": 0.4237920000000486
+            },
+            {
+              "engineMs": 0.383834,
+              "roundTripMs": 0.419667000000004
+            },
+            {
+              "engineMs": 0.371917,
+              "roundTripMs": 0.4091250000000173
+            },
+            {
+              "engineMs": 0.383375,
+              "roundTripMs": 0.4190000000000964
+            },
+            {
+              "engineMs": 0.376208,
+              "roundTripMs": 0.4155420000001868
+            },
+            {
+              "engineMs": 0.384917,
+              "roundTripMs": 0.42020800000000236
+            },
+            {
+              "engineMs": 0.359417,
+              "roundTripMs": 0.3947499999999309
+            },
+            {
+              "engineMs": 0.379334,
+              "roundTripMs": 0.4103749999999309
+            },
+            {
+              "engineMs": 0.371708,
+              "roundTripMs": 0.403208000000177
+            },
+            {
+              "engineMs": 0.378167,
+              "roundTripMs": 0.4103749999999309
+            },
+            {
+              "engineMs": 0.369084,
+              "roundTripMs": 0.3992920000000595
+            },
+            {
+              "engineMs": 0.37525,
+              "roundTripMs": 0.40608399999996436
+            },
+            {
+              "engineMs": 0.360708,
+              "roundTripMs": 0.3912920000000213
+            },
+            {
+              "engineMs": 0.380125,
+              "roundTripMs": 0.4107500000000073
+            },
+            {
+              "engineMs": 0.373875,
+              "roundTripMs": 0.4051249999997708
+            },
+            {
+              "engineMs": 0.380208,
+              "roundTripMs": 0.41104200000017954
+            },
+            {
+              "engineMs": 0.3675,
+              "roundTripMs": 0.3967499999998836
+            }
+          ]
+        },
+        {
+          "reading": "わたしはがっこうにいきませんでした",
+          "expected": ["私は学校に行きませんでした"],
+          "category": "conjugation",
+          "engineMs": 0.728292,
+          "segments": [
+            {
+              "reading": "わたしは",
+              "candidates": [
+                "私は",
+                "わたしは",
+                "渡しは",
+                "ワタシは",
+                "渡しは",
+                "ワタシハ",
+                "渡は",
+                "わたしは",
+                "渡氏は",
+                "渡士は"
+              ]
+            },
+            {
+              "reading": "がっこうに",
+              "candidates": [
+                "学校に",
+                "学校に",
+                "学校に",
+                "月光に",
+                "学校に",
+                "月光に",
+                "ガッコウに",
+                "がっこうに",
+                "ガッコウニ"
+              ]
+            },
+            {
+              "reading": "いきませんでした",
+              "candidates": [
+                "行きませんでした",
+                "いきませんでした",
+                "生きませんでした",
+                "いきませんでした",
+                "活きませんでした",
+                "いきませんでした",
+                "逝きませんでした",
+                "往きませんでした",
+                "生きませんでした",
+                "息ませんでした"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "私は学校に行きませんでした",
+              "reading": "わたしはがっこうにいきませんでした"
+            }
+          ],
+          "roundTripMs": 0.81087500000001,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.647667,
+              "roundTripMs": 0.6885829999999942
+            },
+            {
+              "engineMs": 0.639334,
+              "roundTripMs": 0.6844589999999471
+            },
+            {
+              "engineMs": 0.662667,
+              "roundTripMs": 0.7048340000000053
+            },
+            {
+              "engineMs": 0.648916,
+              "roundTripMs": 0.6959580000000187
+            },
+            {
+              "engineMs": 0.652208,
+              "roundTripMs": 0.6903750000000173
+            },
+            {
+              "engineMs": 0.642167,
+              "roundTripMs": 0.6820000000000164
+            },
+            {
+              "engineMs": 0.655,
+              "roundTripMs": 0.700416000000132
+            },
+            {
+              "engineMs": 0.689958,
+              "roundTripMs": 0.7474170000000413
+            },
+            {
+              "engineMs": 0.652292,
+              "roundTripMs": 0.7032090000000153
+            },
+            {
+              "engineMs": 0.623333,
+              "roundTripMs": 0.6624589999998989
+            },
+            {
+              "engineMs": 0.647833,
+              "roundTripMs": 0.6831249999997908
+            },
+            {
+              "engineMs": 0.641959,
+              "roundTripMs": 0.6750829999998587
+            },
+            {
+              "engineMs": 0.64825,
+              "roundTripMs": 0.6814999999999145
+            },
+            {
+              "engineMs": 0.640542,
+              "roundTripMs": 0.6741669999998976
+            },
+            {
+              "engineMs": 0.650167,
+              "roundTripMs": 0.68362500000012
+            },
+            {
+              "engineMs": 0.63075,
+              "roundTripMs": 0.663541000000123
+            },
+            {
+              "engineMs": 0.6505,
+              "roundTripMs": 0.6835419999997612
+            },
+            {
+              "engineMs": 0.654625,
+              "roundTripMs": 0.6878750000000764
+            },
+            {
+              "engineMs": 0.649833,
+              "roundTripMs": 0.6833329999999478
+            },
+            {
+              "engineMs": 0.687292,
+              "roundTripMs": 0.72137500000008
+            }
+          ]
+        },
+        {
+          "reading": "たべなければなりません",
+          "expected": ["食べなければなりません"],
+          "category": "conjugation",
+          "engineMs": 0.317709,
+          "segments": [
+            {
+              "reading": "たべなければなりません",
+              "candidates": [
+                "食べなければなりません",
+                "たべなければなりません",
+                "賜べなければなりません",
+                "食べなければなりません",
+                "たべなければなりません",
+                "給べなければなりません",
+                "給べなければなりません",
+                "賜べなければなりません",
+                "たべなければなりません",
+                "たべなければなりません"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "食べなければなりません",
+              "reading": "たべなければなりません"
+            }
+          ],
+          "roundTripMs": 0.38170900000000074,
+          "exactTop1": true,
+          "samples": [
+            {
+              "engineMs": 0.289667,
+              "roundTripMs": 0.31875000000002274
+            },
+            {
+              "engineMs": 0.285042,
+              "roundTripMs": 0.3154999999999859
+            },
+            {
+              "engineMs": 0.294708,
+              "roundTripMs": 0.3366250000000264
+            },
+            {
+              "engineMs": 0.286166,
+              "roundTripMs": 0.3141250000001037
+            },
+            {
+              "engineMs": 0.292125,
+              "roundTripMs": 0.31966699999998127
+            },
+            {
+              "engineMs": 0.289,
+              "roundTripMs": 0.3169999999998936
+            },
+            {
+              "engineMs": 0.300208,
+              "roundTripMs": 0.33416699999997945
+            },
+            {
+              "engineMs": 0.31725,
+              "roundTripMs": 0.37220800000000054
+            },
+            {
+              "engineMs": 0.29075,
+              "roundTripMs": 0.3240419999999631
+            },
+            {
+              "engineMs": 0.275167,
+              "roundTripMs": 0.3224159999999756
+            },
+            {
+              "engineMs": 0.289958,
+              "roundTripMs": 0.31429099999991195
+            },
+            {
+              "engineMs": 0.286375,
+              "roundTripMs": 0.3107910000001084
+            },
+            {
+              "engineMs": 0.292167,
+              "roundTripMs": 0.3154579999998077
+            },
+            {
+              "engineMs": 0.286083,
+              "roundTripMs": 0.30925000000002
+            },
+            {
+              "engineMs": 0.293459,
+              "roundTripMs": 0.31854199999997945
+            },
+            {
+              "engineMs": 0.279417,
+              "roundTripMs": 0.302791999999954
+            },
+            {
+              "engineMs": 0.290958,
+              "roundTripMs": 0.313666000000012
+            },
+            {
+              "engineMs": 0.288916,
+              "roundTripMs": 0.3279160000001866
+            },
+            {
+              "engineMs": 0.291416,
+              "roundTripMs": 0.3157089999999698
+            },
+            {
+              "engineMs": 0.288125,
+              "roundTripMs": 0.3112919999998667
+            }
+          ]
+        },
+        {
+          "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+          "expected": [
+            "昨日友達と映画を見てから晩ご飯を食べました",
+            "昨日友達と映画を観てから晩ご飯を食べました",
+            "昨日友達と映画を見てから晩御飯を食べました"
+          ],
+          "category": "long",
+          "engineMs": 1.29142,
+          "segments": [
+            {
+              "reading": "きのう",
+              "candidates": [
+                "機能",
+                "昨日",
+                "昨日",
+                "2026/11/16",
+                "2026-11-16",
+                "2026年11月16日",
+                "令和8年11月16日",
+                "月曜日",
+                "きのう",
+                "帰納"
+              ]
+            },
+            {
+              "reading": "ともだちと",
+              "candidates": [
+                "友達と",
+                "友だちと",
+                "友達と",
+                "ともだちと",
+                "友達と",
+                "友達と",
+                "トモダチと",
+                "友だちと",
+                "友だちと",
+                "友達と"
+              ]
+            },
+            {
+              "reading": "えいがを",
+              "candidates": [
+                "映画を",
+                "栄華を",
+                "英賀を",
+                "栄花を",
+                "衛河を",
+                "エイガを",
+                "えいがを",
+                "エイガヲ"
+              ]
+            },
+            {
+              "reading": "みてから",
+              "candidates": [
+                "見てから",
+                "みてから",
+                "観てから",
+                "診てから",
+                "見てから",
+                "視てから",
+                "看てから",
+                "見てから",
+                "みてから",
+                "觀てから"
+              ]
+            },
+            {
+              "reading": "ばんごはんを",
+              "candidates": [
+                "晩ごはんを",
+                "ばんごはんを",
+                "ばんごはんを",
+                "バンゴハンを",
+                "ばんごはんを",
+                "バンゴハンヲ"
+              ]
+            },
+            {
+              "reading": "たべました",
+              "candidates": [
+                "食べました",
+                "たべました",
+                "食べました",
+                "たべました",
+                "賜べました",
+                "給べました",
+                "給べました",
+                "賜べました",
+                "田辺ました",
+                "たべました"
+              ]
+            }
+          ],
+          "candidates": [
+            {
+              "text": "機能友達と映画を見てから晩ごはんを食べました",
+              "reading": "きのうともだちとえいがをみてからばんごはんをたべました"
+            }
+          ],
+          "roundTripMs": 1.3631249999999966,
+          "exactTop1": false,
+          "samples": [
+            {
+              "engineMs": 1.18296,
+              "roundTripMs": 1.240083000000027
+            },
+            {
+              "engineMs": 1.1495,
+              "roundTripMs": 1.201750000000004
+            },
+            {
+              "engineMs": 1.18083,
+              "roundTripMs": 1.24412499999994
+            },
+            {
+              "engineMs": 1.16813,
+              "roundTripMs": 1.22199999999998
+            },
+            {
+              "engineMs": 1.17583,
+              "roundTripMs": 1.2314999999999827
+            },
+            {
+              "engineMs": 1.25121,
+              "roundTripMs": 1.3215830000000324
+            },
+            {
+              "engineMs": 1.17258,
+              "roundTripMs": 1.2254169999998794
+            },
+            {
+              "engineMs": 1.25829,
+              "roundTripMs": 1.3267499999999472
+            },
+            {
+              "engineMs": 1.15879,
+              "roundTripMs": 1.212833000000046
+            },
+            {
+              "engineMs": 1.12217,
+              "roundTripMs": 1.1971670000000358
+            },
+            {
+              "engineMs": 1.16871,
+              "roundTripMs": 1.2269589999998516
+            },
+            {
+              "engineMs": 1.16112,
+              "roundTripMs": 1.2114160000000993
+            },
+            {
+              "engineMs": 1.15321,
+              "roundTripMs": 1.2088749999998072
+            },
+            {
+              "engineMs": 1.15642,
+              "roundTripMs": 1.2041670000000977
+            },
+            {
+              "engineMs": 1.25029,
+              "roundTripMs": 1.30662499999994
+            },
+            {
+              "engineMs": 1.16475,
+              "roundTripMs": 1.211999999999989
+            },
+            {
+              "engineMs": 1.17971,
+              "roundTripMs": 1.2326669999997648
+            },
+            {
+              "engineMs": 1.161,
+              "roundTripMs": 1.2096660000001975
+            },
+            {
+              "engineMs": 1.16979,
+              "roundTripMs": 1.2199579999996786
+            },
+            {
+              "engineMs": 1.1385,
+              "roundTripMs": 1.184624999999869
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -4,8 +4,12 @@ import PackageDescription
 let package = Package(
     name: "JournalInputEngine",
     platforms: [.macOS(.v13)],
+    traits: [.trait(name: "Neural")],
     dependencies: [
-        .package(path: "../.engines/AzooKeyKanaKanjiConverter")
+        .package(
+            path: "../.engines/AzooKeyKanaKanjiConverter",
+            traits: [.trait(name: "Zenzai", condition: .when(traits: ["Neural"]))]
+        )
     ],
     targets: [
         .executableTarget(
@@ -15,7 +19,8 @@ let package = Package(
                     name: "KanaKanjiConverterModuleWithDefaultDictionary",
                     package: "AzooKeyKanaKanjiConverter"
                 )
-            ]
+            ],
+            swiftSettings: [.interoperabilityMode(.Cxx, .when(traits: ["Neural"]))]
         )
     ]
 )

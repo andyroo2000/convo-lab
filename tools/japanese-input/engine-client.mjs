@@ -8,14 +8,17 @@ export class EngineClient {
   child = null;
 
   constructor(
-    binary = fileURLToPath(new URL('./engine/.build/release/InputWorker', import.meta.url))
+    binary = fileURLToPath(new URL('./engine/.build/release/InputWorker', import.meta.url)),
+    { args = [], timeoutMs = 10000 } = {}
   ) {
     this.binary = binary;
+    this.args = args;
+    this.timeoutMs = timeoutMs;
   }
 
   start() {
     if (this.child) return this.child;
-    const child = spawn(this.binary, [], { stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(this.binary, this.args, { stdio: ['pipe', 'pipe', 'pipe'] });
     this.child = child;
     createInterface({ input: child.stdout }).on('line', (line) => this.receive(line));
     // Keep the pipe drained without logging people's writing.
@@ -54,7 +57,7 @@ export class EngineClient {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(
         () => this.fail('Conversion timed out. Your text is still here.'),
-        10000
+        this.timeoutMs
       );
       this.pending.set(id, { resolve, reject, timer });
       child.stdin.write(`${JSON.stringify({ id, reading })}\n`);
