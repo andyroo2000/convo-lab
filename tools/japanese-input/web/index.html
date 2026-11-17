@@ -17,7 +17,7 @@
         <div>
           <p class="eyebrow">日本語を書こう</p>
           <h1>Japanese, from your keyboard.</h1>
-          <p>Type a phrase in romaji. Choose the kanji. Make it yours.</p>
+          <p>Write right on the page. Space for kanji. Enter to keep it.</p>
         </div>
         <img src="/tutor.webp" alt="" />
       </div>
@@ -37,48 +37,35 @@
             <label class="sr-only" for="notebook">Your notebook</label>
             <textarea
               id="notebook"
-              rows="4"
-              placeholder="Your sentences will appear here."
+              rows="6"
+              readonly
+              placeholder="Start writing here: kinoueigawomimashita"
               spellcheck="false"
+              autocomplete="off"
+              autocapitalize="off"
               lang="ja"
+              aria-describedby="typing-help status"
             ></textarea>
-            <fieldset
-              class="compose"
-              id="composition"
-              disabled
-              aria-label="Convert your next phrase"
-            >
-              <label for="phrase"
-                >Write the next phrase <span>English keyboard is fine</span></label
-              >
-              <div class="input-row">
-                <input
-                  id="phrase"
-                  type="text"
-                  lang="ja"
-                  placeholder="Try: kinoueigawomimashita"
-                  autocomplete="off"
-                  autocapitalize="off"
-                  spellcheck="false"
-                  aria-describedby="typing-help"
-                /><button id="convert" class="sage" type="button">Convert <span>変換</span></button>
-              </div>
-              <p id="typing-help" class="help">
-                <kbd>Space</kbd> convert · <kbd>↑</kbd> <kbd>↓</kbd> choose · <kbd>Enter</kbd> add
-                to notebook · <kbd>Esc</kbd> keep editing
-              </p>
-              <div
-                id="candidates"
-                class="candidates"
-                role="group"
-                aria-label="Conversion candidates"
-              ></div>
-              <div class="compose-footer">
-                <p id="status" role="status" aria-live="polite">Start with a short phrase.</p>
-                <button id="keep-kana" type="button">Add as kana</button>
-              </div>
-            </fieldset>
           </div>
+          <fieldset id="composition" class="notebook-tools" disabled aria-label="Writing controls">
+            <button
+              id="mode"
+              type="button"
+              aria-label="Japanese input"
+              aria-pressed="true"
+              title="Switch between Japanese and English input"
+            >
+              日本語
+            </button>
+            <button id="convert" class="sage" type="button">Convert</button>
+            <button id="keep-kana" type="button">Keep kana</button>
+            <button id="restore-phrase" type="button" hidden>Restore unfinished phrase</button>
+          </fieldset>
+          <p id="typing-help" class="help">
+            <kbd>Space</kbd> convert / next choice · <kbd>↑</kbd> <kbd>↓</kbd> choose ·
+            <kbd>Enter</kbd> confirm · <kbd>Esc</kbd> return to kana
+          </p>
+          <p id="status" role="status" aria-live="polite">Type in the notebook.</p>
           <div class="notebook-footer">
             <span>Local scratchpad · separate from your Journal</span
             ><button id="newline" type="button">New paragraph</button>
@@ -109,14 +96,21 @@
             <details>
               <summary>About this experiment</summary>
               <p>
-                Phrase-at-a-time conversion, not a full system keyboard. You can edit the notebook
-                normally and use your existing Japanese keyboard too. Conversion runs on this
-                computer; notebook text is stored in this browser.
+                Conversion happens inside this notebook. Use ABC for English, or use your existing
+                Japanese keyboard. Select kana to convert it again. This is a playground, not a
+                system-wide keyboard. Conversion runs locally; writing stays in this browser.
               </p>
             </details>
           </div>
         </aside>
       </div>
     </main>
+    <div
+      id="candidates"
+      class="candidates"
+      role="group"
+      aria-label="Conversion candidates"
+      hidden
+    ></div>
   </body>
 </html>

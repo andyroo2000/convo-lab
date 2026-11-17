@@ -1,13 +1,22 @@
+import { placeCandidates } from './caret.mjs';
+
 export class CandidatePicker {
   items = [];
   selected = 0;
   generation = 0;
   request = null;
 
-  constructor(elements, toKana, commit) {
+  constructor(elements, callbacks) {
     this.elements = elements;
-    this.toKana = toKana;
-    this.commit = commit;
+    this.callbacks = callbacks;
+    elements.list.addEventListener('pointerdown', (event) => {
+      if (event.target.closest('button')) event.preventDefault();
+    });
+    const reposition = () => placeCandidates(elements.input, elements.list);
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    new ResizeObserver(reposition).observe(elements.input);
+    document.fonts.ready.then(reposition);
   }
 
   invalidate() {
@@ -15,15 +24,13 @@ export class CandidatePicker {
     this.request?.abort();
     this.items = [];
     this.elements.list.replaceChildren();
+    this.elements.list.hidden = true;
     this.elements.convert.disabled = false;
-    this.elements.status.textContent = 'Space to convert, or add the kana as written.';
   }
 
-  async convert() {
+  async convert(reading) {
     this.invalidate();
     const generation = this.generation;
-    const reading = this.toKana(this.elements.input.value).trim();
-    if (!reading) return;
     this.elements.convert.disabled = true;
     this.elements.status.textContent = 'Finding kanji…';
     this.request = new AbortController();
@@ -36,14 +43,13 @@ export class CandidatePicker {
         signal: this.request.signal,
       });
       const result = await response.json();
-      if (generation !== this.generation) return;
+      if (generation !== this.generation || !this.callbacks.active()) return;
       if (!response.ok) throw new Error(result.error);
       this.show(result.candidates);
       this.elements.metrics.textContent = `${result.engineMs.toFixed(1)} ms engine · ${(performance.now() - started).toFixed(0)} ms round trip`;
     } catch (error) {
-      if (generation === this.generation && error.name !== 'AbortError') {
-        this.elements.status.textContent = `${error.message} Your phrase has been kept.`;
-      }
+      if (generation === this.generation && error.name !== 'AbortError')
+        this.elements.status.textContent = `${error.message} Your text has been kept.`;
     } finally {
       if (generation === this.generation) this.elements.convert.disabled = false;
     }
@@ -53,8 +59,8 @@ export class CandidatePicker {
     this.items = items;
     this.selected = 0;
     this.elements.status.textContent = items.length
-      ? 'Choose a word or press Enter to add the highlighted choice.'
-      : 'No full-phrase match. Try a shorter phrase, or add as kana.';
+      ? 'Space or arrows to choose · Enter to confirm · Esc to return to kana.'
+      : 'No full-phrase match. Press Enter to keep the kana.';
     this.elements.list.replaceChildren(
       ...items.map((item, index) => {
         const button = document.createElement('button');
@@ -62,37 +68,28 @@ export class CandidatePicker {
         button.lang = 'ja';
         button.textContent = item.text;
         button.setAttribute('aria-pressed', String(index === 0));
-        button.addEventListener('click', () => this.accept(index));
+        button.addEventListener('click', () => {
+          this.callbacks.preview(item.text);
+          this.callbacks.accept();
+        });
         return button;
       })
     );
+    this.elements.list.hidden = !items.length;
+    if (items.length) this.preview();
+  }
+
+  preview() {
+    this.callbacks.preview(this.items[this.selected].text);
+    placeCandidates(this.elements.input, this.elements.list);
+    [...this.elements.list.children].forEach((button, index) => {
+      button.setAttribute('aria-pressed', String(index === this.selected));
+    });
+    this.elements.list.children[this.selected]?.scrollIntoView({ block: 'nearest' });
   }
 
   move(direction) {
     this.selected = (this.selected + direction + this.items.length) % this.items.length;
-    [...this.elements.list.children].forEach((button, index) => {
-      button.setAttribute('aria-pressed', String(index === this.selected));
-    });
-    this.elements.status.textContent = `Selected: ${this.items[this.selected].text}. Press Enter to add it.`;
-  }
-
-  accept(index = this.selected) {
-    const text = this.items[index]?.text;
-    if (text) this.commit(text);
-  }
-
-  handleKey(event) {
-    if (event.isComposing || event.keyCode === 229) return;
-    const handlers = {
-      ' ': () => (this.items.length ? this.move(1) : this.convert()),
-      ArrowDown: () => this.items.length && this.move(1),
-      ArrowUp: () => this.items.length && this.move(-1),
-      Enter: () => (this.items.length ? this.accept() : this.convert()),
-      Escape: () => this.invalidate(),
-    };
-    const handler = handlers[event.key];
-    if (!handler) return;
-    event.preventDefault();
-    handler();
+    this.preview();
   }
 }

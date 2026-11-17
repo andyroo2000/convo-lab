@@ -1,53 +1,47 @@
-import { bind, toHiragana } from '/wanakana.js';
-import { attachNotebook, attachPhrase, insertText } from './editor.mjs';
-import { CandidatePicker } from './candidates.mjs';
+import { toHiragana } from '/wanakana.js';
+import { attachNotebook, restoreLegacyPhrase } from './editor.mjs';
+import { InlineEditor } from './inline-editor.mjs';
 import { watchReadiness } from './readiness.mjs';
 
 const byId = (id) => document.getElementById(id);
-const input = byId('phrase');
 const notebook = byId('notebook');
 const status = byId('status');
 const say = (message) => {
   status.textContent = message;
 };
-const savePhrase = attachPhrase(input);
-const picker = new CandidatePicker(
+attachNotebook(notebook, say);
+const editor = new InlineEditor(
   {
-    input,
+    input: notebook,
     status,
     list: byId('candidates'),
     convert: byId('convert'),
     metrics: byId('metrics'),
   },
-  toHiragana,
-  (text) => {
-    insertText(notebook, text);
-    input.value = '';
-    savePhrase();
-    picker.invalidate();
-    say('Added to your notebook. Keep writing.');
-    input.focus();
-  }
+  toHiragana
 );
+watchReadiness((state) => editor.setReady(state === 'ready'));
 
-attachNotebook(notebook, say);
-watchReadiness(() => picker.invalidate());
-bind(input);
-input.addEventListener('input', () => {
-  picker.invalidate();
-  savePhrase();
+byId('composition').addEventListener('pointerdown', (event) => {
+  if (event.target.closest('button')) event.preventDefault();
 });
-input.addEventListener('keydown', (event) => picker.handleKey(event));
-byId('convert').addEventListener('click', () => picker.convert());
+byId('convert').addEventListener('click', () => {
+  editor.convert();
+  notebook.focus();
+});
 byId('keep-kana').addEventListener('click', () => {
-  const text = toHiragana(input.value).trim();
-  if (text) picker.commit(text);
+  editor.session.restore();
+  editor.finish();
+  notebook.focus();
 });
-byId('newline').addEventListener('click', () => {
-  insertText(notebook, '\n\n');
-  input.focus();
+byId('mode').addEventListener('click', (event) => {
+  const japanese = editor.toggleMode();
+  event.currentTarget.textContent = japanese ? '日本語' : 'ABC';
+  event.currentTarget.setAttribute('aria-pressed', String(japanese));
 });
+byId('newline').addEventListener('click', () => editor.newline());
 byId('copy').addEventListener('click', async () => {
+  editor.finish();
   try {
     await navigator.clipboard.writeText(notebook.value);
     say('Notebook copied.');
@@ -56,10 +50,6 @@ byId('copy').addEventListener('click', async () => {
   }
 });
 document.querySelectorAll('[data-reading]').forEach((button) => {
-  button.addEventListener('click', () => {
-    input.value = button.dataset.reading;
-    savePhrase();
-    picker.convert();
-    input.focus();
-  });
+  button.addEventListener('click', () => editor.insertExample(button.dataset.reading));
 });
+restoreLegacyPhrase(byId('restore-phrase'), (text) => editor.insertExample(text));

@@ -1,4 +1,4 @@
-export function watchReadiness(onUnavailable) {
+export function watchReadiness(onState) {
   const status = document.getElementById('engine-status');
   const retry = document.getElementById('retry-engine');
   const composition = document.getElementById('composition');
@@ -21,7 +21,7 @@ export function watchReadiness(onUnavailable) {
       error: 'Couldn’t prepare the model. Your writing is still here.',
     };
     status.textContent = messages[state];
-    if (state !== 'ready') onUnavailable();
+    onState(state);
   }
 
   async function check(run = generation) {

@@ -30,22 +30,33 @@ page offers **Try again**. Ensure `npm run setup:neural` completed successfully.
 Readiness is available at `GET /api/v1/engine`; `POST /api/v1/engine/retry` starts
 a fresh warmup. Saved notebook and pending-phrase text are retained during retry.
 
-Type romaji in the phrase field; WanaKana converts it to kana locally. Space or
-Convert requests candidates. Arrow keys or Space cycle choices; Enter or clicking
-a candidate inserts it at the notebook's selection. Escape dismisses candidates
-without deleting the phrase. Add as kana bypasses conversion. You can edit the
-notebook with ordinary text editing or your OS Japanese keyboard.
+Type romaji **directly in the notebook**; WanaKana turns the active composition
+into kana without touching the surrounding text. Space (or Convert) requests
+neural candidates in a popup beside the cursor. Space/Up/Down cycle choices and
+preview each one in place. Enter confirms; a second Enter makes a new line.
+Typing another phrase also confirms the current candidate. Escape returns a
+candidate to kana, and Keep kana confirms the reading without kanji. Ordinary
+Space inserts a space when there is no composition to convert.
 
-Notebook text and the pending phrase stay in this browser's local storage. Copy
-text exports the notebook. Conversion runs locally in a persistent subprocess;
-the neural model runs on this Mac, with no Google conversion API or persistent learning.
-The page loads its font styles from Google Fonts, as the existing site does.
+Use the 日本語 / ABC toggle for English text. In Japanese mode, period/comma and
+question/exclamation marks become 。、？！. Your existing OS Japanese IME passes
+through unchanged. Paste remains literal. Select existing kana and press Space
+to convert it again. Cursor edits and replacement selections preserve the rest
+of the notebook. Undo/redo covers committed compositions and ordinary edits;
+up to 100 snapshots are kept for the current page session.
 
-This is deliberately a **phrase-at-a-time playground**, not a complete inline IME.
-There is no phrase-boundary resizing, reconversion of committed text, custom undo
-history for insertion, or WaniKani-aware candidate annotation yet. The notebook's
-native editing behavior remains available. Native iOS and Android interfaces are
-not implemented in this experiment.
+Notebook text is saved in this browser's local storage, including the currently
+visible composition. Reload keeps the text but ends the active composition.
+If the previous separate phrase box had unfinished text, a Restore unfinished
+phrase button lets you recover it explicitly. Copy text exports the notebook.
+Conversion runs locally in a persistent subprocess; the neural model runs on this
+Mac, with no Google conversion API or persistent learning. The page loads its
+font styles from Google Fonts, as the existing site does.
+
+This is an **inline notebook input experiment**, not a system-wide keyboard.
+There is no phrase-boundary resizing, reverse conversion of committed kanji,
+or WaniKani-aware candidate annotation yet. Native iOS/Android interfaces and
+real mobile software keyboards have not been validated by the viewport tests.
 
 ## Architecture and portability
 
@@ -198,9 +209,10 @@ npm run benchmark
 `npm run benchmark` writes an ignored `results.local.json`; it does not overwrite
 the checked-in initial measurement. Set `SCREENSHOT_DIR` when running browser
 tests to save desktop and narrow-screen screenshots outside the source tree.
-Browser tests cover real conversion and keyboard selection, reload persistence,
-stale requests, service errors, native composition key handling, notebook growth,
-and mobile overflow. They are browser viewport tests, not simulator/native tests.
+Browser tests cover real inline neural conversion, candidate preview/selection,
+mid-paragraph edits, undo/redo, Escape/backspace, native composition events,
+clipboard cuts, punctuation, English mode, legacy phrase recovery, reload
+persistence, stale responses, readiness/retry, notebook growth, and popup bounds. They are browser viewport tests, not simulator/native tests.
 
 ## Attribution
 

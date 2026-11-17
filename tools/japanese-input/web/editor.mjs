@@ -34,18 +34,20 @@ export function attachNotebook(field, onStatus) {
   grow(field);
 }
 
-export function attachPhrase(field) {
+// Keep unfinished writing from the former phrase box recoverable without
+// silently adding it to the notebook during a layout upgrade.
+export function restoreLegacyPhrase(button, restore) {
   const key = 'convolab:typing-playground:phrase:v1';
   try {
-    field.value = localStorage.getItem(key) ?? '';
+    const text = localStorage.getItem(key);
+    if (!text) return;
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      restore(text);
+      localStorage.removeItem(key);
+      button.hidden = true;
+    });
   } catch {
-    /* Notebook remains usable. */
+    // The original stored value is retained if storage is unavailable.
   }
-  return () => {
-    try {
-      localStorage.setItem(key, field.value);
-    } catch {
-      /* Notebook remains usable. */
-    }
-  };
 }
