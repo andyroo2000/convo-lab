@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useNavigationType,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import JournalEntriesDrawer from '../features/journal/JournalEntriesDrawer';
 import JournalOverflow from '../features/journal/JournalOverflow';
 import JournalDeskContext from '../features/journal/JournalDeskContext';
@@ -26,6 +32,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   const [appearanceSaved, setAppearanceSaved] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const archive = useJournalArchive(ownerId);
   const [editorRevision, setEditorRevision] = useState(0);
   const [editorBusy, setEditorBusy] = useState(false);
@@ -120,7 +127,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
               key={location.key}
               ownerId={ownerId}
               archive={archive}
-              blank={location.state?.blank === true}
+              blank={navigationType === 'PUSH' && location.state?.blank === true}
               onActiveDraft={setBlankDraftId}
               onSelectToday={(id) => navigate(`/app/journal/${id}`, { replace: true })}
               onBusyChange={setEditorBusy}

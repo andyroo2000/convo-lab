@@ -104,6 +104,12 @@ test('Journal starts blank, saves on typing, closes deliberately, and resumes to
   await expect(page).toHaveURL(/\/app\/journal\/[a-z0-9]+$/);
   await expect(notebook).toHaveValue('今日、映画を見た。');
   await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Keep draft & close' }).click();
+  await expect(notebook).toHaveValue('');
+  await page.reload();
+  await expect(page).toHaveURL(/\/app\/journal\/[a-z0-9]+$/);
+  await expect(notebook).toHaveValue('今日、映画を見た。');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Delete draft', exact: true }).click();
   await expect(notebook).toHaveValue('');
   await expect(page.getByRole('button', { name: 'Continue draft' })).toHaveCount(0);
