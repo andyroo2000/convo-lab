@@ -104,7 +104,7 @@ export class InlineEditor {
 
   handlePunctuation(event) {
     if (!this.japanese || event.inputType !== 'insertText') return false;
-    const text = { '.': '。', ',': '、', '?': '？', '!': '！' }[event.data];
+    const text = { '.': '。', ',': '、', '?': '？', '!': '！', '/': '・' }[event.data];
     if (!text) return false;
     event.preventDefault();
     this.finish();

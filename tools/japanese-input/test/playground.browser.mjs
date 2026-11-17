@@ -245,9 +245,12 @@ test('Japanese punctuation commits the current word while ABC keeps ASCII punctu
   await input.pressSequentially('.');
   await expect(input).toHaveValue('箸で食べました。');
   await expect(page.locator('#candidates')).toBeHidden();
+  await input.pressSequentially('hari-/potta-');
+  await input.press('Enter');
+  await expect(input).toHaveValue('箸で食べました。はりー・ぽったー');
   await page.locator('#mode').click();
-  await input.pressSequentially(' Yes!');
-  await expect(input).toHaveValue('箸で食べました。 Yes!');
+  await input.pressSequentially(' Yes/no!');
+  await expect(input).toHaveValue('箸で食べました。はりー・ぽったー Yes/no!');
 });
 
 test('cutting a selected candidate removes it and undo restores it', async (t) => {

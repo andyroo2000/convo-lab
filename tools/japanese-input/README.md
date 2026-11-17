@@ -39,7 +39,8 @@ candidate to kana, and Keep kana confirms the reading without kanji. Ordinary
 Space inserts a space when there is no composition to convert.
 
 Use the 日本語 / ABC toggle for English text. In Japanese mode, period/comma and
-question/exclamation marks become 。、？！. Your existing OS Japanese IME passes
+question/exclamation marks become 。、？！, and slash `/` becomes the middle dot `・`
+(as in ハリー・ポッター). Use ABC mode for a literal slash. Your existing OS Japanese IME passes
 through unchanged. Paste remains literal. Select existing kana and press Space
 to convert it again. Cursor edits and replacement selections preserve the rest
 of the notebook. Undo/redo covers committed compositions and ordinary edits;
