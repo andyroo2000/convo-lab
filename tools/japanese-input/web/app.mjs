@@ -1,6 +1,7 @@
 import { bind, toHiragana } from '/wanakana.js';
 import { attachNotebook, attachPhrase, insertText } from './editor.mjs';
 import { CandidatePicker } from './candidates.mjs';
+import { watchReadiness } from './readiness.mjs';
 
 const byId = (id) => document.getElementById(id);
 const input = byId('phrase');
@@ -30,6 +31,7 @@ const picker = new CandidatePicker(
 );
 
 attachNotebook(notebook, say);
+watchReadiness(() => picker.invalidate());
 bind(input);
 input.addEventListener('input', () => {
   picker.invalidate();

@@ -6,12 +6,14 @@ asset and notebook colors.
 
 ## Run
 
-Requires Node 22+ and Swift 6.1+ (tested with Apple Swift 6.2.4 on arm64 macOS).
+Requires Apple Silicon macOS, Xcode, Node 22+, and Swift 6.1+
+(tested with Apple Swift 6.2.4 on an M3 Mac).
 
 ```sh
 cd tools/japanese-input
 npm ci
 npm run setup
+npm run setup:neural
 npm start
 ```
 
@@ -19,6 +21,14 @@ Open **http://127.0.0.1:5188**. Set `PORT` to use another local port. Initial se
 downloads the pinned upstream source, dictionaries, Swift dependencies, and
 upstream binary artifacts; it needs network access and several hundred MB.
 No API keys or ConvoLab environment files are needed.
+
+The server starts normal-effort Zenzai (inference limit 1) immediately and warms
+it with three synthetic phrases before accepting conversion requests. Wait for
+**Ready to write · Neural conversion**. First use can take several seconds;
+the model stays loaded between phrases and page reloads. If loading fails, the
+page offers **Try again**. Ensure `npm run setup:neural` completed successfully.
+Readiness is available at `GET /api/v1/engine`; `POST /api/v1/engine/retry` starts
+a fresh warmup. Saved notebook and pending-phrase text are retained during retry.
 
 Type romaji in the phrase field; WanaKana converts it to kana locally. Space or
 Convert requests candidates. Arrow keys or Space cycle choices; Enter or clicking
@@ -28,7 +38,7 @@ notebook with ordinary text editing or your OS Japanese keyboard.
 
 Notebook text and the pending phrase stay in this browser's local storage. Copy
 text exports the notebook. Conversion runs locally in a persistent subprocess;
-there is no Google conversion API, neural model inference, or persistent learning.
+the neural model runs on this Mac, with no Google conversion API or persistent learning.
 The page loads its font styles from Google Fonts, as the existing site does.
 
 This is deliberately a **phrase-at-a-time playground**, not a complete inline IME.
@@ -52,10 +62,11 @@ Content-Type: application/json
 {
   "schemaVersion": 1,
   "engine": {
-    "id": "azookey-dictionary",
+    "id": "azookey-zenzai-limit-1",
     "version": "0.11.2",
     "revision": "80b8204f1cdfb364bb2ed355cf52c7ebb2519a0c",
-    "neural": false,
+    "neural": true,
+    "inferenceLimit": 1,
     "learning": false
   },
   "reading": "きのうえいがをみました",
@@ -64,7 +75,7 @@ Content-Type: application/json
 }
 ```
 
-The response above is illustrative. `engineMs` measures conversion, not network
+The response above is illustrative and shows a subset of the engine metadata. `engineMs` measures conversion, not network
 latency. Candidate arrays may be empty. Only full-reading candidates are returned;
 partial completions must never replace and silently discard the remainder.
 Requests accept one line of 1–120 characters after NFC normalization and trimming.
@@ -72,7 +83,8 @@ Invalid requests return 400; a busy, missing, failed, or timed-out engine return
 
 The worker loads dictionaries once, handles requests sequentially, and resets
 composition between conversions. The bridge bounds the pending queue at 16 and
-times out after 10 seconds. It restarts the worker lazily after failure. No shared
+times out after 60 seconds in neural mode. Readiness detects worker failure and
+requires another warmup through Try again before resuming. No shared
 user learning, input logging, or history is enabled.
 
 Web, Swift/iOS, and Kotlin/Android clients could all use this JSON contract. The
@@ -162,8 +174,9 @@ before every phrase. Model-loading failure terminates the worker instead of
 silently reporting dictionary fallback as neural conversion. Results go to ignored
 `neural-comparison.local.json`.
 
-The browser still uses dictionary-only AzooKey; these are local engine experiments,
-not a production or cross-platform engine selection.
+The interactive browser now uses normal-effort Zenzai with startup preloading.
+The original dictionary-only worker remains available for benchmark comparisons.
+This is a local experiment, not a production or cross-platform engine selection.
 
 Useful upstream references:
 

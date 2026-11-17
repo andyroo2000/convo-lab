@@ -24,6 +24,9 @@ async function openPage(t, viewport = { width: 1440, height: 1100 }) {
   const page = await context.newPage();
   await page.goto(url);
   await expect(page.locator('#phrase')).toBeVisible();
+  await expect(page.locator('#engine-status')).toHaveText('Ready to write · Neural conversion', {
+    timeout: 60000,
+  });
   return page;
 }
 
@@ -33,19 +36,52 @@ test('romaji converts, keyboard selects, and notebook survives reload', async (t
   await input.pressSequentially('kinoueigawomimashita');
   await expect(input).toHaveValue('きのうえいがをみました');
   await input.press('Space');
-  await expect(page.locator('#candidates button').first()).toHaveText('昨日映画を見ました');
+  await expect(page.locator('#candidates button').first()).toHaveText(/^昨日映画を[見観]ました$/);
+  const alternate = await page.locator('#candidates button').nth(1).textContent();
   await input.press('ArrowDown');
   await expect(page.locator('#candidates button').nth(1)).toHaveAttribute('aria-pressed', 'true');
   await input.press('Enter');
-  await expect(page.locator('#notebook')).toHaveValue('昨日映画を観ました');
+  await expect(page.locator('#notebook')).toHaveValue(alternate);
   await expect(input).toHaveValue('');
   await page.reload();
-  await expect(page.locator('#notebook')).toHaveValue('昨日映画を観ました');
+  await expect(page.locator('#notebook')).toHaveValue(alternate);
   await input.pressSequentially('sonoato');
   await page.reload();
   await expect(input).toHaveValue('そのあと');
   await page.locator('#keep-kana').click();
-  await expect(page.locator('#notebook')).toHaveValue('昨日映画を観ましたそのあと');
+  await expect(page.locator('#notebook')).toHaveValue(`${alternate}そのあと`);
+});
+
+test('neural mode fixes the chopsticks phrase and reports the selected engine', async (t) => {
+  const page = await openPage(t);
+  const converted = page.waitForResponse('**/api/v1/convert');
+  await page.locator('[data-reading="はしでたべました"]').click();
+  const body = await (await converted).json();
+  assert.equal(body.engine.neural, true);
+  assert.equal(body.engine.inferenceLimit, 1);
+  await expect(page.locator('#candidates button').first()).toHaveText('箸で食べました');
+});
+
+test('loading and retry protect saved writing and prevent early conversion', async (t) => {
+  const page = await openPage(t);
+  await page.locator('#notebook').fill('保存した文章');
+  await page.locator('#phrase').fill('そのあと');
+  let state = 'loading';
+  await page.route('**/api/v1/engine', (route) => route.fulfill({ json: { state } }));
+  await page.reload();
+  await expect(page.locator('#phrase')).toBeDisabled();
+  await expect(page.locator('[data-reading]').first()).toBeDisabled();
+  await expect(page.locator('#notebook')).toHaveValue('保存した文章');
+  state = 'error';
+  await expect(page.locator('#retry-engine')).toBeVisible();
+  await page.route('**/api/v1/engine/retry', (route) => {
+    state = 'ready';
+    return route.fulfill({ status: 202, json: { state } });
+  });
+  await page.locator('#retry-engine').click();
+  await expect(page.locator('#phrase')).toBeEnabled();
+  await expect(page.locator('#phrase')).toHaveValue('そのあと');
+  await expect(page.locator('#notebook')).toHaveValue('保存した文章');
 });
 
 test('stale responses and service failures preserve the current phrase', async (t) => {

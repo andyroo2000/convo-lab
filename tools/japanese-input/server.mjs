@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { EngineClient } from './engine-client.mjs';
+import { NeuralRuntime } from './neural-runtime.mjs';
 import { engineInfo, validateConversion, conversionResponse } from './contract.mjs';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
@@ -11,6 +11,7 @@ const assets = new Map([
   ['/app.mjs', ['web/app.mjs', 'text/javascript']],
   ['/editor.mjs', ['web/editor.mjs', 'text/javascript']],
   ['/candidates.mjs', ['web/candidates.mjs', 'text/javascript']],
+  ['/readiness.mjs', ['web/readiness.mjs', 'text/javascript']],
   ['/style.css', ['web/style.css', 'text/css']],
   ['/wanakana.js', ['node_modules/wanakana/esm/index.js', 'text/javascript']],
   ['/tutor.webp', ['../../client/public/images/tutor-hana.webp', 'image/webp']],
@@ -51,10 +52,32 @@ async function convertRequest(request, response, engine) {
   }
   try {
     const result = await engine.convert(reading);
-    json(response, 200, conversionResponse(reading, result));
+    json(response, 200, conversionResponse(reading, result, engine.info));
   } catch (error) {
     json(response, 503, { error: error.message });
   }
+}
+
+function engineSnapshot(engine) {
+  return engine.snapshot?.() ?? { ...engineInfo, state: 'ready' };
+}
+
+async function apiRoute(request, response, engine, path) {
+  switch (`${request.method} ${path}`) {
+    case 'POST /api/v1/convert':
+      await convertRequest(request, response, engine);
+      break;
+    case 'GET /api/v1/engine':
+      json(response, 200, engineSnapshot(engine));
+      break;
+    case 'POST /api/v1/engine/retry':
+      engine.preload?.();
+      json(response, 202, engineSnapshot(engine));
+      break;
+    default:
+      return false;
+  }
+  return true;
 }
 
 async function route(request, response, engine) {
@@ -63,14 +86,7 @@ async function route(request, response, engine) {
     return;
   }
   const path = new URL(request.url, 'http://localhost').pathname;
-  if (path === '/api/v1/convert' && request.method === 'POST') {
-    await convertRequest(request, response, engine);
-    return;
-  }
-  if (path === '/api/v1/engine' && request.method === 'GET') {
-    json(response, 200, engineInfo);
-    return;
-  }
+  if (await apiRoute(request, response, engine, path)) return;
   const asset = assets.get(path);
   if (request.method !== 'GET' || !asset) {
     json(response, 404, { error: 'Page not found.' });
@@ -85,7 +101,7 @@ async function route(request, response, engine) {
   response.end(content);
 }
 
-export function createPlaygroundServer(engine = new EngineClient()) {
+export function createPlaygroundServer(engine = new NeuralRuntime()) {
   const server = createServer((request, response) => {
     route(request, response, engine).catch(() =>
       json(response, 500, { error: 'Could not load the playground.' })

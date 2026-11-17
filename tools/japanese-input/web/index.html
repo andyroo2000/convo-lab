@@ -21,6 +21,12 @@
         </div>
         <img src="/tutor.webp" alt="" />
       </div>
+      <div class="readiness">
+        <p id="engine-status" role="status" aria-live="polite" data-state="loading">
+          Getting the model ready… You can start typing in a moment.
+        </p>
+        <button id="retry-engine" type="button" hidden>Try again</button>
+      </div>
       <div class="workspace">
         <section class="writing" aria-label="Japanese typing playground">
           <div class="notebook-heading">
@@ -36,7 +42,12 @@
               spellcheck="false"
               lang="ja"
             ></textarea>
-            <div class="compose">
+            <fieldset
+              class="compose"
+              id="composition"
+              disabled
+              aria-label="Convert your next phrase"
+            >
               <label for="phrase"
                 >Write the next phrase <span>English keyboard is fine</span></label
               >
@@ -66,7 +77,7 @@
                 <p id="status" role="status" aria-live="polite">Start with a short phrase.</p>
                 <button id="keep-kana" type="button">Add as kana</button>
               </div>
-            </div>
+            </fieldset>
           </div>
           <div class="notebook-footer">
             <span>Local scratchpad · separate from your Journal</span
@@ -77,23 +88,23 @@
           <p class="eyebrow">ひとことずつ</p>
           <h2>Try a phrase</h2>
           <p>These examples test a few different readings.</p>
-          <button class="example" data-reading="きのうえいがをみました">
+          <button class="example" data-reading="きのうえいがをみました" disabled>
             <span lang="ja">きのうえいがをみました</span><small>I watched a movie yesterday.</small>
           </button>
-          <button class="example" data-reading="はしをわたりました">
+          <button class="example" data-reading="はしをわたりました" disabled>
             <span lang="ja">はしをわたりました</span><small>I crossed a bridge.</small>
           </button>
-          <button class="example" data-reading="はしでたべました">
+          <button class="example" data-reading="はしでたべました" disabled>
             <span lang="ja">はしでたべました</span><small>I ate with chopsticks.</small>
           </button>
-          <button class="example" data-reading="そのあとともだちにあいました">
+          <button class="example" data-reading="そのあとともだちにあいました" disabled>
             <span lang="ja">そのあとともだちにあいました</span
             ><small>After that, I met a friend.</small>
           </button>
           <div class="engine-note">
             <h3>Under the hood</h3>
-            <p>AzooKey · dictionary conversion</p>
-            <p>No Google conversion service, neural rewriting, or shared learning history.</p>
+            <p>AzooKey · Zenzai neural conversion</p>
+            <p>Normal effort · preloaded locally · no shared learning history.</p>
             <p id="metrics">Conversion timing will appear here.</p>
             <details>
               <summary>About this experiment</summary>

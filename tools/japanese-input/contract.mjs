@@ -16,10 +16,10 @@ export function validateConversion(body) {
   return reading;
 }
 
-export function conversionResponse(reading, result) {
+export function conversionResponse(reading, result, info = engineInfo) {
   return {
     schemaVersion: 1,
-    engine: engineInfo,
+    engine: info,
     reading,
     candidates: result.candidates,
     engineMs: result.engineMs,

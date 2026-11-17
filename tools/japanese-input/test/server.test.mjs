@@ -74,3 +74,32 @@ test('missing engine binary rejects requests instead of hanging', async () => {
     client.close();
   }
 });
+
+test('readiness and retry endpoints reflect runtime state and reject foreign origins', async (t) => {
+  let state = 'error';
+  let retries = 0;
+  const server = createPlaygroundServer({
+    snapshot: () => ({ neural: true, inferenceLimit: 1, state }),
+    preload() {
+      retries += 1;
+      state = 'loading';
+    },
+    close() {},
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const url = `http://127.0.0.1:${server.address().port}/api/v1/engine`;
+  assert.equal((await (await fetch(url)).json()).state, 'error');
+  const blocked = await fetch(`${url}/retry`, {
+    method: 'POST',
+    headers: { Origin: 'https://example.com' },
+  });
+  assert.equal(blocked.status, 403);
+  assert.equal(retries, 0);
+  const retry = await fetch(`${url}/retry`, { method: 'POST' });
+  assert.equal(retry.status, 202);
+  assert.equal((await retry.json()).state, 'loading');
+  assert.equal(retries, 1);
+  state = 'ready';
+  assert.equal((await (await fetch(url)).json()).state, 'ready');
+});

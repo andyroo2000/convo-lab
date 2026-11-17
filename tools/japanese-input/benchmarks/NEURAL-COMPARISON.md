@@ -62,7 +62,7 @@ npm run setup:neural
 npm run benchmark:neural
 ```
 
-New results go to ignored `neural-comparison.local.json`. See [all raw measurements and candidate lists](zenzai-vs-dictionary-macos.json). The browser playground and production app have not been switched to neural mode.
+New results go to ignored `neural-comparison.local.json`. See [all raw measurements and candidate lists](zenzai-vs-dictionary-macos.json). This comparison did not change the production app. The current interactive playground configuration is documented in [the README](../README.md).
 
 ## Every first choice
 
