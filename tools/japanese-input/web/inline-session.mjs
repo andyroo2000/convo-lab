@@ -46,7 +46,11 @@ export class InlineSession {
   atCaret() {
     if (!this.intact()) return false;
     const { start, end } = this.active;
-    return this.field.selectionEnd === end && [start, end].includes(this.field.selectionStart);
+    const selection = this.active.selection ?? [end, end];
+    return (
+      this.field.selectionEnd === selection[1] &&
+      [start, selection[0]].includes(this.field.selectionStart)
+    );
   }
 
   replace(text, selected = false) {
@@ -55,15 +59,27 @@ export class InlineSession {
     this.field.setRangeText(text, active.start, active.end, 'end');
     active.end = active.start + text.length;
     active.visible = text;
-    if (selected) this.field.setSelectionRange(active.start, active.end);
+    this.select(selected ? active.start : active.end, active.end);
     this.changed();
+  }
+
+  select(start, end) {
+    this.active.selection = [start, end];
+    this.field.setSelectionRange(start, end);
   }
 
   append(text) {
     if (!this.active) this.begin();
+    const previous = this.active;
     this.active.raw += text;
-    this.active.preview = false;
-    this.replace(this.kana(this.active.raw));
+    const reading = this.kana(this.active.raw);
+    if (previous.convertedReading && reading.startsWith(previous.convertedReading)) {
+      this.replace(previous.convertedText + reading.slice(previous.convertedReading.length));
+    } else {
+      this.active.convertedReading = '';
+      this.active.preview = false;
+      this.replace(reading);
+    }
   }
 
   reading() {
@@ -79,6 +95,7 @@ export class InlineSession {
   restore() {
     if (!this.active) return;
     this.active.preview = false;
+    this.active.convertedReading = '';
     this.replace(this.reading());
   }
 
@@ -96,7 +113,11 @@ export class InlineSession {
       this.active = null;
       return;
     }
-    if (!this.active.preview) this.replace(this.reading());
+    if (this.active.convertedReading) {
+      this.replace(
+        this.active.convertedText + this.reading().slice(this.active.convertedReading.length)
+      );
+    } else if (!this.active.preview) this.replace(this.reading());
     this.field.setSelectionRange(this.active.end, this.active.end);
     this.active = null;
   }

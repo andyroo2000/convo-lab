@@ -17,7 +17,7 @@
         <div>
           <p class="eyebrow">日本語を書こう</p>
           <h1>Japanese, from your keyboard.</h1>
-          <p>Write right on the page. Space for kanji. Enter to keep it.</p>
+          <p>Write right on the page. Kanji appears as you pause. Enter to commit.</p>
         </div>
         <img src="/tutor.webp" alt="" />
       </div>
@@ -35,17 +35,19 @@
           </div>
           <div class="paper">
             <label class="sr-only" for="notebook">Your notebook</label>
-            <textarea
-              id="notebook"
-              rows="6"
-              readonly
-              placeholder="Start writing here: kinoueigawomimashita"
-              spellcheck="false"
-              autocomplete="off"
-              autocapitalize="off"
-              lang="ja"
-              aria-describedby="typing-help status"
-            ></textarea>
+            <div class="notebook-input">
+              <textarea
+                id="notebook"
+                rows="6"
+                readonly
+                placeholder="Start writing here: kinoueigawomimashita"
+                spellcheck="false"
+                autocomplete="off"
+                autocapitalize="off"
+                lang="ja"
+                aria-describedby="typing-help status"
+              ></textarea>
+            </div>
           </div>
           <fieldset id="composition" class="notebook-tools" disabled aria-label="Writing controls">
             <button
@@ -62,8 +64,8 @@
             <button id="restore-phrase" type="button" hidden>Restore unfinished phrase</button>
           </fieldset>
           <p id="typing-help" class="help">
-            <kbd>Space</kbd> convert / next choice · <kbd>↑</kbd> <kbd>↓</kbd> choose ·
-            <kbd>Enter</kbd> confirm · <kbd>Esc</kbd> return to kana
+            <kbd>Space</kbd> choices · <kbd>← →</kbd> sections · <kbd>↑ ↓</kbd> alternatives ·
+            <kbd>Enter</kbd> commit · <kbd>Esc</kbd> return to kana
           </p>
           <p id="status" role="status" aria-live="polite">Type in the notebook.</p>
           <div class="notebook-footer">

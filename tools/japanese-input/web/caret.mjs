@@ -21,9 +21,10 @@ export function placeCandidates(field, panel) {
     whiteSpace: 'pre-wrap',
     overflowWrap: 'break-word',
   });
-  mirror.textContent = field.value.slice(0, field.selectionEnd);
+  mirror.textContent = field.value.slice(0, field.selectionStart);
   const marker = document.createElement('span');
-  marker.textContent = '\u200b';
+  marker.textContent =
+    field.value.slice(field.selectionStart, field.selectionStart + 1) || '\u200b';
   mirror.append(marker);
   document.body.append(mirror);
   const caret = marker.getBoundingClientRect();
@@ -33,8 +34,8 @@ export function placeCandidates(field, panel) {
   mirror.remove();
   const height = panel.getBoundingClientRect().height;
   const width = panel.getBoundingClientRect().width;
-  let top = y + parseFloat(style.lineHeight) + 4;
-  if (top + height > innerHeight - 12) top = Math.max(12, y - height - 4);
+  let top = y - height - 8;
+  if (top < 12) top = y + parseFloat(style.lineHeight) + 4;
   panel.style.left = `${Math.max(12, Math.min(x, innerWidth - width - 12))}px`;
   panel.style.top = `${Math.min(top, Math.max(12, innerHeight - height - 12))}px`;
 }

@@ -9,6 +9,8 @@ struct ConversionInput: Decodable {
 struct ConversionCandidate: Encodable {
     let text: String
     let reading: String
+    let sections: [ConversionSection]
+    let units: [ConversionSection]
 }
 
 struct ConversionOutput: Encodable {
@@ -67,7 +69,7 @@ options.zenzaiMode = .on(
         // Partial completions must not silently discard the remaining reading.
         guard reading == request.reading.applyingTransform(.hiraganaToKatakana, reverse: false),
               seen.insert(candidate.text).inserted else { return nil }
-        return ConversionCandidate(text: candidate.text, reading: request.reading)
+        return ConversionCandidate(text: candidate.text, reading: request.reading, sections: sections(of: candidate, reading: request.reading), units: units(of: candidate, reading: request.reading))
     }
     let elapsed = start.duration(to: .now).components
     let milliseconds = Double(elapsed.seconds) * 1000 + Double(elapsed.attoseconds) / 1e15

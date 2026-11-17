@@ -1,14 +1,9 @@
 import { placeCandidates } from './caret.mjs';
 
 export class CandidatePicker {
-  items = [];
-  selected = 0;
-  generation = 0;
-  request = null;
-
-  constructor(elements, callbacks) {
+  constructor(elements, choose) {
     this.elements = elements;
-    this.callbacks = callbacks;
+    this.choose = choose;
     elements.list.addEventListener('pointerdown', (event) => {
       if (event.target.closest('button')) event.preventDefault();
     });
@@ -19,77 +14,29 @@ export class CandidatePicker {
     document.fonts.ready.then(reposition);
   }
 
-  invalidate() {
-    this.generation += 1;
-    this.request?.abort();
-    this.items = [];
-    this.elements.list.replaceChildren();
+  hide() {
     this.elements.list.hidden = true;
-    this.elements.convert.disabled = false;
+    this.elements.list.replaceChildren();
   }
 
-  async convert(reading) {
-    this.invalidate();
-    const generation = this.generation;
-    this.elements.convert.disabled = true;
-    this.elements.status.textContent = 'Finding kanji…';
-    this.request = new AbortController();
-    const started = performance.now();
-    try {
-      const response = await fetch('/api/v1/convert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reading }),
-        signal: this.request.signal,
-      });
-      const result = await response.json();
-      if (generation !== this.generation || !this.callbacks.active()) return;
-      if (!response.ok) throw new Error(result.error);
-      this.show(result.candidates);
-      this.elements.metrics.textContent = `${result.engineMs.toFixed(1)} ms engine · ${(performance.now() - started).toFixed(0)} ms round trip`;
-    } catch (error) {
-      if (generation === this.generation && error.name !== 'AbortError')
-        this.elements.status.textContent = `${error.message} Your text has been kept.`;
-    } finally {
-      if (generation === this.generation) this.elements.convert.disabled = false;
-    }
-  }
-
-  show(items) {
-    this.items = items;
-    this.selected = 0;
-    this.elements.status.textContent = items.length
-      ? 'Space or arrows to choose · Enter to confirm · Esc to return to kana.'
-      : 'No full-phrase match. Press Enter to keep the kana.';
-    this.elements.list.replaceChildren(
-      ...items.map((item, index) => {
+  show(section) {
+    const list = this.elements.list;
+    list.replaceChildren(
+      ...section.choices.map((text, index) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.lang = 'ja';
-        button.textContent = item.text;
-        button.setAttribute('aria-pressed', String(index === 0));
-        button.addEventListener('click', () => {
-          this.callbacks.preview(item.text);
-          this.callbacks.accept();
-        });
+        button.textContent = text;
+        button.setAttribute('aria-pressed', String(index === section.selected));
+        button.addEventListener('click', () => this.choose(index));
         return button;
       })
     );
-    this.elements.list.hidden = !items.length;
-    if (items.length) this.preview();
-  }
-
-  preview() {
-    this.callbacks.preview(this.items[this.selected].text);
-    placeCandidates(this.elements.input, this.elements.list);
-    [...this.elements.list.children].forEach((button, index) => {
-      button.setAttribute('aria-pressed', String(index === this.selected));
-    });
-    this.elements.list.children[this.selected]?.scrollIntoView({ block: 'nearest' });
-  }
-
-  move(direction) {
-    this.selected = (this.selected + direction + this.items.length) % this.items.length;
-    this.preview();
+    list.hidden = false;
+    list.style.height = `${Math.min(190, (section.choices.length - section.selected) * list.firstElementChild.offsetHeight + 8)}px`;
+    placeCandidates(this.elements.input, list);
+    // Kana sits immediately above the best suggestion, reachable with Up.
+    // Start the scroller at the current choice rather than the kana row.
+    list.scrollTop = list.children[section.selected]?.offsetTop - list.firstElementChild.offsetTop;
   }
 }

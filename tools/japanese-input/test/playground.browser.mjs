@@ -33,7 +33,9 @@ async function typeAndConvert(page, romaji, expected) {
   const input = page.locator('#notebook');
   await input.pressSequentially(romaji);
   await input.press('Space');
-  await expect(page.locator('#candidates button').first()).toHaveText(expected);
+  await expect
+    .poll(async () => (await page.locator('.composition-section').allTextContents()).join(''))
+    .toBe(expected);
   return input;
 }
 
@@ -52,8 +54,8 @@ test('inline neural conversion previews choices, confirms, and survives reload',
   assert.equal(body.engine.neural, true);
   assert.equal(body.engine.inferenceLimit, 1);
   await expect(input).toHaveValue('箸で食べました');
-  const alternate = await page.locator('#candidates button').nth(1).textContent();
   await input.press('ArrowDown');
+  const alternate = await input.inputValue();
   await expect(input).toHaveValue(alternate);
   await input.press('Enter');
   await expect(page.locator('#candidates')).toBeHidden();
@@ -87,7 +89,7 @@ test('Escape restores kana and backspace edits it without deleting its neighbors
   await expect(page.locator('#candidates')).toBeHidden();
 });
 
-test('typing after a candidate confirms it and starts a new composition', async (t) => {
+test('typing after a candidate continues the uncommitted phrase', async (t) => {
   const page = await openPage(t);
   const input = await typeAndConvert(page, 'hashidetabemashita', '箸で食べました');
   await input.pressSequentially('sonoato');
@@ -119,8 +121,8 @@ test('selected kana can be converted and candidate clicks keep surrounding writi
   await input.fill('前はしでたべました後');
   await input.evaluate((field) => field.setSelectionRange(1, field.value.length - 1));
   await input.press('Space');
-  await expect(page.locator('#candidates button').first()).toHaveText('箸で食べました');
-  await page.locator('#candidates button').first().click();
+  await expect(page.locator('#candidates button[aria-pressed=true]')).toHaveText('箸で');
+  await page.locator('#candidates button[aria-pressed=true]').click();
   await expect(input).toHaveValue('前箸で食べました後');
   await expect(input).toBeFocused();
 });
@@ -253,11 +255,11 @@ test('Japanese punctuation commits the current word while ABC keeps ASCII punctu
   await expect(input).toHaveValue('箸で食べました。はりー・ぽったー Yes/no!');
 });
 
-test('cutting a selected candidate removes it and undo restores it', async (t) => {
+test('cutting a selected section removes only that section and undo restores it', async (t) => {
   const page = await openPage(t);
   const input = await typeAndConvert(page, 'hashidetabemashita', '箸で食べました');
   await input.press('ControlOrMeta+x');
-  await expect(input).toHaveValue('');
+  await expect(input).toHaveValue('食べました');
   await input.press('ControlOrMeta+z');
   await expect(input).toHaveValue('箸で食べました');
 });
@@ -274,4 +276,103 @@ test('unfinished text from the former phrase box can be restored once', async (t
   await page.reload();
   await expect(page.locator('#restore-phrase')).toBeHidden();
   await expect(page.locator('#notebook')).toHaveValue('箸で食べました');
+});
+
+test('live neural conversion keeps whole-phrase context and lets arrows revise sections', async (t) => {
+  const page = await openPage(t);
+  const input = page.locator('#notebook');
+  const readings = [];
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/v1/convert')) readings.push(request.postDataJSON().reading);
+  });
+  await input.pressSequentially('hashidetabemashita');
+  await expect(input).toHaveValue('箸で食べました');
+  await expect(page.locator('.composition-section')).toHaveCount(2);
+  await expect(input).toHaveClass('composing');
+  await input.press('ArrowRight');
+  await expect(page.locator('.composition-section.current')).toHaveText('箸で');
+  await expect(page.locator('#candidates button[aria-pressed=true]')).toHaveText('箸で');
+  await input.press('ArrowDown');
+  await expect(input).toHaveValue('橋で食べました');
+  await input.press('ArrowRight');
+  await expect(page.locator('.composition-section.current')).toHaveText('食べました');
+  await input.press('ArrowUp');
+  await expect(input).toHaveValue('橋でたべました');
+  await input.press('ArrowLeft');
+  await expect(page.locator('.composition-section.current')).toHaveText('橋で');
+  assert.deepEqual(readings, ['はしでたべました']);
+  await input.press('Enter');
+  await expect(page.locator('.composition-layer')).toBeHidden();
+  await expect(input).toHaveValue('橋でたべました');
+  await page.reload();
+  await expect(input).toHaveValue('橋でたべました');
+});
+
+test('live conversion extends the whole phrase and keeps explicit section choices', async (t) => {
+  const page = await openPage(t);
+  const input = page.locator('#notebook');
+  await input.pressSequentially('hashidetabemashita');
+  await expect(input).toHaveValue('箸で食べました');
+  await input.press('ArrowRight');
+  await input.press('ArrowDown');
+  await expect(input).toHaveValue('橋で食べました');
+  const converted = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/v1/convert') &&
+      response.request().postDataJSON().reading === 'はしでたべましたそのあと'
+  );
+  await input.pressSequentially('sonoato');
+  await converted;
+  await expect.poll(async () => (await input.inputValue()).startsWith('橋で')).toBe(true);
+  await expect(page.locator('.composition-section')).not.toHaveCount(0);
+  await input.press('Enter');
+  await expect(page.locator('.composition-layer')).toBeHidden();
+  await input.press('ControlOrMeta+z');
+  await expect(input).toHaveValue('');
+});
+
+test('committing or moving focus while conversion is pending ignores its late result', async (t) => {
+  const page = await openPage(t);
+  const input = page.locator('#notebook');
+  let release;
+  const held = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/convert', async (route) => {
+    await held;
+    await route.fulfill({ json: { candidates: [{ text: '雨' }], engineMs: 1 } }).catch(() => {});
+  });
+  const requested = page.waitForRequest('**/api/v1/convert');
+  await input.pressSequentially('ame');
+  await requested;
+  await input.press('Enter');
+  await input.pressSequentially('ka');
+  await input.press('Enter');
+  release();
+  await page.unrouteAll({ behavior: 'wait' });
+  await expect(input).toHaveValue('あめか');
+  await expect(page.locator('.composition-layer')).toBeHidden();
+});
+
+test('long vowel readings stay exact and committing flushes an unfinished n after live text', async (t) => {
+  const page = await openPage(t);
+  const input = page.locator('#notebook');
+  const converted = page.waitForResponse('**/api/v1/convert');
+  await input.pressSequentially('ra-menwotabemashita');
+  const body = await (await converted).json();
+  assert.equal(
+    body.candidates[0].sections.map((part) => part.reading).join(''),
+    'らーめんをたべました'
+  );
+  await expect(input).toHaveValue(body.candidates[0].text);
+  await input.pressSequentially('n');
+  await input.press('Enter');
+  await expect(input).toHaveValue(`${body.candidates[0].text}ん`);
+  await input.fill('');
+  await input.pressSequentially('hon');
+  await input.press('Space');
+  await expect(input).toHaveValue('本');
+  await input.pressSequentially('a');
+  await input.press('Enter');
+  await expect(input).toHaveValue('ほな');
 });

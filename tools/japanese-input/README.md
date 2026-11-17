@@ -30,13 +30,34 @@ page offers **Try again**. Ensure `npm run setup:neural` completed successfully.
 Readiness is available at `GET /api/v1/engine`; `POST /api/v1/engine/retry` starts
 a fresh warmup. Saved notebook and pending-phrase text are retained during retry.
 
-Type romaji **directly in the notebook**; WanaKana turns the active composition
-into kana without touching the surrounding text. Space (or Convert) requests
-neural candidates in a popup beside the cursor. Space/Up/Down cycle choices and
-preview each one in place. Enter confirms; a second Enter makes a new line.
-Typing another phrase also confirms the current candidate. Escape returns a
-candidate to kana, and Keep kana confirms the reading without kanji. Ordinary
-Space inserts a space when there is no composition to convert.
+Type romaji **directly in the notebook**. Kana appears immediately; after a
+250 ms pause on a complete kana sound, normal-effort Zenzai suggests kanji for
+the **entire unfinished phrase**. The underlined text remains uncommitted.
+This delay is a UI heuristic, not a calibrated confidence threshold.
+
+- Space opens section choices (and advances through them when already open).
+- Left/Right selects a section; Up/Down changes that section's spelling.
+- The candidate window prefers the space above the active section, falling below
+  when there is not enough room. It scrolls, with kana above the best suggestion.
+- Enter commits the whole composition; another Enter inserts a newline.
+- Escape restores the whole reading to kana. Keep kana also commits that reading.
+- Continuing to type extends the original reading and re-converts it with its
+  complete context. Explicit section choices are retained. If a new engine
+  boundary overlaps a chosen section, the overlapping remainder stays kana.
+- Clicking elsewhere or switching to ABC commits the displayed text.
+
+AzooKey's public `Candidate.makePrefixClauseCandidate` supplies the primary
+clause boundaries. Its dictionary units align alternative whole-phrase candidates
+to those boundaries (literal kana edges may be split, never guessed kanji
+readings). Alternatives therefore retain their whole-phrase ranking; no section
+is converted in isolation. Kana and katakana are additional explicit spelling
+choices. Menus are limited to alternatives present in the returned whole-phrase
+candidates, so they are not as exhaustive as a native IME's dictionary menu.
+
+One request runs at a time per editor; typing coalesces into the newest pending
+phrase. Stale results after edits, commit, or native IME activation are ignored.
+A visual overlay adds section underlines while the real textarea retains native
+selection, clipboard, accessibility, and automatic height behavior.
 
 Use the 日本語 / ABC toggle for English text. In Japanese mode, period/comma and
 question/exclamation marks become 。、？！, and slash `/` becomes the middle dot `・`

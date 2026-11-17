@@ -394,3 +394,62 @@ summary {
     align-items: start;
   }
 }
+
+.notebook-input {
+  position: relative;
+}
+.composition-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  font-family: 'Klee One', 'Yu Mincho', serif;
+  font-size: 25px;
+  line-height: 56px;
+  color: var(--ink);
+}
+textarea.composing {
+  color: transparent;
+  caret-color: var(--ink);
+}
+textarea.composing::selection {
+  background: transparent;
+}
+.composition-section {
+  text-decoration: underline;
+  text-decoration-color: #547cac;
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+}
+.composition-section.current {
+  background: #e3ecfa;
+  text-decoration-thickness: 3px;
+}
+.candidates {
+  width: max-content;
+  min-width: 160px;
+  max-width: min(360px, calc(100vw - 24px));
+  max-height: min(190px, calc(100vh - 24px));
+  display: block;
+  padding: 4px;
+}
+.candidates button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 5px;
+  padding: 3px 12px;
+  font-size: 22px;
+}
+.candidates button[aria-pressed='true'] {
+  background: #e3ecfa;
+  color: #244c80;
+  box-shadow: none;
+}
+@media (max-width: 520px) {
+  .composition-layer {
+    font-size: 22px;
+  }
+}

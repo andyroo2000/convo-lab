@@ -1,6 +1,6 @@
 import { InlineSession, kanaComposer } from './inline-session.mjs';
 import { NotebookHistory } from './history.mjs';
-import { CandidatePicker } from './candidates.mjs';
+import { LiveComposition } from './live-composition.mjs';
 
 export class InlineEditor {
   native = false;
@@ -13,14 +13,7 @@ export class InlineEditor {
     this.field = elements.input;
     this.session = new InlineSession(this.field, kanaComposer(toHiragana), () => this.changed());
     this.history = new NotebookHistory(this.field, () => this.changed());
-    this.picker = new CandidatePicker(elements, {
-      active: () => this.session.atCaret(),
-      preview: (text) => this.session.preview(text),
-      accept: () => {
-        this.finish();
-        this.field.focus();
-      },
-    });
+    this.live = new LiveComposition(this.session, elements);
     this.listen();
   }
 
@@ -49,7 +42,7 @@ export class InlineEditor {
   externalInput() {
     if (this.internal) return;
     this.session.active = null;
-    this.picker.invalidate();
+    this.live.reset();
     if (!this.native) this.history.remember();
   }
 
@@ -61,10 +54,10 @@ export class InlineEditor {
 
   finish(preserveSelection = false) {
     this.session.finish(preserveSelection);
-    this.picker.invalidate();
+    this.live.reset();
     this.history.remember();
     this.elements.status.textContent =
-      'Type in the notebook · Space to convert · Enter to confirm.';
+      'Type in the notebook · Conversion appears as you pause · Enter to commit.';
   }
 
   toggleMode() {
@@ -79,7 +72,7 @@ export class InlineEditor {
     // A selection made by assistive technology or script must never be replaced
     // using the previous composition's offsets.
     this.session.active = null;
-    this.picker.invalidate();
+    this.live.reset();
     this.history.remember();
   }
 
@@ -95,8 +88,9 @@ export class InlineEditor {
     if (this.handlePunctuation(event)) return;
     if (event.inputType === 'deleteContentBackward' && this.session.active) {
       event.preventDefault();
-      this.picker.invalidate();
+      this.live.reset();
       this.session.backspace();
+      this.live.typed();
       return;
     }
     this.finish(this.field.selectionStart !== this.field.selectionEnd);
@@ -116,36 +110,25 @@ export class InlineEditor {
     if (!this.japanese || event.inputType !== 'insertText') return false;
     if (!/^[a-z'-]+$/i.test(event.data ?? '')) return false;
     event.preventDefault();
-    if (this.session.active?.preview) this.finish();
     if (!this.session.active) this.history.remember();
-    this.picker.invalidate();
     this.session.append(event.data);
-    this.elements.status.textContent = 'Space to choose kanji · Enter to keep kana.';
+    this.live.typed();
+    this.elements.status.textContent =
+      'Live conversion · Enter to commit · Space or arrows for choices.';
     return true;
   }
 
   convert() {
     if (!this.ready || this.native) return false;
     this.reconcileCaret();
-    if (this.picker.items.length) {
-      this.picker.move(1);
-      return true;
-    }
     if (!this.session.active && !this.selectedKana()) return false;
-    const reading = this.session.reading();
-    if (!reading) return false;
-    this.session.restore();
-    if (/[a-z]/i.test(reading)) {
-      this.elements.status.textContent = 'Finish the romaji sound before converting.';
-      return true;
-    }
-    this.picker.convert(reading);
+    this.live.convert();
     return true;
   }
 
   selectedKana() {
     const text = this.field.value.slice(this.field.selectionStart, this.field.selectionEnd);
-    if (!/^[\p{Script=Hiragana}\p{Script=Katakana}ー。、！？]+$/u.test(text)) return false;
+    if (!/^[\p{Script=Hiragana}\p{Script=Katakana}ー。、！？・]+$/u.test(text)) return false;
     this.history.remember();
     this.session.begin(text);
     return true;
@@ -153,8 +136,9 @@ export class InlineEditor {
 
   escape() {
     if (this.session.active?.preview) {
-      this.picker.invalidate();
+      this.live.reset();
       this.session.restore();
+      this.live.paint();
     } else this.finish();
   }
 
@@ -198,11 +182,9 @@ export class InlineEditor {
       actions[event.key]();
       return true;
     }
-    if (!this.picker.items.length) return false;
-    const direction = { ArrowDown: 1, ArrowUp: -1 }[event.key];
-    if (!direction) return false;
-    this.picker.move(direction);
-    return true;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key))
+      return this.live.arrow(event.key);
+    return false;
   }
 
   insertExample(reading) {
