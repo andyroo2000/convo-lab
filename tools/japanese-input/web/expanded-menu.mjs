@@ -28,10 +28,11 @@ export class ExpandedMenu {
     this.request.cancel();
   }
 
-  load(reading) {
-    if (reading === this.reading) return;
-    this.reading = reading;
+  load(reading, boundaries = []) {
+    const key = JSON.stringify([reading, boundaries]);
+    if (key === this.reading) return;
+    this.reading = key;
     this.elements.status.textContent = 'Looking for more choices…';
-    this.request.schedule(reading, true);
+    this.request.schedule(reading, true, boundaries);
   }
 }

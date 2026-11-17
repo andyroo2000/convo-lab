@@ -183,7 +183,7 @@ export class InlineEditor {
       return true;
     }
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key))
-      return this.live.arrow(event.key);
+      return this.live.arrow(event.key, event.shiftKey);
     return false;
   }
 

@@ -16,6 +16,7 @@ const assets = new Map([
   ['/inline-session.mjs', ['web/inline-session.mjs', 'text/javascript']],
   ['/history.mjs', ['web/history.mjs', 'text/javascript']],
   ['/sections.mjs', ['web/sections.mjs', 'text/javascript']],
+  ['/section-boundaries.mjs', ['web/section-boundaries.mjs', 'text/javascript']],
   ['/expanded-menu.mjs', ['web/expanded-menu.mjs', 'text/javascript']],
   ['/live-request.mjs', ['web/live-request.mjs', 'text/javascript']],
   ['/live-composition.mjs', ['web/live-composition.mjs', 'text/javascript']],
@@ -60,7 +61,10 @@ async function convertRequest(request, response, engine) {
     return;
   }
   try {
-    const result = await engine.convert(input.reading, { expanded: input.expanded });
+    const result = await engine.convert(input.reading, {
+      expanded: input.expanded,
+      ...(input.boundaries && { boundaries: input.boundaries }),
+    });
     json(response, 200, conversionResponse(input.reading, result, engine.info));
   } catch (error) {
     json(response, 503, { error: error.message });

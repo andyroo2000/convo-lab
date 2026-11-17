@@ -49,7 +49,7 @@ export class EngineClient {
     request.resolve(result);
   }
 
-  convert(reading, { expanded = false } = {}) {
+  convert(reading, { expanded = false, boundaries } = {}) {
     if (this.pending.size >= 16)
       return Promise.reject(new Error('The playground is busy. Try again.'));
     const child = this.start();
@@ -60,7 +60,7 @@ export class EngineClient {
         this.timeoutMs
       );
       this.pending.set(id, { resolve, reject, timer });
-      child.stdin.write(`${JSON.stringify({ id, reading, expanded })}\n`);
+      child.stdin.write(`${JSON.stringify({ id, reading, expanded, boundaries })}\n`);
     });
   }
 

@@ -37,6 +37,10 @@ This delay is a UI heuristic, not a calibrated confidence threshold.
 
 - Space opens section choices (and advances through them when already open).
 - Left/Right selects a section; Up/Down changes that section's spelling.
+- Shift + Left shortens the selected section by one reading character;
+  Shift + Right extends it into the next section. Consuming the next section
+  merges it; shortening the final section creates a new one. Neither action
+  commits text. Requested breaks and unaffected choices survive further typing.
 - The candidate window prefers the space above the active section, falling below
   when there is not enough room. It scrolls, with kana above the best suggestion.
 - Enter commits the whole composition; another Enter inserts a newline.
@@ -59,6 +63,17 @@ Candidates preserve lexical cores, kana particles, and verb endings to suppress
 fragment recombinations. This is broader, but bounded rather than an exhaustive
 native dictionary lookup. Some rare spellings or alternative word boundaries
 may still be absent. Expansion never changes the selected spelling or section.
+
+Manual breaks use the same complete reading. Compatible neural suggestions stay
+first; a constrained dictionary lattice supplies alternatives that respect every
+requested break. It removes dictionary edges crossing those breaks, while retaining
+connection and meaning scoring across the entire phrase. The neural model itself
+has no forced-reading-boundary API in this pinned version, so newly forced splits
+use statistical rather than neural ranking. No section is sent for isolated
+conversion. Until a lookup finishes, only safely aligned text is shown; an opaque
+kanji split falls back to kana. Unaffected sections keep their chosen text.
+This mode intentionally permits alternate word boundaries, so its dictionary
+suggestions do not use the ordinary menu's lexical-core filter.
 
 Live typing coalesces into the newest pending phrase. Menu expansion is a
 separate on-demand request, reused while navigating the same composition; it
@@ -120,6 +135,13 @@ The response above is illustrative and shows a subset of the engine metadata. `e
 latency. Candidate arrays may be empty. Only full-reading candidates are returned;
 partial completions must never replace and silently discard the remainder.
 Requests accept one line of 1–120 characters after NFC normalization and trimming.
+Optional `"boundaries": [2, 5]` supplies ordered interior UTF-16 reading offsets
+for manual breaks. Offsets must land between complete graphemes in the normalized
+reading. The browser sends them with `expanded: true` and always includes the
+entire reading. Changing a break invalidates any earlier menu request. The
+constrained adapter returns whole-phrase candidates whose dictionary units do not
+cross a requested break; the browser groups those units into the selected spans.
+
 Set `"expanded": true` on a conversion request to broaden the menu. It is optional
 and strictly boolean. Expanded responses include `expansion: "whole-phrase-neural-and-dictionary"`
 and at most 160 complete-phrase candidates; ordinary responses remain capped at 10.

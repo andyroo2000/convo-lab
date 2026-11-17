@@ -18,12 +18,12 @@ export class LiveRequest {
     this.pending = null;
   }
 
-  schedule(reading, immediate = false) {
+  schedule(reading, immediate = false, boundaries = []) {
     this.cancel();
     const version = this.version;
     this.timer = setTimeout(
       () => {
-        this.pending = { reading, version, immediate };
+        this.pending = { reading, version, immediate, boundaries };
         this.run();
       },
       immediate ? 0 : 250
@@ -40,7 +40,11 @@ export class LiveRequest {
       const response = await fetch('/api/v1/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reading: job.reading, expanded: this.expanded }),
+        body: JSON.stringify({
+          reading: job.reading,
+          expanded: this.expanded,
+          ...(job.boundaries.length && { boundaries: job.boundaries }),
+        }),
         signal: AbortSignal.timeout(65000),
       });
       const result = await response.json();

@@ -1,3 +1,4 @@
+import { resizedSections, resolveBoundaries, rememberBoundaries } from './section-boundaries.mjs';
 import { ExpandedMenu } from './expanded-menu.mjs';
 import { phraseSections, preserveChoices, expandSectionChoices } from './sections.mjs';
 import { LiveRequest } from './live-request.mjs';
@@ -6,6 +7,8 @@ import { CompositionView } from './composition-view.mjs';
 
 export class LiveComposition {
   sections = [];
+  candidates = [];
+  manualBoundaries = false;
   pins = [];
   selected = -1;
   choosing = false;
@@ -32,6 +35,8 @@ export class LiveComposition {
     this.picker.hide();
     this.sections = [];
     this.pins = [];
+    this.candidates = [];
+    this.manualBoundaries = false;
     this.selected = -1;
     this.choosing = false;
     this.paint();
@@ -71,6 +76,7 @@ export class LiveComposition {
 
   receive(job, result, elapsed) {
     if (!this.session.atCaret()) return;
+    this.candidates = result.candidates;
     const sections = phraseSections(job.reading, result.candidates);
     if (!sections.length) return;
     this.sections = preserveChoices(sections, this.pins);
@@ -104,17 +110,44 @@ export class LiveComposition {
     this.session.select(start, start + this.sections[this.selected].text.length);
     this.picker.show(this.sections[this.selected]);
     this.paint();
-    this.expansion.load(this.session.reading());
+    this.expansion.load(
+      this.session.reading(),
+      this.manualBoundaries ? this.sections.slice(1).map((s) => s.start) : []
+    );
   }
 
   extendChoices(reading, result) {
+    this.candidates = result.candidates;
+    this.sections = resolveBoundaries(this.sections, reading, result.candidates);
     this.sections = expandSectionChoices(this.sections, reading, result.candidates);
     this.pins = expandSectionChoices(this.pins, reading, result.candidates);
-    this.picker.show(this.sections[this.selected]);
+    if (this.manualBoundaries) this.pins = rememberBoundaries(this.sections);
+    this.session.active.convertedText = this.text();
+    this.session.replace(this.text());
+    this.select(this.selected);
+  }
+
+  resize(direction) {
+    if (!this.sections.length) return false;
+    if (!this.choosing) this.selected = 0;
+    const resized = resizedSections(this.sections, this.selected, direction, this.candidates);
+    if (resized === this.sections) {
+      this.select(this.selected);
+      return true;
+    }
+    this.expansion.reset();
+    this.manualBoundaries = true;
+    this.sections = resized;
+    this.pins = rememberBoundaries(resized);
+    this.session.active.convertedText = this.text();
+    this.session.replace(this.text());
+    this.select(this.selected);
+    return true;
   }
 
   choose(index) {
     const section = this.sections[this.selected];
+    section.pendingBoundary = false;
     section.selected = index;
     section.text = section.choices[index];
     this.pins = this.pins.filter((pin) => pin.start !== section.start);
@@ -130,7 +163,9 @@ export class LiveComposition {
     this.choose(Math.max(0, Math.min(part.selected + direction, part.choices.length - 1)));
   }
 
-  arrow(key) {
+  arrow(key, shift = false) {
+    const resizeDirection = { ArrowLeft: -1, ArrowRight: 1 }[key];
+    if (shift && resizeDirection) return this.resize(resizeDirection);
     if (!this.sections.length) return false;
     if (!this.choosing) {
       this.select(key === 'ArrowLeft' ? this.sections.length - 1 : 0);

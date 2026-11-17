@@ -512,3 +512,139 @@ test('a failed menu expansion leaves current choices usable and retries on deman
   await expect(input).toHaveValue(chosen);
   assert.ok((await page.locator('#candidates button').count()) > 12);
 });
+
+test('Shift arrows resize a section in the notebook with full-phrase requests and undo', async (t) => {
+  const page = await openPage(t);
+  const requests = [];
+  page.on('request', (r) => {
+    if (r.url().endsWith('/api/v1/convert')) requests.push(r.postDataJSON());
+  });
+  const input = await convertInMiddle(page, '前🙂後', 3);
+  await input.press('Shift+ArrowLeft');
+  await expect(page.locator('.composition-section.current')).toHaveText('箸');
+  await expect(page.locator('#status')).toContainText('More choices ready');
+  await expect(page.locator('.composition-section')).toHaveText(['箸', 'で食べました']);
+  if (process.env.SCREENSHOT_DIR) {
+    await page.screenshot({
+      path: `${process.env.SCREENSHOT_DIR}/resized-section.png`,
+      fullPage: true,
+    });
+  }
+  assert.ok(requests.some((r) => r.boundaries?.[0] === 2));
+  assert.ok(requests.every((r) => r.reading === 'はしでたべました'));
+  await input.press('ArrowUp');
+  await expect(page.locator('.composition-section.current')).toHaveText('はし');
+  await input.press('ArrowRight');
+  await expect(page.locator('.composition-section.current')).toHaveText('で食べました');
+  await input.press('Enter');
+  await expect(input).toHaveValue('前🙂はしで食べました後');
+  await input.press('ControlOrMeta+z');
+  await expect(input).toHaveValue('前🙂後');
+  await input.press('ControlOrMeta+Shift+z');
+  await expect(input).toHaveValue('前🙂はしで食べました後');
+});
+
+test('resizing inside a kanji reading obtains newly constrained candidates', async (t) => {
+  const page = await openPage(t);
+  const input = await typeAndConvert(page, 'hashidetabemashita', '箸で食べました');
+  const constrained = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/convert') && r.request().postDataJSON().boundaries?.[0] === 1
+  );
+  await input.press('Shift+ArrowLeft');
+  await input.press('Shift+ArrowLeft');
+  const result = await (await constrained).json();
+  assert.ok(result.candidates.length > 10);
+  for (const candidate of result.candidates) {
+    assert.equal(candidate.units[0].reading, 'は');
+    assert.equal(candidate.units.map((unit) => unit.reading).join(''), 'はしでたべました');
+  }
+  await expect(page.locator('#status')).toContainText('More choices ready');
+  const options = await page.locator('#candidates button').allTextContents();
+  assert.ok(
+    options.some((text) => /[葉歯派波]/.test(text)),
+    options.join(', ')
+  );
+  await input.press('Shift+ArrowLeft'); // Cannot shrink は to an empty section.
+  assert.equal(await page.locator('.composition-section').count(), 2);
+  await input.press('Escape');
+  await expect(input).toHaveValue('はしでたべました');
+  await input.press('Enter');
+});
+
+test('repeated boundary expansion merges sections, then shrinking splits the last section', async (t) => {
+  const page = await openPage(t);
+  const input = await typeAndConvert(page, 'hashidetabemashita', '箸で食べました');
+  for (let i = 0; i < 6; i++) await input.press('Shift+ArrowRight');
+  await expect(page.locator('.composition-section')).toHaveCount(1);
+  await input.press('Shift+ArrowLeft');
+  await expect(page.locator('.composition-section')).toHaveCount(2);
+  await expect(page.locator('#status')).toContainText('More choices ready');
+  await input.press('Escape');
+  await expect(input).toHaveValue('はしでたべました');
+});
+
+test('a late boundary response keeps a user choice and preserves breaks when typing continues', async (t) => {
+  const page = await openPage(t);
+  const input = await typeAndConvert(page, 'hashidetabemashita', '箸で食べました');
+  let release;
+  let arrived;
+  const received = new Promise((resolve) => {
+    arrived = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/convert', async (route) => {
+    if (route.request().postDataJSON().boundaries?.length) {
+      const response = await route.fetch();
+      arrived();
+      await gate;
+      await route.fulfill({ response });
+    } else await route.continue();
+  });
+  await input.press('Shift+ArrowLeft');
+  await received;
+  await input.press('ArrowUp');
+  await expect(page.locator('.composition-section.current')).toHaveText('はし');
+  release();
+  await expect(page.locator('#status')).toContainText('More choices ready');
+  await expect(page.locator('.composition-section.current')).toHaveText('はし');
+  await input.pressSequentially('sonoato');
+  await expect(page.locator('.composition-section')).toHaveCount(3);
+  await input.press('Space');
+  await expect(page.locator('.composition-section.current')).toHaveText('はし');
+  await input.press('Enter');
+  await expect(input).toHaveValue('はしで食べましたそのあと');
+  await page.unrouteAll({ behavior: 'wait' });
+});
+
+test('superseded and post-commit boundary responses cannot restore old sections', async (t) => {
+  const page = await openPage(t);
+  const input = await typeAndConvert(page, 'hashidetabemashita', '箸で食べました');
+  let release;
+  let arrived;
+  const received = new Promise((resolve) => {
+    arrived = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/convert', async (route) => {
+    if (route.request().postDataJSON().boundaries?.[0] === 2) {
+      const response = await route.fetch();
+      arrived();
+      await gate;
+      await route.fulfill({ response });
+    } else await route.continue();
+  });
+  await input.press('Shift+ArrowLeft');
+  await received;
+  await input.press('Shift+ArrowRight');
+  await expect(page.locator('.composition-section')).toHaveText(['箸で', '食べました']);
+  await input.press('Enter');
+  await input.pressSequentially('a');
+  release();
+  await page.unrouteAll({ behavior: 'wait' });
+  await expect(input).toHaveValue('箸で食べましたあ');
+  await expect(page.locator('#candidates')).toBeHidden();
+});

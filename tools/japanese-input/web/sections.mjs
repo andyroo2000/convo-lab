@@ -56,14 +56,14 @@ function alignedText(parts, start, end) {
   return offset >= end && text ? text : null;
 }
 
-function spellings(reading, top, alternatives) {
+export function spellings(reading, top, alternatives) {
   const katakana = reading.replace(/[ぁ-ゖ]/g, (char) =>
     String.fromCharCode(char.charCodeAt(0) + 0x60)
   );
   return [...new Set([reading, top, ...alternatives, katakana].filter(Boolean))];
 }
 
-function alignedAlternatives(candidates, reading, start, end) {
+export function alignedAlternatives(candidates, reading, start, end) {
   return candidates.map(
     (candidate) =>
       alignedText(candidateSections(candidate, reading, 'units'), start, end) ??

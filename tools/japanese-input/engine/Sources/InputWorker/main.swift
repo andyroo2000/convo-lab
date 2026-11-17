@@ -5,6 +5,7 @@ struct ConversionInput: Decodable {
     let id: String
     let reading: String
     let expanded: Bool?
+    let boundaries: [Int]?
 }
 
 struct ConversionCandidate: Encodable {
@@ -23,6 +24,7 @@ struct ConversionOutput: Encodable {
 
 // One sequential worker. Neural inference is an explicit experimental build trait.
 let converter = KanaKanjiConverter.withDefaultDictionary()
+let boundaryConverter = BoundaryCandidateConverter(dicdataStore: .withDefaultDictionary())
 let scratch = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 var options = ConvertRequestOptions(
     requireJapanesePrediction: false,
@@ -67,7 +69,9 @@ options.zenzaiMode = .on(
     }
     #endif
     var pool = results.mainResults
-    if request.expanded == true {
+    if let boundaries = request.boundaries, !boundaries.isEmpty {
+        pool = boundaryCandidates(reading: request.reading, boundaries: boundaries, neural: pool, options: options)
+    } else if request.expanded == true {
         pool += expandedCandidates(composition, converter: converter, options: options, reference: results.mainResults.first)
     }
     let candidates = serializeCandidates(pool, reading: request.reading)

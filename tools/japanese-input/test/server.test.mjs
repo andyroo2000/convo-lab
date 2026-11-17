@@ -120,3 +120,22 @@ test('expanded menus forward the entire reading and explicit search mode', async
   assert.deepEqual(calls, [{ reading: 'はしでたべました', expanded: true }]);
   assert.equal((await response.json()).expansion, 'whole-phrase-neural-and-dictionary');
 });
+
+test('manual boundaries preserve the full reading and reject invalid cuts before conversion', async (t) => {
+  const calls = [];
+  const url = await serverFor(t, async (reading, options) => {
+    calls.push({ reading, ...options });
+    return { candidates: [], engineMs: 1 };
+  });
+  const body = { reading: 'はしでたべました', expanded: true, boundaries: [2] };
+  const send = (value) =>
+    fetch(`${url}/api/v1/convert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(value),
+    });
+  assert.equal((await send(body)).status, 200);
+  assert.deepEqual(calls, [body]);
+  assert.equal((await send({ ...body, boundaries: [2, 1] })).status, 400);
+  assert.equal(calls.length, 1);
+});
