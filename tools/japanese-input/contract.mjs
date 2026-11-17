@@ -16,6 +16,13 @@ export function validateConversion(body) {
   return reading;
 }
 
+export function validateConversionRequest(body) {
+  const reading = validateConversion(body);
+  if (body.expanded !== undefined && typeof body.expanded !== 'boolean')
+    throw new Error('Expanded must be a boolean.');
+  return { reading, expanded: body.expanded === true };
+}
+
 export function conversionResponse(reading, result, info = engineInfo) {
   return {
     schemaVersion: 1,
@@ -23,5 +30,6 @@ export function conversionResponse(reading, result, info = engineInfo) {
     reading,
     candidates: result.candidates,
     engineMs: result.engineMs,
+    expansion: result.expansion ?? undefined,
   };
 }

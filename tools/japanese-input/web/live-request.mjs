@@ -6,7 +6,8 @@ export class LiveRequest {
   pending = null;
   timer = null;
 
-  constructor(receive, fail) {
+  constructor(receive, fail, expanded = false) {
+    this.expanded = expanded;
     this.receive = receive;
     this.fail = fail;
   }
@@ -39,7 +40,7 @@ export class LiveRequest {
       const response = await fetch('/api/v1/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reading: job.reading }),
+        body: JSON.stringify({ reading: job.reading, expanded: this.expanded }),
         signal: AbortSignal.timeout(65000),
       });
       const result = await response.json();

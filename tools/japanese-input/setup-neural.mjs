@@ -1,3 +1,4 @@
+import { installEngineAdapter } from './install-engine-adapter.mjs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -22,6 +23,7 @@ if (
 )
   throw new Error('Neural model checksum mismatch.');
 await writeFile(destination, bytes);
+installEngineAdapter();
 execFileSync(
   'swift',
   [

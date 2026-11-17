@@ -63,6 +63,28 @@ function spellings(reading, top, alternatives) {
   return [...new Set([reading, top, ...alternatives, katakana].filter(Boolean))];
 }
 
+function alignedAlternatives(candidates, reading, start, end) {
+  return candidates.map(
+    (candidate) =>
+      alignedText(candidateSections(candidate, reading, 'units'), start, end) ??
+      alignedText(candidateSections(candidate, reading), start, end)
+  );
+}
+
+// Enrich existing boundaries and preserve both selected spelling and menu order.
+export function expandSectionChoices(sections, reading, candidates) {
+  return sections.map((section) => {
+    const alternatives = alignedAlternatives(
+      candidates,
+      reading,
+      section.start,
+      section.start + section.reading.length
+    );
+    const choices = [...new Set([...section.choices, ...alternatives].filter(Boolean))];
+    return { ...section, choices, selected: choices.indexOf(section.text) };
+  });
+}
+
 export function phraseSections(reading, candidates) {
   if (!candidates.length) return [];
   const all = candidates.map((candidate) => candidateSections(candidate, reading));
@@ -70,11 +92,7 @@ export function phraseSections(reading, candidates) {
   let start = 0;
   return primary.map((part) => {
     const end = start + part.reading.length;
-    const alternatives = candidates.map(
-      (candidate) =>
-        alignedText(candidateSections(candidate, reading, 'units'), start, end) ??
-        alignedText(candidateSections(candidate, reading), start, end)
-    );
+    const alternatives = alignedAlternatives(candidates, reading, start, end);
     const choices = spellings(part.reading, part.text, alternatives);
     const section = { ...part, start, choices, selected: choices.indexOf(part.text) };
     start = end;

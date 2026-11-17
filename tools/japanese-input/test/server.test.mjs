@@ -34,6 +34,7 @@ test('invalid and cross-origin requests never reach the engine', async (t) => {
   });
   const cases = [
     { body: '{}', status: 400 },
+    { body: JSON.stringify({ reading: 'あ', expanded: 'true' }), status: 400 },
     { body: '{', status: 400 },
     { body: JSON.stringify({ reading: 'あ'.repeat(121) }), status: 400 },
     { body: JSON.stringify({ reading: 'あ\nい' }), status: 400 },
@@ -102,4 +103,20 @@ test('readiness and retry endpoints reflect runtime state and reject foreign ori
   assert.equal(retries, 1);
   state = 'ready';
   assert.equal((await (await fetch(url)).json()).state, 'ready');
+});
+
+test('expanded menus forward the entire reading and explicit search mode', async (t) => {
+  const calls = [];
+  const url = await serverFor(t, async (reading, options) => {
+    calls.push({ reading, ...options });
+    return { candidates: [], engineMs: 1, expansion: 'whole-phrase-neural-and-dictionary' };
+  });
+  const response = await fetch(`${url}/api/v1/convert`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reading: 'はしでたべました', expanded: true }),
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, [{ reading: 'はしでたべました', expanded: true }]);
+  assert.equal((await response.json()).expansion, 'whole-phrase-neural-and-dictionary');
 });

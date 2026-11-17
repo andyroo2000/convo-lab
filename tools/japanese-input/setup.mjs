@@ -1,3 +1,4 @@
+import { installEngineAdapter } from './install-engine-adapter.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -23,4 +24,5 @@ const actual = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: engine, encodin
 if (actual !== engineInfo.revision)
   throw new Error('Engine revision differs from the pinned version.');
 run('git', ['submodule', 'update', '--init', '--recursive', '--depth', '1'], engine);
+installEngineAdapter();
 run('swift', ['build', '-c', 'release'], `${root}engine`);

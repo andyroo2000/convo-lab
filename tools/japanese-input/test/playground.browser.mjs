@@ -300,7 +300,8 @@ test('live neural conversion keeps whole-phrase context and lets arrows revise s
   await expect(input).toHaveValue('橋でたべました');
   await input.press('ArrowLeft');
   await expect(page.locator('.composition-section.current')).toHaveText('橋で');
-  assert.deepEqual(readings, ['はしでたべました']);
+  assert.ok(readings.length >= 1);
+  assert.ok(readings.every((reading) => reading === 'はしでたべました'));
   await input.press('Enter');
   await expect(page.locator('.composition-layer')).toBeHidden();
   await expect(input).toHaveValue('橋でたべました');
@@ -375,4 +376,139 @@ test('long vowel readings stay exact and committing flushes an unfinished n afte
   await input.pressSequentially('a');
   await input.press('Enter');
   await expect(input).toHaveValue('ほな');
+});
+
+test('opening a menu expands contextual alternatives without changing the chosen text', async (t) => {
+  const page = await openPage(t);
+  const input = page.locator('#notebook');
+  const requests = [];
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/v1/convert')) requests.push(request.postDataJSON());
+  });
+  await input.fill('前🙂後');
+  await input.evaluate((field) => field.setSelectionRange(3, 3));
+  await input.pressSequentially('koushou');
+  await expect(input).toHaveValue('前🙂交渉後');
+  assert.equal(
+    requests.some((body) => body.expanded),
+    false
+  );
+  await input.press('Space');
+  await expect(page.locator('#status')).toContainText('More choices ready');
+  const choices = page.locator('#candidates button');
+  assert.ok((await choices.count()) > 12);
+  await expect(input).toHaveValue('前🙂交渉後');
+  assert.ok(requests.every((body) => body.reading === 'こうしょう'));
+  assert.equal(requests.filter((body) => body.expanded).length, 1);
+  if (process.env.SCREENSHOT_DIR)
+    await page.screenshot({
+      path: `${process.env.SCREENSHOT_DIR}/expanded-menu.png`,
+      fullPage: true,
+    });
+  const alternate = await choices.nth(12).textContent();
+  await choices.nth(12).click();
+  await input.press('Enter');
+  await expect(input).toHaveValue(`前🙂${alternate}後`);
+  await page.reload();
+  await expect(input).toHaveValue(`前🙂${alternate}後`);
+});
+
+test('an expanded menu arriving late preserves the active section and chosen spelling', async (t) => {
+  const page = await openPage(t);
+  const input = page.locator('#notebook');
+  let release;
+  const held = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/convert', async (route) => {
+    if (!route.request().postDataJSON().expanded) return route.continue();
+    await held;
+    await route
+      .fulfill({
+        json: {
+          candidates: [
+            {
+              text: '端で食べました',
+              units: [
+                { text: '端で', reading: 'はしで' },
+                { text: '食べました', reading: 'たべました' },
+              ],
+            },
+          ],
+          engineMs: 10,
+        },
+      })
+      .catch(() => {});
+  });
+  await input.pressSequentially('hashidetabemashita');
+  await expect(input).toHaveValue('箸で食べました');
+  const expanded = page.waitForRequest(
+    (request) => request.url().endsWith('/api/v1/convert') && request.postDataJSON().expanded
+  );
+  await input.press('Space');
+  await expanded;
+  await input.press('ArrowUp');
+  await input.press('ArrowRight');
+  release();
+  await expect(page.locator('#status')).toContainText('More choices ready');
+  await expect(input).toHaveValue('はしで食べました');
+  await expect(page.locator('.composition-section.current')).toHaveText('食べました');
+  await input.press('ArrowLeft');
+  await expect(page.locator('#candidates button').filter({ hasText: /^端で$/ })).toHaveCount(1);
+  await input.press('Enter');
+  await expect(page.locator('#candidates')).toBeHidden();
+});
+
+test('expanded results cannot replace text after the composition has been committed', async (t) => {
+  const page = await openPage(t);
+  const input = page.locator('#notebook');
+  let release;
+  const held = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/convert', async (route) => {
+    if (!route.request().postDataJSON().expanded) return route.continue();
+    await held;
+    await route.fulfill({ json: { candidates: [], engineMs: 1 } }).catch(() => {});
+  });
+  await input.pressSequentially('koushou');
+  await expect(input).toHaveValue('交渉');
+  const requested = page.waitForRequest(
+    (r) => r.url().endsWith('/api/v1/convert') && r.postDataJSON().expanded
+  );
+  await input.press('Space');
+  await requested;
+  await input.press('Enter');
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/convert') && r.request().postDataJSON().expanded
+  );
+  release();
+  await response;
+  await page.unrouteAll({ behavior: 'wait' });
+  await input.pressSequentially('ka');
+  await input.press('Enter');
+  await expect(input).toHaveValue('交渉か');
+  await expect(page.locator('#candidates')).toBeHidden();
+});
+
+test('a failed menu expansion leaves current choices usable and retries on demand', async (t) => {
+  const page = await openPage(t);
+  const input = page.locator('#notebook');
+  let fail = true;
+  await page.route('**/api/v1/convert', (route) => {
+    if (route.request().postDataJSON().expanded && fail)
+      return route.fulfill({ status: 503, json: { error: 'Busy' } });
+    return route.continue();
+  });
+  await input.pressSequentially('koushou');
+  await expect(input).toHaveValue('交渉');
+  await input.press('Space');
+  await expect(page.locator('#status')).toContainText('Could not load more choices');
+  await expect(input).toHaveValue('交渉');
+  fail = false;
+  await input.press('Space');
+  const chosen = await input.inputValue();
+  await expect(page.locator('#status')).toContainText('More choices ready');
+  await expect(input).toHaveValue(chosen);
+  assert.ok((await page.locator('#candidates button').count()) > 12);
 });

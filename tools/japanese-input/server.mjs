@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { NeuralRuntime } from './neural-runtime.mjs';
-import { engineInfo, validateConversion, conversionResponse } from './contract.mjs';
+import { engineInfo, validateConversionRequest, conversionResponse } from './contract.mjs';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const assets = new Map([
@@ -16,6 +16,7 @@ const assets = new Map([
   ['/inline-session.mjs', ['web/inline-session.mjs', 'text/javascript']],
   ['/history.mjs', ['web/history.mjs', 'text/javascript']],
   ['/sections.mjs', ['web/sections.mjs', 'text/javascript']],
+  ['/expanded-menu.mjs', ['web/expanded-menu.mjs', 'text/javascript']],
   ['/live-request.mjs', ['web/live-request.mjs', 'text/javascript']],
   ['/live-composition.mjs', ['web/live-composition.mjs', 'text/javascript']],
   ['/composition-view.mjs', ['web/composition-view.mjs', 'text/javascript']],
@@ -51,16 +52,16 @@ async function convertRequest(request, response, engine) {
     json(response, 415, { error: 'Send JSON.' });
     return;
   }
-  let reading;
+  let input;
   try {
-    reading = validateConversion(await readBody(request));
+    input = validateConversionRequest(await readBody(request));
   } catch (error) {
     json(response, 400, { error: error.message });
     return;
   }
   try {
-    const result = await engine.convert(reading);
-    json(response, 200, conversionResponse(reading, result, engine.info));
+    const result = await engine.convert(input.reading, { expanded: input.expanded });
+    json(response, 200, conversionResponse(input.reading, result, engine.info));
   } catch (error) {
     json(response, 503, { error: error.message });
   }

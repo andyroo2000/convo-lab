@@ -48,10 +48,10 @@ export class NeuralRuntime {
     }
   }
 
-  async convert(reading) {
+  async convert(reading, options) {
     if (this.snapshot().state !== 'ready')
       throw new Error('The model is not ready yet. Check its status above the notebook.');
-    return this.client.convert(reading);
+    return this.client.convert(reading, options);
   }
 
   close() {

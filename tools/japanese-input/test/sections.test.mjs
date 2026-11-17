@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { phraseSections, preserveChoices } from '../web/sections.mjs';
+import { phraseSections, preserveChoices, expandSectionChoices } from '../web/sections.mjs';
 
 const primary = {
   text: '箸で食べました',
@@ -48,4 +48,23 @@ test('invalid engine alignment falls back to a whole phrase instead of dropping 
   assert.equal(result.length, 1);
   assert.equal(result[0].text, primary.text);
   assert.equal(result[0].reading, 'はしでたべました');
+});
+
+test('menu expansion keeps current choices, selection, and clause boundaries intact', () => {
+  const initial = phraseSections('はしでたべました', [primary]);
+  initial[0].text = 'はしで';
+  initial[0].selected = 0;
+  const more = {
+    text: '橋で食べました',
+    units: [
+      { text: '橋で', reading: 'はしで' },
+      { text: '食べました', reading: 'たべました' },
+    ],
+  };
+  const result = expandSectionChoices(initial, 'はしでたべました', [more, more]);
+  assert.equal(result[0].text, 'はしで');
+  assert.equal(result[0].selected, 0);
+  assert.deepEqual(result[0].choices, ['はしで', '箸で', 'ハシデ', '橋で']);
+  assert.equal(result[1].text, '食べました');
+  assert.equal(initial[0].choices.includes('橋で'), false);
 });

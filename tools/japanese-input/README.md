@@ -51,11 +51,19 @@ clause boundaries. Its dictionary units align alternative whole-phrase candidate
 to those boundaries (literal kana edges may be split, never guessed kanji
 readings). Alternatives therefore retain their whole-phrase ranking; no section
 is converted in isolation. Kana and katakana are additional explicit spelling
-choices. Menus are limited to alternatives present in the returned whole-phrase
-candidates, so they are not as exhaustive as a native IME's dictionary menu.
+choices. Opening a section menu requests a richer neural candidate pass plus a wider
+128-path dictionary beam over the same full reading. Existing neural choices
+remain first; supplemental dictionary choices use AzooKey's whole-phrase
+statistical scoring, not neural scoring. Kana/katakana remain explicit options.
+Candidates preserve lexical cores, kana particles, and verb endings to suppress
+fragment recombinations. This is broader, but bounded rather than an exhaustive
+native dictionary lookup. Some rare spellings or alternative word boundaries
+may still be absent. Expansion never changes the selected spelling or section.
 
-One request runs at a time per editor; typing coalesces into the newest pending
-phrase. Stale results after edits, commit, or native IME activation are ignored.
+Live typing coalesces into the newest pending phrase. Menu expansion is a
+separate on-demand request, reused while navigating the same composition; it
+is invalidated by further typing or committing. Only one request per lane runs
+at a time, and the shared worker processes requests sequentially. Stale results after edits, commit, or native IME activation are ignored.
 A visual overlay adds section underlines while the real textarea retains native
 selection, clipboard, accessibility, and automatic height behavior.
 
@@ -112,6 +120,9 @@ The response above is illustrative and shows a subset of the engine metadata. `e
 latency. Candidate arrays may be empty. Only full-reading candidates are returned;
 partial completions must never replace and silently discard the remainder.
 Requests accept one line of 1–120 characters after NFC normalization and trimming.
+Set `"expanded": true` on a conversion request to broaden the menu. It is optional
+and strictly boolean. Expanded responses include `expansion: "whole-phrase-neural-and-dictionary"`
+and at most 160 complete-phrase candidates; ordinary responses remain capped at 10.
 Invalid requests return 400; a busy, missing, failed, or timed-out engine returns 503. The browser discards stale responses and keeps the pending phrase on failure.
 
 The worker loads dictionaries once, handles requests sequentially, and resets
@@ -141,8 +152,14 @@ use Swift when using the shared service.
 
 AzooKey v0.11.2 is pinned by commit; dictionaries are pinned via its submodules,
 and transitive Swift dependencies are recorded in `engine/Package.resolved`.
-The adapter uses the pinned release's API rather than assuming the current
-upstream README describes that release exactly. Zenzai is disabled.
+The initial dictionary experiment used the pinned release's API with Zenzai
+disabled. The current menu expansion adds a small, version-checked adapter:
+`engine/adapter/WholePhraseCandidates.swift` is copied into the downloaded module
+by both setup commands and `npm run build:engine`. It exposes the same internal
+full-phrase query used by AzooKey's bundled CLI, avoiding the normal UI result
+truncation. It does not change the conversion algorithm or existing upstream
+files. The adapter source is committed here; the downloaded dependency remains
+ignored. Neural live suggestions retain their original normal-effort settings.
 
 The saved [initial measurement](benchmarks/azookey-macos.json) contains all 24
 synthetic readings, expected alternatives, returned candidates, and timings:

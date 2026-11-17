@@ -1,4 +1,5 @@
-import { phraseSections, preserveChoices } from './sections.mjs';
+import { ExpandedMenu } from './expanded-menu.mjs';
+import { phraseSections, preserveChoices, expandSectionChoices } from './sections.mjs';
 import { LiveRequest } from './live-request.mjs';
 import { CandidatePicker } from './candidates.mjs';
 import { CompositionView } from './composition-view.mjs';
@@ -13,6 +14,9 @@ export class LiveComposition {
     this.session = session;
     this.elements = elements;
     this.view = new CompositionView(elements.input);
+    this.expansion = new ExpandedMenu(session, elements, (reading, result) =>
+      this.extendChoices(reading, result)
+    );
     this.picker = new CandidatePicker(elements, (index) => this.choose(index));
     this.request = new LiveRequest(
       (job, result, elapsed) => this.receive(job, result, elapsed),
@@ -24,6 +28,7 @@ export class LiveComposition {
 
   reset() {
     this.request.cancel();
+    this.expansion.reset();
     this.picker.hide();
     this.sections = [];
     this.pins = [];
@@ -38,6 +43,7 @@ export class LiveComposition {
 
   typed() {
     this.request.cancel();
+    this.expansion.reset();
     this.picker.hide();
     this.sections = [];
     this.choosing = false;
@@ -98,6 +104,13 @@ export class LiveComposition {
     this.session.select(start, start + this.sections[this.selected].text.length);
     this.picker.show(this.sections[this.selected]);
     this.paint();
+    this.expansion.load(this.session.reading());
+  }
+
+  extendChoices(reading, result) {
+    this.sections = expandSectionChoices(this.sections, reading, result.candidates);
+    this.pins = expandSectionChoices(this.pins, reading, result.candidates);
+    this.picker.show(this.sections[this.selected]);
   }
 
   choose(index) {
