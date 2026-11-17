@@ -1,3 +1,4 @@
+import { engineFetch } from './engine-transport.mjs';
 export function watchReadiness(onState) {
   const status = document.getElementById('engine-status');
   const retry = document.getElementById('retry-engine');
@@ -26,7 +27,7 @@ export function watchReadiness(onState) {
 
   async function check(run = generation) {
     try {
-      const response = await fetch('/api/v1/engine', { signal: AbortSignal.timeout(3000) });
+      const response = await engineFetch('/api/v1/engine', { signal: AbortSignal.timeout(3000) });
       if (!response.ok) throw new Error('Status unavailable');
       const result = await response.json();
       if (stopped || run !== generation) return;
@@ -43,7 +44,7 @@ export function watchReadiness(onState) {
     const run = ++generation;
     show('loading');
     try {
-      const response = await fetch('/api/v1/engine/retry', {
+      const response = await engineFetch('/api/v1/engine/retry', {
         method: 'POST',
         signal: AbortSignal.timeout(3000),
       });

@@ -1,3 +1,4 @@
+import { engineFetch } from './engine-transport.mjs';
 // Coalesce typing while inference is in flight instead of building a queue of
 // obsolete GPU jobs. A stale response can never change the notebook.
 export class LiveRequest {
@@ -37,7 +38,7 @@ export class LiveRequest {
     this.busy = true;
     const started = performance.now();
     try {
-      const response = await fetch('/api/v1/convert', {
+      const response = await engineFetch('/api/v1/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

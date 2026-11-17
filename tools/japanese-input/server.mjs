@@ -18,6 +18,7 @@ const assets = new Map([
   ['/sections.mjs', ['web/sections.mjs', 'text/javascript']],
   ['/section-boundaries.mjs', ['web/section-boundaries.mjs', 'text/javascript']],
   ['/expanded-menu.mjs', ['web/expanded-menu.mjs', 'text/javascript']],
+  ['/engine-transport.mjs', ['web/engine-transport.mjs', 'text/javascript']],
   ['/live-request.mjs', ['web/live-request.mjs', 'text/javascript']],
   ['/live-composition.mjs', ['web/live-composition.mjs', 'text/javascript']],
   ['/composition-view.mjs', ['web/composition-view.mjs', 'text/javascript']],
