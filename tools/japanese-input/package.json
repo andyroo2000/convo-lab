@@ -1,0 +1,19 @@
+{
+  "name": "convolab-japanese-input-playground",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node setup.mjs",
+    "build:engine": "cd engine && swift build -c release",
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node --test test/*.browser.mjs",
+    "benchmark": "node benchmark.mjs"
+  },
+  "dependencies": {
+    "wanakana": "5.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.57.0"
+  }
+}

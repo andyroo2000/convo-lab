@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Japanese typing playground · ConvoLab</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.mjs"></script>
+  </head>
+  <body>
+    <header class="masthead">
+      <a href="/">CONVOLAB <span>コンボラボ</span></a
+      ><span class="tag">Typing playground</span>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">日本語を書こう</p>
+          <h1>Japanese, from your keyboard.</h1>
+          <p>Type a phrase in romaji. Choose the kanji. Make it yours.</p>
+        </div>
+        <img src="/tutor.webp" alt="" />
+      </div>
+      <div class="workspace">
+        <section class="writing" aria-label="Japanese typing playground">
+          <div class="notebook-heading">
+            <span>練習帳 <small>Practice notebook</small></span
+            ><button id="copy" type="button">Copy text</button>
+          </div>
+          <div class="paper">
+            <label class="sr-only" for="notebook">Your notebook</label>
+            <textarea
+              id="notebook"
+              rows="4"
+              placeholder="Your sentences will appear here."
+              spellcheck="false"
+              lang="ja"
+            ></textarea>
+            <div class="compose">
+              <label for="phrase"
+                >Write the next phrase <span>English keyboard is fine</span></label
+              >
+              <div class="input-row">
+                <input
+                  id="phrase"
+                  type="text"
+                  lang="ja"
+                  placeholder="Try: kinoueigawomimashita"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  aria-describedby="typing-help"
+                /><button id="convert" class="sage" type="button">Convert <span>変換</span></button>
+              </div>
+              <p id="typing-help" class="help">
+                <kbd>Space</kbd> convert · <kbd>↑</kbd> <kbd>↓</kbd> choose · <kbd>Enter</kbd> add
+                to notebook · <kbd>Esc</kbd> keep editing
+              </p>
+              <div
+                id="candidates"
+                class="candidates"
+                role="group"
+                aria-label="Conversion candidates"
+              ></div>
+              <div class="compose-footer">
+                <p id="status" role="status" aria-live="polite">Start with a short phrase.</p>
+                <button id="keep-kana" type="button">Add as kana</button>
+              </div>
+            </div>
+          </div>
+          <div class="notebook-footer">
+            <span>Local scratchpad · separate from your Journal</span
+            ><button id="newline" type="button">New paragraph</button>
+          </div>
+        </section>
+        <aside>
+          <p class="eyebrow">ひとことずつ</p>
+          <h2>Try a phrase</h2>
+          <p>These examples test a few different readings.</p>
+          <button class="example" data-reading="きのうえいがをみました">
+            <span lang="ja">きのうえいがをみました</span><small>I watched a movie yesterday.</small>
+          </button>
+          <button class="example" data-reading="はしをわたりました">
+            <span lang="ja">はしをわたりました</span><small>I crossed a bridge.</small>
+          </button>
+          <button class="example" data-reading="はしでたべました">
+            <span lang="ja">はしでたべました</span><small>I ate with chopsticks.</small>
+          </button>
+          <button class="example" data-reading="そのあとともだちにあいました">
+            <span lang="ja">そのあとともだちにあいました</span
+            ><small>After that, I met a friend.</small>
+          </button>
+          <div class="engine-note">
+            <h3>Under the hood</h3>
+            <p>AzooKey · dictionary conversion</p>
+            <p>No Google conversion service, neural rewriting, or shared learning history.</p>
+            <p id="metrics">Conversion timing will appear here.</p>
+            <details>
+              <summary>About this experiment</summary>
+              <p>
+                Phrase-at-a-time conversion, not a full system keyboard. You can edit the notebook
+                normally and use your existing Japanese keyboard too. Conversion runs on this
+                computer; notebook text is stored in this browser.
+              </p>
+            </details>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </body>
+</html>

@@ -61,5 +61,10 @@ LOCAL_SETUP.md
 sample-courses-results.json
 tools/kanban
 
+# Downloaded engine sources and generated Swift build artifacts.
+tools/japanese-input/.engines
+tools/japanese-input/engine/.build
+tools/japanese-input/results.local.json
+
 # Context/plan files
 .context/
