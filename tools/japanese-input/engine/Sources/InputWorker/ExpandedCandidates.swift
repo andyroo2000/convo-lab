@@ -45,7 +45,7 @@ func serializeCandidates(_ pool: [Candidate], reading: String, neuralRanked: Boo
             reading: reading,
             sections: sections(of: candidate, reading: reading),
             units: units(of: candidate, reading: reading),
-            neuralScore: neuralRanked ? candidate.value : nil
+            neuralScore: neuralRanked ? Float(candidate.value) : nil
         )
     }
 }

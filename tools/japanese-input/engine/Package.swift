@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "JournalInputEngine",
-    platforms: [.macOS(.v13)],
+    platforms: [.iOS(.v16), .macOS(.v13)],
     traits: [.trait(name: "Neural")],
     dependencies: [
         .package(

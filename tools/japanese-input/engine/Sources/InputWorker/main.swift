@@ -28,6 +28,7 @@ let converter = KanaKanjiConverter.withDefaultDictionary()
 let boundaryConverter = BoundaryCandidateConverter(dicdataStore: .withDefaultDictionary())
 let scratch = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 var options = ConvertRequestOptions(
+    needTypoCorrection: false,
     requireJapanesePrediction: false,
     requireEnglishPrediction: false,
     keyboardLanguage: .ja_JP,

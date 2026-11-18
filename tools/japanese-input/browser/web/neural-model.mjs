@@ -18,11 +18,14 @@ export class NeuralModel {
       }
     );
   }
+  get threadCount() {
+    return /Chrome|Chromium|Edg\//.test(navigator.userAgent) ? 4 : 1;
+  }
   async load() {
     const response = await cachedAsset('/assets/model.gguf?adapter=2');
     await this.model.loadModel([await response.blob()], {
       n_ctx: 1024,
-      n_threads: /Chrome|Chromium|Edg\//.test(navigator.userAgent) ? 4 : 1,
+      n_threads: this.threadCount,
     });
     if (this.model.getEOS() !== 3 || this.model.getBOS() !== 2)
       throw Error('Unexpected model token metadata');
@@ -53,12 +56,15 @@ export class NeuralModel {
     if (shared < this.tokens.length) await this.model.kvRemove(shared, this.tokens.length - shared);
     await this.model.decode(prefix.slice(shared), { skipLogits: false });
     this.tokens = [...prefix];
-    const values = await this.model.getLogits(-1);
+    const values = await this.readLogits();
     const probabilities = new Float32Array(this.model.getLoadedContextInfo().n_vocab);
     for (const item of values) probabilities[item.token] = item.p;
     this.cache.set(key, probabilities);
     if (this.cache.size > 512) this.cache.delete(this.cache.keys().next().value);
     return probabilities;
+  }
+  async readLogits() {
+    return this.model.getLogits(-1);
   }
   async score(text, prompt) {
     const key = JSON.stringify([text, prompt]);

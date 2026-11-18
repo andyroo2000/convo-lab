@@ -19,12 +19,13 @@ public final class NeuralBoundaryRanker {
         }.prefix(160)
         let scored = try shortlist.enumerated().map { index, original in
             var candidate = original
-            candidate.value = try score(reading: reading, text: original.text)
-            return (index: index, candidate: candidate)
+            let neuralScore = try score(reading: reading, text: original.text)
+            candidate.value = PValue(neuralScore)
+            return (index: index, candidate: candidate, score: neuralScore)
         }
         return scored.sorted {
-            if $0.candidate.value == $1.candidate.value { return $0.index < $1.index }
-            return $0.candidate.value > $1.candidate.value
+            if $0.score == $1.score { return $0.index < $1.index }
+            return $0.score > $1.score
         }.map(\.candidate)
     }
 
