@@ -5,6 +5,8 @@ export interface FeatureFlags {
   id: string;
 
   flashcardsEnabled: boolean;
+  readingsEnabled?: boolean;
+  studyTimeEnabled?: boolean;
   updatedAt: string;
 }
 

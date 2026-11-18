@@ -1,6 +1,7 @@
 import { Search, Trash2 } from 'lucide-react';
 import DismissibleBackdrop from '../common/DismissibleBackdrop';
 import { type AdminUser } from '../../lib/adminApi';
+import JournalAvatar from '../../features/journal/JournalAvatar';
 
 const getRoleBadgeClass = (role: string): string => {
   const classes: Record<string, string> = {
@@ -25,8 +26,13 @@ interface UserRowProps {
 const UserRow = ({ currentAdminUserId, onDelete, onSelect, user }: UserRowProps) => (
   <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => onSelect(user.id)}>
     <td className="px-3 sm:px-6 py-4">
-      <div className="font-medium text-navy whitespace-nowrap">{getUserName(user)}</div>
-      <div className="text-sm text-gray-500 whitespace-nowrap">{user.email}</div>
+      <div className="flex items-center gap-3">
+        <JournalAvatar src={user.avatarUrl} className="admin-user-avatar" />
+        <div>
+          <div className="font-medium text-navy whitespace-nowrap">{getUserName(user)}</div>
+          <div className="text-sm text-gray-500 whitespace-nowrap">{user.email}</div>
+        </div>
+      </div>
     </td>
     <td className="px-3 sm:px-6 py-4">
       <span

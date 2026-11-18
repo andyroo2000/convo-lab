@@ -2,12 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 
-import {
-  resetAdminPageMocks,
-  renderPage,
-  mockUsers,
-  mockSpeakerAvatars,
-} from './AdminPageTestHarness';
+import { resetAdminPageMocks, renderPage, mockUsers } from './AdminPageTestHarness';
 
 describe('AdminPage users', () => {
   beforeEach(resetAdminPageMocks);
@@ -228,39 +223,6 @@ describe('AdminPage users', () => {
       expect(screen.getByText('User Information')).toBeInTheDocument();
 
       expect(screen.queryByRole('button', { name: 'Impersonate User' })).not.toBeInTheDocument();
-    });
-
-    it('preserves the current user search when the parent refreshes the avatars user feed', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
-        if (url.includes('/api/convolab/admin/avatars/speakers')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockSpeakerAvatars),
-          });
-        }
-        if (url.includes('/api/convolab/admin/users')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ users: mockUsers }),
-          });
-        }
-        return Promise.reject(new Error('Unknown endpoint'));
-      });
-
-      renderPage('users');
-      await screen.findByText('user1@test.com');
-
-      fireEvent.change(screen.getByPlaceholderText('Search users by name or email...'), {
-        target: { value: 'name+tag@example.com' },
-      });
-      fireEvent.click(screen.getByRole('link', { name: 'Avatars' }));
-
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          '/api/convolab/admin/users?search=name%2Btag%40example.com',
-          expect.objectContaining({ signal: expect.any(AbortSignal) })
-        );
-      });
     });
   });
 });

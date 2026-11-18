@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import { act, render } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AdminPage from '../AdminPage';
 
 export const mockNavigate = vi.fn();
@@ -255,9 +256,13 @@ export function mockSettingsReads() {
 
 export const renderPage = (tab = 'users') =>
   render(
-    <MemoryRouter initialEntries={[`/app/admin/${tab}`]}>
-      <Routes>
-        <Route path="/app/admin/:tab?" element={<AdminPage />} />
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={[`/app/admin/${tab}`]}>
+        <Routes>
+          <Route path="/app/admin/:tab?" element={<AdminPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   );

@@ -1,120 +1,65 @@
-import { BarChart3, Image, Settings, Ticket, Users } from 'lucide-react';
+import { BarChart3, Settings, Ticket, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
 import type { AdminTab, AdminToastType } from '../../hooks/useAdminPageController';
 import Toast from '../common/Toast';
 import AdminAnalyticsTab from './AdminAnalyticsTab';
-import AdminAvatarsTab from './AdminAvatarsTab';
 import AdminInviteCodesTab from './AdminInviteCodesTab';
 import AdminSettingsTab from './AdminSettingsTab';
-import AdminUsersTab, { type AdminUsersFeed } from './AdminUsersTab';
+import AdminUsersTab from './AdminUsersTab';
+import './admin.css';
 
 const ADMIN_TABS = [
   { id: 'users', label: 'Users', Icon: Users },
   { id: 'invite-codes', label: 'Invite Codes', Icon: Ticket },
   { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
-  { id: 'avatars', label: 'Avatars', Icon: Image },
   { id: 'settings', label: 'Settings', Icon: Settings },
 ] as const;
-
-interface AdminPageContentProps {
+interface Props {
   activeTab: AdminTab;
-  avatarUsersError: string;
   currentAdminUserId: string;
-  isAvatarUsersLoading: boolean;
-  refreshAvatarUsers: () => Promise<void>;
   setToastVisible: (visible: boolean) => void;
-  setUserFeed: (feed: AdminUsersFeed) => void;
   showToast: (message: string, type?: AdminToastType) => void;
   toastMessage: string;
   toastType: AdminToastType;
   toastVisible: boolean;
-  userFeed: AdminUsersFeed;
 }
-
-const AdminTabs = ({ activeTab }: Pick<AdminPageContentProps, 'activeTab'>) => (
-  <div className="retro-admin-v3-tabs-wrap">
-    <nav className="retro-admin-v3-tabs">
+const ignoreUserFeed = () => {};
+const AdminPageContent = ({
+  activeTab,
+  currentAdminUserId,
+  setToastVisible,
+  showToast,
+  toastMessage,
+  toastType,
+  toastVisible,
+}: Props) => (
+  <div className="retro-admin-v3-wrap max-w-[80rem] mx-auto">
+    <header className="admin-heading">
+      <h1>Admin Dashboard</h1>
+      <p>Users, invitations, and Journal activity</p>
+    </header>
+    <nav className="retro-admin-v3-tabs" aria-label="Admin sections">
       {ADMIN_TABS.map(({ id, label, Icon }) => (
         <Link
           key={id}
           to={`/app/admin/${id}`}
-          className={`retro-admin-v3-tab ${
-            activeTab === id ? 'is-active border-indigo font-semibold' : ''
-          }`}
+          aria-current={activeTab === id ? 'page' : undefined}
+          className={`retro-admin-v3-tab ${activeTab === id ? 'is-active' : ''}`}
         >
-          <Icon className="w-4 h-4" />
+          <Icon size={18} />
           {label}
         </Link>
       ))}
     </nav>
-  </div>
-);
-
-const AdminTabContent = ({
-  activeTab,
-  currentAdminUserId,
-  isAvatarUsersLoading,
-  refreshAvatarUsers,
-  setUserFeed,
-  showToast,
-  userFeed,
-}: Pick<
-  AdminPageContentProps,
-  | 'activeTab'
-  | 'currentAdminUserId'
-  | 'isAvatarUsersLoading'
-  | 'refreshAvatarUsers'
-  | 'setUserFeed'
-  | 'showToast'
-  | 'userFeed'
->) => (
-  <>
     <AdminUsersTab
       isActive={activeTab === 'users'}
       currentAdminUserId={currentAdminUserId}
-      onUserFeedChange={setUserFeed}
+      onUserFeedChange={ignoreUserFeed}
       showToast={showToast}
     />
     {activeTab === 'invite-codes' && <AdminInviteCodesTab showToast={showToast} />}
     {activeTab === 'analytics' && <AdminAnalyticsTab />}
-    {activeTab === 'avatars' && (
-      <AdminAvatarsTab
-        users={userFeed.users}
-        isUsersLoading={isAvatarUsersLoading}
-        refreshUsers={refreshAvatarUsers}
-        showToast={showToast}
-      />
-    )}
     {activeTab === 'settings' && <AdminSettingsTab showToast={showToast} />}
-  </>
-);
-
-const AdminPageContent = ({
-  activeTab,
-  avatarUsersError,
-  setToastVisible,
-  toastMessage,
-  toastType,
-  toastVisible,
-  ...tabContentProps
-}: AdminPageContentProps) => (
-  <div className="max-w-[80rem] mx-auto retro-admin-v3-wrap">
-    <div className="retro-admin-v3-shell">
-      <div className="retro-admin-v3-top">
-        <h1 className="retro-admin-v3-title">Admin Dashboard</h1>
-        <p className="retro-admin-v3-subtitle">Manage users, invite codes, and view analytics</p>
-      </div>
-
-      <div className="retro-admin-v3-main">
-        <AdminTabs activeTab={activeTab} />
-        {avatarUsersError && (
-          <div className="retro-admin-v3-alert is-error mb-6">{avatarUsersError}</div>
-        )}
-        <AdminTabContent activeTab={activeTab} {...tabContentProps} />
-      </div>
-    </div>
-
     <Toast
       message={toastMessage}
       type={toastType}
@@ -123,5 +68,4 @@ const AdminPageContent = ({
     />
   </div>
 );
-
 export default AdminPageContent;
