@@ -62,7 +62,7 @@ const ClaimInvitePage = () => {
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+          <div role="alert" className="journal-auth-error">
             {error}
           </div>
         )}

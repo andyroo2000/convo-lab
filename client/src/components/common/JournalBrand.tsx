@@ -1,10 +1,7 @@
 import './journalBrand.css';
 
 const JournalBrand = ({ compact = false }: { compact?: boolean }) => (
-  <span
-    className={`journal-brand${compact ? ' journal-brand-compact' : ''}`}
-    aria-label="ConvoLab Journal"
-  >
+  <span className={`journal-brand${compact ? ' journal-brand-compact' : ''}`}>
     <span className="journal-brand-name">CONVO-LAB</span>
     <span className="journal-brand-kana" lang="ja">
       コンボ・ラボ

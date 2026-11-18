@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex layout structure testing requires direct node access for navigation and content areas
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
@@ -270,6 +270,18 @@ describe('Layout', () => {
       expect(document.querySelector('a[href="/app/study?viewAs=user-1"]')).toBeNull();
       expect(document.querySelector('a[href="/app/study/time"]')).toBeNull();
       expect(screen.queryByTestId('mobile-learning-dock')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: '＋ New entry' })).not.toBeInTheDocument();
+    });
+
+    it('opens a new Journal draft even from the Journal route', () => {
+      window.history.pushState({}, '', '/app/journal');
+      renderLayout('/app/journal');
+      fireEvent.click(screen.getByRole('link', { name: '＋ New entry' }));
+      expect(window.location.pathname).toBe('/app/journal');
+      expect(window.history.state.usr).toEqual({ blank: true });
+      const firstKey = window.history.state.key;
+      fireEvent.click(screen.getByRole('link', { name: '＋ New entry' }));
+      expect(window.history.state.key).not.toBe(firstKey);
     });
 
     it('marks the matching mobile learning destination as current', () => {
@@ -314,7 +326,7 @@ describe('Layout', () => {
       window.history.pushState({}, '', '/app/library');
       renderLayout('/app/library');
 
-      expect(screen.getByText('CONVO-LAB')).toBeTruthy();
+      expect(screen.getByRole('link', { name: 'ConvoLab Journal home' })).toBeTruthy();
     });
   });
 

@@ -162,13 +162,18 @@ const LayoutTopBar = ({
   route: LayoutRouteState;
   viewAsUserId?: string;
 }) => {
+  const { t } = useTranslation('common');
   const showImpersonation = isImpersonating && effectiveUser;
   return (
     <nav className="sticky top-0 z-20 journal-topbar">
       <div className="max-w-7xl xl:max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-[4.5rem] items-center">
           <div className="flex items-center flex-1 min-w-0">
-            <Link to="/app/journal" className="journal-header-home">
+            <Link
+              to="/app/journal"
+              className="journal-header-home"
+              aria-label={t('journalBrand.home')}
+            >
               <JournalBrand compact />
             </Link>
             {isDemo ? <DemoBadge label={demoLabel} /> : null}
@@ -185,7 +190,7 @@ const LayoutTopBar = ({
             {showImpersonation ? <ImpersonationBadge user={showImpersonation} mobile /> : null}
             {!viewAsUserId && (
               <Link to="/app/journal" state={{ blank: true }} className="journal-new-entry">
-                ＋ <span>New entry</span>
+                ＋ <span>{t('journalBrand.newEntry')}</span>
               </Link>
             )}
             <UserMenu

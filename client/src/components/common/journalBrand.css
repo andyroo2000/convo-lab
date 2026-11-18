@@ -1,24 +1,30 @@
 @font-face {
+  font-family: 'Journal Kana';
+  src: url('/fonts/JournalKana.woff2') format('woff2');
+  font-display: swap;
+  font-weight: 100 900;
+}
+@font-face {
   font-family: Anton;
-  src: url('/fonts/Anton-Regular.ttf') format('truetype');
+  src: url('/fonts/Anton-Regular.woff2') format('woff2');
   font-display: swap;
   font-weight: 400;
 }
 @font-face {
   font-family: 'Barlow Condensed';
-  src: url('/fonts/BarlowCondensed-ExtraBold.ttf') format('truetype');
+  src: url('/fonts/BarlowCondensed-ExtraBold.woff2') format('woff2');
   font-display: swap;
   font-weight: 800;
 }
 @font-face {
   font-family: Inter;
-  src: url('/fonts/Inter-Variable.ttf') format('truetype');
+  src: url('/fonts/Inter-Variable.woff2') format('woff2');
   font-display: swap;
   font-weight: 100 900;
 }
 @font-face {
   font-family: Nunito;
-  src: url('/fonts/Nunito-Variable.ttf') format('truetype');
+  src: url('/fonts/Nunito-Variable.woff2') format('woff2');
   font-display: swap;
   font-weight: 200 1000;
 }
@@ -38,7 +44,7 @@
 .journal-brand-kana {
   display: block;
   font:
-    900 clamp(25px, 3.4vw, 41px)/1.2 'Noto Sans JP',
+    900 clamp(25px, 3.4vw, 41px)/1.2 'Journal Kana',
     sans-serif;
   color: #fff;
   letter-spacing: -1.8px;
@@ -60,7 +66,7 @@
 .journal-brand-reading {
   display: block;
   font:
-    700 14px/1.4 'Noto Sans JP',
+    700 14px/1.4 'Journal Kana',
     sans-serif;
   letter-spacing: 2.5px;
   margin-top: 9px;
