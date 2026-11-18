@@ -103,7 +103,8 @@ in `SIMULATOR_ID` and run:
 SIMULATOR_ID=your-test-simulator node performance/benchmark-ios.mjs
 ```
 
-The pinned Metal framework failed to load the model in this simulator. The CPU
+The pinned Metal framework failed to load the model in this simulator, including
+a retry after unlocking the Mac and waiting for boot completion. The CPU
 fallback verifies iOS execution without pretending it measures phone GPU speed:
 
 ```sh

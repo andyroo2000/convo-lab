@@ -17,12 +17,10 @@ measurements do not establish iPhone or Android speed. Browser GPU inference or
 a dedicated GPU service remain unmeasured options, not proven impossibilities.
 Neither is implemented by this experiment.
 
-**One validation step remains:** an unlocked, foreground Safari rerun of the
-optimized build. The initial installed-Safari baseline completed, but a later
-run stalled; computer-use inspection confirmed the Mac was locked. That later
-run is excluded from the timing comparison. The user has been asked to unlock
-it. Do not interpret the WebKit functional tests as a replacement Safari timing
-measurement.
+The installed Safari baseline and optimized build have now both completed with
+the Mac unlocked and kept awake. Neither showed acceptable full-boundary
+ranking latency. The earlier stalled, locked run remains excluded. These are
+actual Safari measurements, in addition to the separate WebKit functional tests.
 
 ## Measured responsiveness
 
@@ -30,13 +28,14 @@ measurement.
 | ----------------------------------------------------- | --------------: | -----------: | --------------------------: |
 | Installed Chrome, original browser port               |          105 ms |       178 ms |                   5.5–6.6 s |
 | Installed Chrome, batched + shared-prefix scoring     |           99 ms |       163 ms |                   5.4–5.9 s |
-| Installed Safari, initial original-port run           |          364 ms |       536 ms |                 19.7–23.0 s |
+| Installed Safari, original browser port               |          356 ms |       626 ms |                 19.3–23.4 s |
+| Installed Safari, batched + shared-prefix scoring     |          353 ms |       543 ms |                 19.2–23.3 s |
 | Existing server, CPU, including measured network trip |          203 ms |       374 ms |                 23.7–28.9 s |
 | iOS simulator, CPU fallback on this Mac               |          100 ms |       121 ms |                 11.0–13.0 s |
 
 Chrome is version **157.0.8103.79**; Safari **26.6.2**. Host: Apple M3 Mac.
-Safari's table uses only its first 24 uncached phrases. The other rows use
-three passes, 72 samples. Chrome workers restart between passes; server and
+Every row uses three passes, 72 samples. Chrome and Safari workers restart
+between passes; server and
 simulator use native composition reset before every request. Models are
 preloaded. p95 is nearest-rank, not interpolation. These small samples are
 comparative experiments, not service-level guarantees.
@@ -44,13 +43,14 @@ comparative experiments, not service-level guarantees.
 Full boundary ranking means all 160 candidates receive whole-phrase neural
 scores. Browser boundary request two uses the same phrase as request one and
 can reuse scores: **2.07 s original / 1.93 s optimized** in the final Chrome
-runs. It is excluded from the fresh-ranking ranges above. The server and
+runs. Safari took **7.21 s original / 7.27 s optimized** for this partially
+cached request. It is excluded from the fresh-ranking ranges above. The server and
 simulator do not use this new browser prefix-score cache.
 
 Growing-prefix Chrome requests took **17–58 ms original / 17–55 ms optimized**
 for the eight prefixes of すしをたべました. This is why ordinary typing can feel
-much better than a full boundary rerank. The measurements exclude the UI
-conversion debounce and paint time.
+much better than a full boundary rerank. Safari growing-prefix requests took **63–187 ms original / 64–188 ms optimized**.
+The measurements exclude the UI conversion debounce and paint time.
 
 The earlier native Mac Metal experiment measured approximately **30 ms median /
 42 ms p95 complete ordinary requests**. Its later full boundary ranking test
@@ -66,7 +66,8 @@ remain unchanged. Review requests transfer only the three probabilities they
 actually inspect; full candidate scores still use every vocabulary logit.
 
 The controlled Chrome rerun shows a **modest** improvement, not a dramatic
-breakthrough. Earlier runs during toolchain preparation were slower; their raw
+breakthrough. In Safari, median ordinary and fresh-ranking times were nearly
+unchanged; batching and prefix caching did not solve the bottleneck. Earlier runs during toolchain preparation were slower; their raw
 files are retained but are not used to claim an inflated speedup. The first
 single-thread batch-only experiment was slower still (285 ms ordinary median,
 roughly 18–21 seconds for fresh ranking), and is not the recommended variant.
@@ -82,10 +83,10 @@ unit tests cover prompt separation, bounded caches, and invalid inference.
 
 Against the original native Mac corpus:
 
-- Final Chrome original and optimized runs, server, and iOS CPU simulator each
+- Final Chrome and Safari original and optimized runs, server, and iOS CPU simulator each
   matched the native **first choice on all 72 ordinary requests**.
 - All four boundary cases matched the native **first choice** on each platform.
-- Chrome and server preserved all **160 candidate texts** in each boundary pool.
+- Chrome, Safari, and server preserved all **160 candidate texts** in each boundary pool.
 - iOS retained 160 candidates per pool, but one pool shared **159/160** texts
   with the Mac reference. iOS uses `Float16` dictionary candidate values; that
   is a plausible source of the difference, not a confirmed causal diagnosis.
@@ -135,8 +136,10 @@ normal-effort neural model, and section-boundary adapter. The simulator is
 
 The initial Metal configuration failed during model loading, reporting an
 Apple iOS simulator GPU with zero available memory and a model-load error.
-The Mac was locked during this phase; the cause has not been isolated. Do not
-conclude that the same model cannot run on a physical iPhone.
+The failure repeated with the Mac unlocked and after the new simulator fully
+finished booting, so unlocking did not resolve it. The cause has not been
+isolated. This is a command-line worker launched through `simctl`, not a UIKit
+app. Do not conclude that the same model cannot run on a physical iPhone.
 
 A separate, explicitly labelled **one-thread CPU fallback** completed the
 corpus and all boundary cases. Its roughly 100 ms ordinary median measures
@@ -155,9 +158,11 @@ Primary raw files:
 
 - [Chrome original final run](performance-chrome-baseline-final.json)
 - [Chrome optimized final run](performance-chrome-prefix-final.json)
-- [Initial installed Safari run](performance-safari-baseline.json)
+- [Unlocked Safari original run](performance-safari-baseline-unlocked.json)
+- [Unlocked Safari optimized run](performance-safari-prefix-unlocked.json)
 - [Actual server, network and concurrency](performance-server.json)
 - [iOS simulator CPU fallback](performance-ios-cpu.json)
+- [Unlocked simulator Metal failure](performance-ios-metal.json)
 
 The older Chrome baseline includes cached second and third passes. Do not
 aggregate those into an uncached latency number. The failed, locked Safari

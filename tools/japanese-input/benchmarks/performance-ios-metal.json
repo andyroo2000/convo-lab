@@ -1,0 +1,17 @@
+{
+  "mode": "metal",
+  "environment": "iOS 26.2 simulator on Apple M3; NOT physical iPhone performance",
+  "trials": [],
+  "boundaries": [],
+  "error": "Conversion engine stopped. Try again.",
+  "hostUnlocked": true,
+  "simulatorBootCompleted": true,
+  "status": "model-load-failed",
+  "diagnostics": [
+    "using device Metal (Apple iOS simulator GPU) - 0 MiB free",
+    "llama_model_load: error loading model: vector",
+    "llama_model_load_from_file_impl: failed to load model",
+    "Child process terminated with signal 5: Trace/BPT trap"
+  ],
+  "interpretation": "No GPU timing sample was obtained. This simulator command-line worker failure does not establish physical iPhone compatibility or speed."
+}
