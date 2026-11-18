@@ -43,7 +43,7 @@ function verificationRoutes(withTokenSwitch = false) {
       <Routes>
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
-        <Route path="/app/study" element={<div>Library Page</div>} />
+        <Route path="/app/journal" element={<div>Library Page</div>} />
       </Routes>
     </>
   );
@@ -136,7 +136,7 @@ describe('VerifyEmailPage', () => {
       });
 
       expect(screen.getByText(/Your email has been successfully verified/)).toBeInTheDocument();
-      expect(screen.getByText(/Redirecting to Study/)).toBeInTheDocument();
+      expect(screen.getByText(/Redirecting to Journal/)).toBeInTheDocument();
 
       expect(global.fetch).toHaveBeenCalledWith('/api/convolab/browser/auth/verification', {
         method: 'POST',
@@ -168,7 +168,7 @@ describe('VerifyEmailPage', () => {
         vi.advanceTimersByTime(3000);
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('/app/study');
+      expect(mockNavigate).toHaveBeenCalledWith('/app/journal');
     });
 
     it('owns a single-use token once during StrictMode effect replay', async () => {
@@ -462,7 +462,7 @@ describe('VerifyEmailPage', () => {
 
       expect(screen.getByText('Email Already Verified')).toBeInTheDocument();
       expect(screen.getByText(/Your email is already verified/)).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /Go to Study/ })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Go to Journal/ })).toBeInTheDocument();
     });
   });
 
@@ -506,9 +506,9 @@ describe('VerifyEmailPage', () => {
     it('should render back to study link', () => {
       renderWithRouter('/verify-email');
 
-      const backLink = screen.getByRole('link', { name: /Back to Study/ });
+      const backLink = screen.getByRole('link', { name: /Back to Journal/ });
       expect(backLink).toBeInTheDocument();
-      expect(backLink).toHaveAttribute('href', '/app/study');
+      expect(backLink).toHaveAttribute('href', '/app/journal');
     });
 
     it('should show success icon on successful verification', async () => {

@@ -98,7 +98,7 @@ const VerifyEmailPage = () => {
         redirectTimerRef.current = setTimeout(() => {
           if (!ownsVerification()) return;
           redirectTimerRef.current = null;
-          navigateRef.current('/app/study');
+          navigateRef.current('/app/journal');
         }, 3000);
 
         // Verification already succeeded. Refreshing the session is secondary and
@@ -158,7 +158,7 @@ const VerifyEmailPage = () => {
       <div className="max-w-md w-full">
         <div className="mb-6">
           <Link
-            to={user ? '/app/study' : '/login'}
+            to={user ? '/app/journal' : '/login'}
             className="inline-flex items-center gap-2 text-medium-brown hover:text-dark-brown transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -235,7 +235,7 @@ const VerifyEmailPage = () => {
               <p className="text-medium-brown mb-6">
                 {t('auth:verifyEmail.alreadyVerifiedDescription')}
               </p>
-              <Link to="/app/study" className="btn-primary inline-block">
+              <Link to="/app/journal" className="btn-primary inline-block">
                 {t('auth:verifyEmail.goToStudy')}
               </Link>
             </div>

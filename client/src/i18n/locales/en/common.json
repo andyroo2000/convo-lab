@@ -72,5 +72,9 @@
     "generating": "Generating...",
     "error": "error"
   },
-  "loadingMore": "Loading more..."
+  "loadingMore": "Loading more...",
+  "journalBrand": {
+    "home": "ConvoLab Journal home",
+    "newEntry": "New entry"
+  }
 }

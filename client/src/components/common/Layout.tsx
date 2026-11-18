@@ -10,7 +10,7 @@ import { useIsDemo } from '../../hooks/useDemo';
 import useEffectiveUser from '../../hooks/useEffectiveUser';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import UserMenu, { type UserMenuMobileNavItem } from './UserMenu';
-import Logo from './Logo';
+import JournalBrand from './JournalBrand';
 import OnboardingModal from '../onboarding/OnboardingModal';
 import { SHOW_ONBOARDING_WELCOME } from '../../config';
 import { StudyActivityProvider } from '../../contexts/StudyActivityContext';
@@ -162,17 +162,19 @@ const LayoutTopBar = ({
   route: LayoutRouteState;
   viewAsUserId?: string;
 }) => {
+  const { t } = useTranslation('common');
   const showImpersonation = isImpersonating && effectiveUser;
   return (
-    <nav className="sticky top-0 z-20 bg-periwinkle retro-topbar">
+    <nav className="sticky top-0 z-20 journal-topbar">
       <div className="max-w-7xl xl:max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-[4.5rem] items-center">
           <div className="flex items-center flex-1 min-w-0">
             <Link
               to="/app/journal"
-              className="flex items-center gap-2 px-2 text-white font-bold text-lg sm:text-xl drop-shadow-md flex-shrink-0"
+              className="journal-header-home"
+              aria-label={t('journalBrand.home')}
             >
-              <Logo size="small" showKana showIcons={false} alwaysShowText />
+              <JournalBrand compact />
             </Link>
             {isDemo ? <DemoBadge label={demoLabel} /> : null}
             {showImpersonation ? <ImpersonationBadge user={showImpersonation} /> : null}
@@ -186,6 +188,11 @@ const LayoutTopBar = ({
           <div className="flex items-center ml-2 gap-2">
             {isDemo ? <DemoBadge label={demoLabel} mobile /> : null}
             {showImpersonation ? <ImpersonationBadge user={showImpersonation} mobile /> : null}
+            {!viewAsUserId && (
+              <Link to="/app/journal" state={{ blank: true }} className="journal-new-entry">
+                ＋ <span>{t('journalBrand.newEntry')}</span>
+              </Link>
+            )}
             <UserMenu
               userName={menuUser.displayName || menuUser.name}
               avatarColor={menuUser.avatarColor}

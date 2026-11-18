@@ -54,7 +54,7 @@ describe('LoginPage', () => {
     it('should render login form by default', () => {
       renderWithRouter();
 
-      expect(screen.getByRole('heading', { name: 'ConvoLab' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
       expect(screen.getByTestId('auth-tab-login')).toBeInTheDocument();
       expect(screen.getByTestId('auth-tab-signup')).toBeInTheDocument();
     });
@@ -69,7 +69,7 @@ describe('LoginPage', () => {
     it('should render login button', () => {
       renderWithRouter();
 
-      expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Login');
+      expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Sign in');
     });
 
     it('should render back to home link', () => {
@@ -103,7 +103,7 @@ describe('LoginPage', () => {
 
       expect(screen.getByTestId('auth-input-name')).toBeInTheDocument();
       expect(screen.getByTestId('auth-input-invite-code')).toBeInTheDocument();
-      expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Sign Up');
+      expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Create an account');
     });
 
     it('should switch back to login form when login tab is clicked', () => {
@@ -113,14 +113,14 @@ describe('LoginPage', () => {
       fireEvent.click(screen.getByTestId('auth-tab-login'));
 
       expect(screen.queryByTestId('auth-input-name')).not.toBeInTheDocument();
-      expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Login');
+      expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Sign in');
     });
 
-    it('should highlight active tab', () => {
+    it('should present the current mode as a heading', () => {
       renderWithRouter();
 
       const loginTab = screen.getByTestId('auth-tab-login');
-      expect(loginTab.className).toContain('border-periwinkle');
+      expect(loginTab).toHaveRole('heading');
     });
   });
 
@@ -141,7 +141,7 @@ describe('LoginPage', () => {
       submitCredentials('test@example.com', 'password123');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/study');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/journal');
       });
     });
 
@@ -195,7 +195,7 @@ describe('LoginPage', () => {
       submitCredentials('john@example.com', 'password');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/study');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/journal');
       });
     });
 
@@ -216,7 +216,7 @@ describe('LoginPage', () => {
   describe('Return URL', () => {
     it('should navigate to returnUrl after login if present', async () => {
       render(
-        <MemoryRouter initialEntries={['/login?returnUrl=/app/study/cards']}>
+        <MemoryRouter initialEntries={['/login?returnUrl=/app/journal/cards']}>
           <LoginPage />
         </MemoryRouter>
       );
@@ -224,7 +224,7 @@ describe('LoginPage', () => {
       submitCredentials('test@example.com', 'password123');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/study/cards');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/journal/cards');
       });
     });
   });
