@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { getJournalAnalytics, type AnalyticsPeriod } from '../../lib/journalAnalyticsApi';
 import JournalActivity from './JournalActivity';
@@ -15,6 +15,7 @@ const AdminAnalyticsTab = () => {
     queryKey: ['admin-journal-analytics', period, page],
     queryFn: ({ signal }) => getJournalAnalytics(period, page, signal),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
   return (
     <div className="admin-analytics">
@@ -34,7 +35,8 @@ const AdminAnalyticsTab = () => {
       {query.isPending && <p role="status">Loading Journal analytics…</p>}
       {query.isError && (
         <p role="alert" className="retro-admin-v3-alert is-error">
-          Could not load analytics. Please try Refresh.
+          Could not refresh analytics. Any figures below are from the last successful load. Please
+          try Refresh.
         </p>
       )}
       {query.data && (

@@ -31,61 +31,61 @@ const JournalWriterTable = ({
   writers: JournalAnalytics['writers'];
   onPage: (page: number) => void;
 }) => (
-    <section className="admin-panel">
-      <h3>Writer breakdown</h3>
-      <p>This month · highest estimated cost first · open a cost for its breakdown</p>
-      <div className="admin-table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Writer</th>
-              <th>Entries</th>
-              <th>Follow-ups</th>
-              <th>Est. total so far</th>
-              <th>Daily average</th>
+  <section className="admin-panel">
+    <h3>Writer breakdown</h3>
+    <p>This month · highest estimated cost first · open a cost for its breakdown</p>
+    <div className="admin-table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Writer</th>
+            <th>Entries</th>
+            <th>Follow-ups</th>
+            <th>Est. total so far</th>
+            <th>Daily average</th>
+          </tr>
+        </thead>
+        <tbody>
+          {writers.data.map((writer) => (
+            <tr key={writer.id}>
+              <th>
+                <div className="admin-writer-name">
+                  <JournalAvatar
+                    src={writer.avatarUrl ?? undefined}
+                    className="admin-user-avatar"
+                  />
+                  {writer.name}
+                </div>
+              </th>
+              <td>{writer.entries}</td>
+              <td>{writer.followups}</td>
+              <td>
+                <WriterDetails writer={writer} />
+              </td>
+              <td>{money(writer.dailyAverageUsd)}</td>
             </tr>
-          </thead>
-          <tbody>
-            {writers.data.map((writer) => (
-              <tr key={writer.id}>
-                <th>
-                  <div className="admin-writer-name">
-                    <JournalAvatar
-                      src={writer.avatarUrl ?? undefined}
-                      className="admin-user-avatar"
-                    />
-                    {writer.name}
-                  </div>
-                </th>
-                <td>{writer.entries}</td>
-                <td>{writer.followups}</td>
-                <td>
-                  <WriterDetails writer={writer} />
-                </td>
-                <td>{money(writer.dailyAverageUsd)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {writers.total === 0 && (
-        <p className="admin-empty">No submissions or recorded costs this month.</p>
-      )}
-      <div className="admin-pagination">
-        <span>{writers.total} writers</span>
-        <button type="button" disabled={writers.page <= 1} onClick={() => onPage(writers.page - 1)}>
-          Previous
-        </button>
-        <span>Page {writers.page}</span>
-        <button
-          type="button"
-          disabled={writers.page * writers.perPage >= writers.total}
-          onClick={() => onPage(writers.page + 1)}
-        >
-          Next
-        </button>
-      </div>
-    </section>
-  );
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {writers.total === 0 && (
+      <p className="admin-empty">No submissions or recorded costs this month.</p>
+    )}
+    <div className="admin-pagination">
+      <span>{writers.total} writers</span>
+      <button type="button" disabled={writers.page <= 1} onClick={() => onPage(writers.page - 1)}>
+        Previous
+      </button>
+      <span>Page {writers.page}</span>
+      <button
+        type="button"
+        disabled={writers.page * writers.perPage >= writers.total}
+        onClick={() => onPage(writers.page + 1)}
+      >
+        Next
+      </button>
+    </div>
+  </section>
+);
 
 export default JournalWriterTable;

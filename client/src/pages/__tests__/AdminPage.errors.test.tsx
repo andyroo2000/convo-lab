@@ -48,9 +48,7 @@ describe('AdminPage errors', () => {
 
         await waitFor(() => {
           expect(expiredListener).toHaveBeenCalledTimes(1);
-          expect(
-            screen.getByText('Could not load analytics. Please try Refresh.')
-          ).toBeInTheDocument();
+          expect(screen.getByText(/Could not refresh analytics/)).toBeInTheDocument();
         });
       } finally {
         window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, expiredListener);

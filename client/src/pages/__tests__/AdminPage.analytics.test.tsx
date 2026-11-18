@@ -91,6 +91,16 @@ describe('Journal analytics', () => {
       )
     );
   });
+  it('keeps the chart and tabs visible while a new interval loads', async () => {
+    const user = userEvent.setup();
+    renderPage('analytics');
+    await screen.findByText('Writing calendar');
+    vi.mocked(fetch).mockImplementation(() => new Promise(() => {}));
+    await user.click(screen.getByRole('button', { name: 'weekly' }));
+    expect(screen.getByText('Writing calendar')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Writers' })).toBeInTheDocument();
+    expect(screen.queryByText('Loading Journal analytics…')).not.toBeInTheDocument();
+  });
   it('aborts the analytics request on unmount', async () => {
     let signal: AbortSignal | undefined;
     vi.mocked(fetch).mockImplementation((_url, init) => {

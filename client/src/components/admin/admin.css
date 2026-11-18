@@ -438,3 +438,9 @@
   background: #ecf0e8;
   font-size: 12px;
 }
+
+.admin-feature-description {
+  display: block;
+  margin-top: 0.3rem;
+  color: #66717e;
+}
