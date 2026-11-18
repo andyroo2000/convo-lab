@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import AdminFeatureSwitches from './AdminFeatureSwitches';
 import {
   getAdminFeatureFlags,
   getAdminPronunciationDictionary,
@@ -103,7 +104,7 @@ const preserveEditedText = (current: string, submitted: string, formatted: strin
 const withFeatureFlag = (
   current: AdminFeatureFlags | null,
   key: AdminFeatureFlagKey,
-  value: boolean
+  value: boolean | undefined
 ): AdminFeatureFlags | null => (current ? { ...current, [key]: value } : current);
 
 const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
@@ -303,33 +304,11 @@ const AdminSettingsTab = ({ showToast }: AdminSettingsTabProps) => {
         )}
         {!isFeatureFlagsLoading && featureFlags && (
           <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between py-4">
-                <div>
-                  <h3 className="text-base font-semibold text-navy">Study / Flashcards</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Server-side Japanese SRS with import, review history, and study pages
-                  </p>
-                </div>
-                <label
-                  htmlFor="toggle-study"
-                  className="relative inline-flex items-center cursor-pointer"
-                >
-                  <input
-                    id="toggle-study"
-                    type="checkbox"
-                    checked={featureFlags.flashcardsEnabled}
-                    disabled={savingFeatureFlags.has('flashcardsEnabled')}
-                    onChange={(event) =>
-                      updateFeatureFlag('flashcardsEnabled', event.target.checked)
-                    }
-                    className="sr-only peer"
-                    aria-label="Toggle Study and Flashcards"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                </label>
-              </div>
-            </div>
+            <AdminFeatureSwitches
+              flags={featureFlags}
+              saving={savingFeatureFlags}
+              onChange={updateFeatureFlag}
+            />
 
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg retro-admin-v3-note">
               <p className="text-sm text-blue-800">

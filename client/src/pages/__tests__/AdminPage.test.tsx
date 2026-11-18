@@ -13,7 +13,7 @@ describe('AdminPage access', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/study');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/journal', { replace: true });
       });
     });
 
@@ -46,7 +46,7 @@ describe('AdminPage access', () => {
         expect(screen.getByText('Users')).toBeInTheDocument();
         expect(screen.getByText('Invite Codes')).toBeInTheDocument();
         expect(screen.getByText('Analytics')).toBeInTheDocument();
-        expect(screen.getByText('Avatars')).toBeInTheDocument();
+        expect(screen.queryByText('Avatars')).not.toBeInTheDocument();
         expect(screen.getByText('Settings')).toBeInTheDocument();
       });
     });
@@ -56,7 +56,7 @@ describe('AdminPage access', () => {
 
       await waitFor(() => {
         const usersTab = screen.getByText('Users').closest('a');
-        expect(usersTab).toHaveClass('border-indigo');
+        expect(usersTab).toHaveClass('is-active');
       });
     });
   });

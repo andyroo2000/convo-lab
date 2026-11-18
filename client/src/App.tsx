@@ -5,6 +5,7 @@ import LocaleProvider from './contexts/LocaleContext';
 import { AudioPreviewProvider } from './contexts/AudioPreviewContext';
 import { KnownKanjiProvider } from './contexts/KnownKanjiContext';
 import Layout from './components/common/Layout';
+import SectionFeatureBoundary from './components/common/SectionFeatureBoundary';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
@@ -289,32 +290,38 @@ const renderStudyRoutes = () => (
         }
       />
     </Route>
-    <Route path="time" element={<StudyTimePage />} />
+    <Route element={<SectionFeatureBoundary feature="studyTimeEnabled" />}>
+      <Route path="time" element={<StudyTimePage />} />
+    </Route>
   </Route>
 );
 
 const renderProtectedRoutes = () => (
   <Route path="/app" element={<Layout />}>
-    <Route index element={<Navigate to="/app/study" replace />} />
+    <Route index element={<Navigate to="/app/journal" replace />} />
     <Route path="journal" element={<JournalPage />} />
     <Route path="journal/:entryId" element={<JournalPage />} />
-    <Route path="readings" element={<ReadingsPage />} />
-    <Route path="readings/:readingId" element={<ReadingsPage />} />
+    <Route element={<SectionFeatureBoundary feature="readingsEnabled" />}>
+      <Route path="readings" element={<ReadingsPage />} />
+      <Route path="readings/:readingId" element={<ReadingsPage />} />
+    </Route>
     <Route path="settings" element={<SettingsPage />} />
     <Route path="settings/:tab" element={<SettingsPage />} />
     <Route path="credits" element={<CreditsPage />} />
     <Route path="admin" element={<AdminPage />} />
     <Route path="admin/:tab" element={<AdminPage />} />
     {renderStudyRoutes()}
-    <Route path="playback/:episodeId" element={<PlaybackPage />} />
-    <Route path="practice/:episodeId" element={<PracticePage />} />
-    <Route path="courses/:courseId" element={<CoursePage />} />
-    <Route path="tools" element={<ToolsPage />} />
-    <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
-    <Route path="tools/japanese-time" element={<JapaneseTimePracticeToolPage />} />
-    <Route path="tools/japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
-    <Route path="tools/japanese-money" element={<JapaneseMoneyToolPage />} />
-    <Route path="tools/japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
+    <Route element={<SectionFeatureBoundary feature="flashcardsEnabled" />}>
+      <Route path="playback/:episodeId" element={<PlaybackPage />} />
+      <Route path="practice/:episodeId" element={<PracticePage />} />
+      <Route path="courses/:courseId" element={<CoursePage />} />
+      <Route path="tools" element={<ToolsPage />} />
+      <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
+      <Route path="tools/japanese-time" element={<JapaneseTimePracticeToolPage />} />
+      <Route path="tools/japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
+      <Route path="tools/japanese-money" element={<JapaneseMoneyToolPage />} />
+      <Route path="tools/japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
+    </Route>
   </Route>
 );
 

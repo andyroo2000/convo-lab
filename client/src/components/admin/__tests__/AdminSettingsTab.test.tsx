@@ -44,7 +44,7 @@ describe('AdminSettingsTab', () => {
     const user = userEvent.setup();
     render(<AdminSettingsTab showToast={showToast} />);
 
-    const toggle = await screen.findByRole('checkbox', { name: 'Toggle Study and Flashcards' });
+    const toggle = await screen.findByRole('switch', { name: 'Toggle Study and Flashcards' });
     await user.click(toggle);
 
     await waitFor(() =>

@@ -101,38 +101,41 @@ const DesktopNavigation = ({
   labels: NavigationLabels;
   route: LayoutRouteState;
   viewAsUserId?: string;
-}) => (
-  <div className="hidden sm:ml-6 sm:flex h-[4.5rem] items-center gap-2">
-    {flashcardsEnabled && !viewAsUserId ? (
-      <Link
-        to="/app/study"
-        className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
-          route.isStudyActive
-            ? 'is-active bg-white text-navy shadow-md'
-            : 'text-white hover:bg-white/20'
-        }`}
-      >
-        <BookOpen className="w-5 h-5 mr-2.5 flex-shrink-0" />
-        {labels.study}
-      </Link>
-    ) : null}
-    <ReadingsNav disabled={Boolean(viewAsUserId)} />
-    <JournalNav disabled={Boolean(viewAsUserId)} />
-    {!viewAsUserId ? (
-      <Link
-        to="/app/study/time"
-        className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
-          route.isTimeActive
-            ? 'is-active bg-white text-navy shadow-md'
-            : 'text-white hover:bg-white/20'
-        }`}
-      >
-        <Clock3 className="w-5 h-5 mr-2.5 flex-shrink-0" />
-        {labels.studyTime}
-      </Link>
-    ) : null}
-  </div>
-);
+}) => {
+  const { isFeatureEnabled } = useFeatureFlags();
+  return (
+    <div className="hidden sm:ml-6 sm:flex h-[4.5rem] items-center gap-2">
+      {flashcardsEnabled && !viewAsUserId ? (
+        <Link
+          to="/app/study"
+          className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
+            route.isStudyActive
+              ? 'is-active bg-white text-navy shadow-md'
+              : 'text-white hover:bg-white/20'
+          }`}
+        >
+          <BookOpen className="w-5 h-5 mr-2.5 flex-shrink-0" />
+          {labels.study}
+        </Link>
+      ) : null}
+      {isFeatureEnabled('readingsEnabled') && <ReadingsNav disabled={Boolean(viewAsUserId)} />}
+      <JournalNav disabled={Boolean(viewAsUserId)} />
+      {!viewAsUserId && isFeatureEnabled('studyTimeEnabled') ? (
+        <Link
+          to="/app/study/time"
+          className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
+            route.isTimeActive
+              ? 'is-active bg-white text-navy shadow-md'
+              : 'text-white hover:bg-white/20'
+          }`}
+        >
+          <Clock3 className="w-5 h-5 mr-2.5 flex-shrink-0" />
+          {labels.studyTime}
+        </Link>
+      ) : null}
+    </div>
+  );
+};
 
 const LayoutTopBar = ({
   demoLabel,
@@ -166,7 +169,7 @@ const LayoutTopBar = ({
         <div className="flex h-[4.5rem] items-center">
           <div className="flex items-center flex-1 min-w-0">
             <Link
-              to="/app/study"
+              to="/app/journal"
               className="flex items-center gap-2 px-2 text-white font-bold text-lg sm:text-xl drop-shadow-md flex-shrink-0"
             >
               <Logo size="small" showKana showIcons={false} alwaysShowText />
@@ -220,6 +223,11 @@ const LayoutBody = ({
   </>
 );
 
+const useVisibleReadings = (viewAsUserId: string | undefined, enabled: boolean): boolean => {
+  const readings = useReadings(!viewAsUserId && enabled);
+  return enabled && !viewAsUserId && Boolean(readings.data?.length);
+};
+
 const Layout = () => {
   const [dismissedOnboardingUser, setDismissedOnboardingUser] = useState<User['id'] | null>(null);
   const { user, loading, logout } = useAuth();
@@ -231,8 +239,8 @@ const Layout = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const viewAsUserId = getViewAsUserId(searchParams);
-  const readings = useReadings(!viewAsUserId);
-  const hasReadings = Boolean(readings.data?.length) && !viewAsUserId;
+  const readingsEnabled = isFeatureEnabled('readingsEnabled');
+  const hasReadings = useVisibleReadings(viewAsUserId, readingsEnabled);
   const isJournalActive = location.pathname.startsWith('/app/journal');
   const isReadingsActive = location.pathname.startsWith('/app/readings');
   const route = getLayoutRouteState(location.pathname);
