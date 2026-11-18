@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
+import JournalAuthShell from '../components/common/JournalAuthShell';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../lib/authApi';
 
@@ -47,51 +47,24 @@ const getErrorMessage = (error: unknown, isLogin: boolean) => {
   return message;
 };
 
-const AuthHeader = () => {
-  const { t } = useTranslation(['common']);
-
-  return (
-    <div className="retro-login-v3-top">
-      <Link to="/" className="retro-login-v3-back" data-testid="auth-link-back-home">
-        <ArrowLeft className="w-4 h-4" />
-        {t('common:buttons.backToHome')}
-      </Link>
-
-      <div className="retro-login-v3-brand-row">
-        <div className="retro-login-v3-brand-wrap">
-          <div>
-            <h1 className="retro-login-v3-brand-en">ConvoLab</h1>
-            <div className="retro-login-v3-brand-jp">コンボラボ</div>
-          </div>
-        </div>
-        <p className="retro-login-v3-tagline">{t('common:tagline')}</p>
-      </div>
-    </div>
-  );
-};
-
 const AuthModeTabs = ({ isLogin, onChange }: AuthModeTabsProps) => {
   const { t } = useTranslation(['auth']);
-
   return (
-    <div className="retro-login-v3-tabs">
-      <button
-        type="button"
-        onClick={() => onChange(true)}
-        className={`retro-login-v3-tab ${isLogin ? 'is-active border-periwinkle' : 'is-inactive'}`}
-        data-testid="auth-tab-login"
-      >
-        {t('auth:login.title')}
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange(false)}
-        className={`retro-login-v3-tab ${isLogin ? 'is-inactive' : 'is-active border-periwinkle'}`}
-        data-testid="auth-tab-signup"
-      >
-        {t('auth:signup.title')}
-      </button>
-    </div>
+    <header className="journal-auth-heading">
+      <h1 data-testid={isLogin ? 'auth-tab-login' : 'auth-tab-signup'}>
+        {t(isLogin ? 'auth:login.title' : 'auth:signup.title')}
+      </h1>
+      <p>
+        {t(isLogin ? 'auth:login.noAccount' : 'auth:signup.hasAccount')}{' '}
+        <button
+          type="button"
+          onClick={() => onChange(!isLogin)}
+          data-testid={isLogin ? 'auth-tab-signup' : 'auth-tab-login'}
+        >
+          {t(isLogin ? 'auth:login.signup' : 'auth:signup.login')}
+        </button>
+      </p>
+    </header>
   );
 };
 
@@ -108,22 +81,23 @@ const SignupFields = ({
   return (
     <>
       <div>
-        <label htmlFor="name" className="retro-login-v3-label">
+        <label htmlFor="name" className="journal-auth-label">
           {t('auth:signup.name')}
         </label>
         <input
           id="name"
           type="text"
+          autoComplete="name"
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
-          className="retro-login-v3-input"
+          className="journal-auth-input"
           placeholder={t('auth:signup.namePlaceholder')}
           required
           data-testid="auth-input-name"
         />
       </div>
       <div>
-        <label htmlFor="inviteCode" className="retro-login-v3-label">
+        <label htmlFor="inviteCode" className="journal-auth-label">
           {t('auth:signup.inviteCode')}
         </label>
         <input
@@ -131,7 +105,7 @@ const SignupFields = ({
           type="text"
           value={inviteCode}
           onChange={(event) => onInviteCodeChange(event.target.value)}
-          className="retro-login-v3-input"
+          className="journal-auth-input"
           placeholder={t('auth:signup.inviteCodePlaceholder')}
           required
           data-testid="auth-input-invite-code"
@@ -154,15 +128,16 @@ const CredentialsFields = ({
   return (
     <>
       <div>
-        <label htmlFor="email" className="retro-login-v3-label">
+        <label htmlFor="email" className="journal-auth-label">
           {t(`auth:${mode}.email`)}
         </label>
         <input
           id="email"
           type="email"
+          autoComplete="email"
           value={email}
           onChange={(event) => onEmailChange(event.target.value)}
-          className="retro-login-v3-input"
+          className="journal-auth-input"
           placeholder={t(`auth:${mode}.emailPlaceholder`)}
           required
           data-testid="auth-input-email"
@@ -170,11 +145,11 @@ const CredentialsFields = ({
       </div>
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label htmlFor="password" className="retro-login-v3-label no-margin">
+          <label htmlFor="password" className="journal-auth-label">
             {t(`auth:${mode}.password`)}
           </label>
           {isLogin && (
-            <Link to="/forgot-password" className="retro-login-v3-forgot">
+            <Link to="/forgot-password" className="journal-auth-forgot">
               {t('auth:login.forgotPassword')}
             </Link>
           )}
@@ -182,9 +157,10 @@ const CredentialsFields = ({
         <input
           id="password"
           type="password"
+          autoComplete={isLogin ? 'current-password' : 'new-password'}
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
-          className="retro-login-v3-input"
+          className="journal-auth-input"
           placeholder={t(`auth:${mode}.passwordPlaceholder`)}
           required
           data-testid="auth-input-password"
@@ -203,7 +179,7 @@ const SubmitButton = ({ isLogin, loading }: SubmitButtonProps) => {
     <button
       type="submit"
       disabled={loading}
-      className="retro-login-v3-submit disabled:opacity-50 disabled:cursor-not-allowed"
+      className="journal-auth-submit disabled:opacity-50 disabled:cursor-not-allowed"
       data-testid="auth-submit-button"
     >
       {t(`auth:${mode}.${action}`)}
@@ -217,14 +193,14 @@ const GoogleAuth = ({ isLogin }: AuthModeProps) => {
 
   return (
     <>
-      <div className="retro-login-v3-divider">
-        <div className="retro-login-v3-divider-line" />
-        <span className="retro-login-v3-divider-text">{t(`auth:${mode}.orContinueWith`)}</span>
-        <div className="retro-login-v3-divider-line" />
+      <div className="journal-auth-divider">
+        <div className="journal-auth-divider-line" />
+        <span className="journal-auth-divider-text">{t(`auth:${mode}.orContinueWith`)}</span>
+        <div className="journal-auth-divider-line" />
       </div>
       <a
         href={authApi.googleStart}
-        className="retro-login-v3-google-btn"
+        className="journal-auth-google-btn"
         data-testid="auth-google-link"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -252,7 +228,6 @@ const GoogleAuth = ({ isLogin }: AuthModeProps) => {
 };
 
 const LoginPage = () => {
-  const { t } = useTranslation(['common']);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -273,7 +248,7 @@ const LoginPage = () => {
       if (isLogin) await login(email, password);
       else await signup(email, password, name, inviteCode);
 
-      navigate(searchParams.get('returnUrl') || '/app/study');
+      navigate(searchParams.get('returnUrl') || '/app/journal');
     } catch (caughtError) {
       setError(getErrorMessage(caughtError, isLogin));
     } finally {
@@ -282,36 +257,32 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen retro-login-v3-wrap flex items-center justify-center px-4 py-8">
-      <div className="retro-login-v3-shell max-w-4xl w-full">
-        <AuthHeader />
-        <div className="retro-login-v3-main">
-          <div className="retro-login-v3-card">
-            <AuthModeTabs isLogin={isLogin} onChange={setIsLogin} />
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <SignupFields
-                isLogin={isLogin}
-                name={name}
-                inviteCode={inviteCode}
-                onNameChange={setName}
-                onInviteCodeChange={setInviteCode}
-              />
-              <CredentialsFields
-                isLogin={isLogin}
-                email={email}
-                password={password}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-              />
-              {error && <div className="retro-login-v3-error">{error}</div>}
-              <SubmitButton isLogin={isLogin} loading={loading} />
-            </form>
-            <GoogleAuth isLogin={isLogin} />
+    <JournalAuthShell>
+      <AuthModeTabs isLogin={isLogin} onChange={setIsLogin} />
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <SignupFields
+          isLogin={isLogin}
+          name={name}
+          inviteCode={inviteCode}
+          onNameChange={setName}
+          onInviteCodeChange={setInviteCode}
+        />
+        <CredentialsFields
+          isLogin={isLogin}
+          email={email}
+          password={password}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+        />
+        {error && (
+          <div role="alert" className="journal-auth-error">
+            {error}
           </div>
-          <p className="retro-login-v3-footer">{t('common:footer')}</p>
-        </div>
-      </div>
-    </div>
+        )}
+        <SubmitButton isLogin={isLogin} loading={loading} />
+      </form>
+      <GoogleAuth isLogin={isLogin} />
+    </JournalAuthShell>
   );
 };
 

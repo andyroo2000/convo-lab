@@ -291,7 +291,7 @@ describe('Layout', () => {
 
       const nav = container.querySelector('nav');
       expect(nav).toBeTruthy();
-      expect(nav).toHaveClass('bg-periwinkle');
+      expect(nav).toHaveClass('journal-topbar');
     });
 
     it('should render main content area', () => {
@@ -314,7 +314,7 @@ describe('Layout', () => {
       window.history.pushState({}, '', '/app/library');
       renderLayout('/app/library');
 
-      expect(screen.getByTestId('logo')).toBeTruthy();
+      expect(screen.getByText('CONVO-LAB')).toBeTruthy();
     });
   });
 

@@ -71,7 +71,7 @@ const LandingPage = () => {
               {user ? (
                 <button
                   type="button"
-                  onClick={() => navigate('/app/study')}
+                  onClick={() => navigate('/app/journal')}
                   className="hidden sm:inline-flex retro-landing-v3-nav-btn"
                   data-testid="landing-header-button-go-to-app"
                 >
