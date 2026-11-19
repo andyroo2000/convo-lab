@@ -19,7 +19,7 @@
   padding-top: 14px;
 }
 .journal-note-content > .journal-correction {
-  gap: 6px 34px;
+  gap: 6px 2.7em;
   margin: 0 -16px 8px;
   padding: 10px 16px;
   background: var(--journal-note-header);
@@ -32,8 +32,8 @@
   display: none;
 }
 .journal-note-content .journal-correction-arrow {
-  width: 20px;
-  right: calc(100% + 7px);
+  width: 1em;
+  right: calc(100% + 0.7em);
   text-align: center;
 }
 .journal-note-pointer {
@@ -99,6 +99,7 @@
 .journal-note-popover ruby {
   display: inline-grid;
   text-align: center;
+  line-height: 1;
 }
 .journal-note-popover ruby > span,
 .journal-note-popover rt {
