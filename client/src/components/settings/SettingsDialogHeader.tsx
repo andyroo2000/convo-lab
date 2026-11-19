@@ -24,9 +24,6 @@ const SettingsDialogHeader = ({
         </button>
       )}
       <div>
-        <p>
-          CONVO-LAB <span>コンボ・ラボ</span>
-        </p>
         <h1 id="journal-settings-title">{t(`modal.titles.${titleKey}`)}</h1>
       </div>
       <button type="button" aria-label={t('modal.close')} disabled={nestedOverlay} onClick={close}>

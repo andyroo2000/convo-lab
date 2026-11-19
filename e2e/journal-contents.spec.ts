@@ -150,3 +150,41 @@ test('phone header fits and the larger illustrated Listen bars stay attached to 
     }
   }
 });
+
+test('Journal serif settings keep account actions usable on desktop and phones', async ({
+  page,
+}, info) => {
+  await fixture(page);
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    const account = page.getByRole('button', { name: 'Account menu', exact: true });
+    await expect(account.locator('.journal-account-avatar')).toHaveCSS('font-family', /Anton/);
+    await account.click();
+    await expect(page.getByTestId('user-menu-item-credits')).toHaveCount(0);
+    await page.getByTestId('user-menu-item-settings').click();
+    const dialog = page.getByRole('dialog', { name: 'Settings', exact: true });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Account', exact: true })).toHaveCSS(
+      'font-family',
+      /Crimson Pro/
+    );
+    await expect(dialog.getByRole('heading', { name: 'Settings', exact: true })).toHaveCSS(
+      'font-family',
+      /Crimson Pro/
+    );
+    for (const name of ['Edit profile', 'Change password', 'Sign out', 'Delete account']) {
+      const box = await dialog.getByRole('button', { name, exact: true }).boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+    await page.screenshot({ path: info.outputPath(`settings-${width}.png`) });
+    await dialog.getByRole('button', { name: 'Edit profile' }).click();
+    await expect(page.getByLabel('Email', { exact: true })).toHaveValue('reader@example.test');
+    await page.getByRole('button', { name: 'Back to settings' }).click();
+    await expect(dialog.getByRole('button', { name: 'Edit profile' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(account).toBeFocused();
+  }
+});

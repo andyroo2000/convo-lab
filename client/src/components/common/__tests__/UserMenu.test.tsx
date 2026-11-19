@@ -43,12 +43,11 @@ describe('UserMenu', () => {
       expect(screen.getByText('J')).toBeInTheDocument();
     });
 
-    it('should display avatar image when avatarUrl is provided', () => {
+    it('uses the iOS-style initial even when the account has a stored avatar URL', () => {
       renderWithRouter(<UserMenu {...defaultProps} avatarUrl="https://example.com/avatar.png" />);
 
-      const img = screen.getByAltText('John Doe');
-      expect(img).toBeInTheDocument();
-      expect(img).toHaveAttribute('src', 'https://example.com/avatar.png');
+      expect(screen.getByText('J')).toBeInTheDocument();
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
     });
 
     it('should not show dropdown initially', () => {
@@ -65,7 +64,7 @@ describe('UserMenu', () => {
       fireEvent.click(screen.getByTestId('user-menu-button'));
 
       expect(screen.getByTestId('user-menu-item-settings')).toBeInTheDocument();
-      expect(screen.getByTestId('user-menu-item-credits')).toBeInTheDocument();
+      expect(screen.queryByTestId('user-menu-item-credits')).not.toBeInTheDocument();
       expect(screen.getByTestId('user-menu-item-logout')).toBeInTheDocument();
     });
 
@@ -217,16 +216,6 @@ describe('UserMenu', () => {
 
       expect(screen.queryByTestId('user-menu-item-settings')).not.toBeInTheDocument();
     });
-
-    it('should navigate to credits page', () => {
-      renderWithRouter(<UserMenu {...defaultProps} />);
-
-      fireEvent.click(screen.getByTestId('user-menu-button'));
-      fireEvent.click(screen.getByTestId('user-menu-item-credits'));
-
-      expect(mockNavigate).toHaveBeenCalledWith('/app/credits');
-      expect(screen.queryByTestId('user-menu-item-credits')).not.toBeInTheDocument();
-    });
   });
 
   describe('Logout', () => {
@@ -285,15 +274,14 @@ describe('UserMenu', () => {
     });
   });
 
-  describe('Avatar Colors', () => {
-    it('should use default indigo color', () => {
+  describe('Legacy avatar preferences', () => {
+    it('uses the initial with the shared Journal appearance', () => {
       renderWithRouter(<UserMenu {...defaultProps} />);
 
-      // Should render with default color scheme
       expect(screen.getByText('J')).toBeInTheDocument();
     });
 
-    it('should accept different avatar colors', () => {
+    it('keeps the account menu available for existing avatar color preferences', () => {
       const colors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
 
       colors.forEach((color) => {

@@ -1,11 +1,21 @@
 import { useState, type ReactNode, type RefObject } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, ChevronDown, Link2, UserRound } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  Link2,
+  LockKeyhole,
+  LogOut,
+  Trash2,
+  UserRound,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SettingsDialogHeader, { type SettingsEditor } from './SettingsDialogHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import ModalPortalContext from '../common/ModalPortalContext';
+import JournalAccountAvatar from '../common/JournalAccountAvatar';
 import useJournalModal from '../../features/journal/useJournalModal';
 import SettingsPage, { type SettingsTab } from '../../pages/SettingsPage';
 import GoogleCalendarConnectionCard from '../study/GoogleCalendarConnectionCard';
@@ -25,7 +35,7 @@ const Chapter = ({
 }: {
   chapterKey: ChapterKey;
   title: string;
-  icon: ReactNode;
+  icon?: ReactNode;
   open: boolean;
   onToggle: () => void;
   children: ReactNode;
@@ -54,9 +64,7 @@ const SettingsIdentity = () => {
   if (!user) return null;
   return (
     <div className="journal-settings-identity">
-      <div className="journal-settings-avatar">
-        {user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : <UserRound aria-hidden="true" />}
-      </div>
+      <JournalAccountAvatar name={user.displayName || user.name} />
       <div>
         <strong>{user.displayName || user.name}</strong>
         <p>{user.email}</p>
@@ -65,9 +73,35 @@ const SettingsIdentity = () => {
   );
 };
 
-const SettingsContents = ({ onEdit }: { onEdit: (tab: SettingsEditor) => void }) => {
+const SettingsAccountActions = ({ onEdit }: { onEdit: (tab: SettingsEditor) => void }) => {
   const { t } = useTranslation('settings');
   const { logout } = useAuth();
+  const actions = [
+    { label: 'editProfile', icon: UserRound, perform: () => onEdit('profile') },
+    { label: 'changePassword', icon: LockKeyhole, perform: () => onEdit('security') },
+    { label: 'signOut', icon: LogOut, perform: logout },
+    { label: 'deleteAccount', icon: Trash2, perform: () => onEdit('danger') },
+  ];
+  return (
+    <div className="journal-settings-actions">
+      {actions.map(({ label, icon: Icon, perform }) => (
+        <button
+          key={label}
+          type="button"
+          className={label === 'deleteAccount' ? 'is-danger' : undefined}
+          onClick={perform}
+        >
+          <Icon aria-hidden="true" />
+          <span>{t(`modal.actions.${label}`)}</span>
+          <ChevronRight aria-hidden="true" className="journal-settings-action-chevron" />
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const SettingsContents = ({ onEdit }: { onEdit: (tab: SettingsEditor) => void }) => {
+  const { t } = useTranslation('settings');
   const { isFeatureEnabled } = useFeatureFlags();
   const studyEnabled = isFeatureEnabled('flashcardsEnabled');
   const { tab } = useParams();
@@ -82,27 +116,9 @@ const SettingsContents = ({ onEdit }: { onEdit: (tab: SettingsEditor) => void })
   });
   return (
     <>
-      <Chapter {...chapterProps('account')} icon={<UserRound aria-hidden="true" />}>
+      <Chapter {...chapterProps('account')}>
         <SettingsIdentity />
-        <div className="journal-settings-actions">
-          <button type="button" onClick={() => onEdit('profile')}>
-            {t('modal.actions.editProfile')}
-          </button>
-          <button type="button" onClick={() => onEdit('security')}>
-            {t('modal.actions.changePassword')}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-            }}
-          >
-            {t('modal.actions.signOut')}
-          </button>
-          <button type="button" className="is-danger" onClick={() => onEdit('danger')}>
-            {t('modal.actions.deleteAccount')}
-          </button>
-        </div>
+        <SettingsAccountActions onEdit={onEdit} />
       </Chapter>
       {studyEnabled && (
         <>
