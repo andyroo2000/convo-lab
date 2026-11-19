@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Link, MemoryRouter, Route, useLocation } from 'react-router-dom';
 import SettingsModalRoutes from '../SettingsModalRoutes';
+import i18n from '../../../i18n';
 import SettingsDialog from '../SettingsDialog';
 import MobileLearningDock from '../../common/MobileLearningDock';
 
@@ -73,6 +74,10 @@ beforeEach(() => {
   };
 });
 
+afterEach(async () => {
+  await i18n.changeLanguage('en');
+});
+
 describe('Journal settings modal', () => {
   it('preserves the current Journal draft when closing settings', async () => {
     setup();
@@ -134,6 +139,18 @@ describe('Journal settings modal', () => {
     expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to settings' }));
     expect(screen.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument();
+  });
+
+  it('keeps the open chapter and its control ID when switching languages', async () => {
+    setup(true, '/app/settings');
+    fireEvent.click(screen.getByRole('button', { name: 'Connections' }));
+    await i18n.changeLanguage('ja');
+    expect(screen.getByRole('dialog', { name: '設定' })).toBeInTheDocument();
+    const chapter = screen.getByRole('button', { name: '連携' });
+    expect(chapter).toHaveAttribute('aria-expanded', 'true');
+    expect(chapter).toHaveAttribute('aria-controls', 'settings-connections');
+    fireEvent.click(screen.getByRole('button', { name: 'アカウント' }));
+    expect(screen.getByRole('button', { name: 'プロフィールを編集' })).toBeInTheDocument();
   });
 
   it('dismisses a direct settings visit with Escape to Journal', () => {

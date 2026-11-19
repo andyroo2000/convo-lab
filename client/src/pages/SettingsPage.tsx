@@ -367,7 +367,7 @@ const SettingsPage = ({
 
                 {/* Avatar */}
                 <details className="mb-6">
-                  <summary>Profile photo</summary>
+                  <summary>{t('settings:modal.profilePhoto')}</summary>
                   <div className="mt-4">
                     <p className="retro-settings-label mb-3">
                       {t('settings:profile.avatar.label')}
@@ -458,7 +458,7 @@ const SettingsPage = ({
                   {embeddedTab && (
                     <div>
                       <label htmlFor="settings-email" className="retro-settings-label mb-3">
-                        Email
+                        {t('settings:modal.email')}
                         <input
                           id="settings-email"
                           type="email"

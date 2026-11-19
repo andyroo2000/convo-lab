@@ -91,5 +91,29 @@
     "saveSuccess": "設定が正常に保存されました！",
     "deleteSuccess": "アカウントが正常に削除されました",
     "deleteError": "アカウントの削除に失敗しました"
+  },
+  "modal": {
+    "titles": {
+      "index": "設定",
+      "profile": "アカウント設定",
+      "security": "パスワードの変更",
+      "danger": "アカウントの削除"
+    },
+    "chapters": {
+      "account": "アカウント",
+      "study": "学習設定",
+      "connections": "連携"
+    },
+    "actions": {
+      "editProfile": "プロフィールを編集",
+      "changePassword": "パスワードを変更",
+      "signOut": "ログアウト",
+      "deleteAccount": "アカウントを削除"
+    },
+    "back": "設定に戻る",
+    "close": "設定を閉じる",
+    "studyPreferencesLink": "1日の新規カード数・レッスン枚数・習得済み漢字",
+    "profilePhoto": "プロフィール写真",
+    "email": "メールアドレス"
   }
 }

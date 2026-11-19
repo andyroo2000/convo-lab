@@ -1,6 +1,8 @@
 import { useState, type ReactNode, type RefObject } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronDown, Link2, UserRound, X } from 'lucide-react';
+import { BookOpen, ChevronDown, Link2, UserRound } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import SettingsDialogHeader, { type SettingsEditor } from './SettingsDialogHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import ModalPortalContext from '../common/ModalPortalContext';
@@ -9,29 +11,26 @@ import SettingsPage, { type SettingsTab } from '../../pages/SettingsPage';
 import GoogleCalendarConnectionCard from '../study/GoogleCalendarConnectionCard';
 import './settings.css';
 
-const EDITOR_TITLES = {
-  profile: 'Account settings',
-  security: 'Change password',
-  danger: 'Delete account',
-};
-type Editor = keyof typeof EDITOR_TITLES;
-const isEditor = (tab?: string): tab is Editor =>
-  Object.prototype.hasOwnProperty.call(EDITOR_TITLES, tab ?? '');
+const isEditor = (tab?: string): tab is SettingsEditor =>
+  ['profile', 'security', 'danger'].includes(tab ?? '');
+type ChapterKey = 'account' | 'study' | 'connections';
 
 const Chapter = ({
+  chapterKey,
   title,
   icon,
   open,
   onToggle,
   children,
 }: {
+  chapterKey: ChapterKey;
   title: string;
   icon: ReactNode;
   open: boolean;
   onToggle: () => void;
   children: ReactNode;
 }) => {
-  const id = `settings-${title.toLowerCase().replace(/ /g, '-')}`;
+  const id = `settings-${chapterKey}`;
   return (
     <section className="journal-settings-chapter">
       <h2>
@@ -52,40 +51,45 @@ const Chapter = ({
 
 const SettingsIdentity = () => {
   const { user } = useAuth();
+  if (!user) return null;
   return (
     <div className="journal-settings-identity">
       <div className="journal-settings-avatar">
-        {user?.avatarUrl ? <img src={user.avatarUrl} alt="" /> : <UserRound aria-hidden="true" />}
+        {user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : <UserRound aria-hidden="true" />}
       </div>
       <div>
-        <strong>{user?.displayName || user?.name}</strong>
-        <p>{user?.email}</p>
+        <strong>{user.displayName || user.name}</strong>
+        <p>{user.email}</p>
       </div>
     </div>
   );
 };
 
-const SettingsContents = ({ onEdit }: { onEdit: (tab: Editor) => void }) => {
+const SettingsContents = ({ onEdit }: { onEdit: (tab: SettingsEditor) => void }) => {
+  const { t } = useTranslation('settings');
   const { logout } = useAuth();
   const { isFeatureEnabled } = useFeatureFlags();
   const studyEnabled = isFeatureEnabled('flashcardsEnabled');
   const { tab } = useParams();
-  const [expanded, setExpanded] = useState(tab === 'integrations' ? 'Connections' : 'Account');
-  const chapterProps = (title: string) => ({
-    title,
-    open: expanded === title,
-    onToggle: () => setExpanded(expanded === title ? '' : title),
+  const [expanded, setExpanded] = useState<ChapterKey | null>(
+    tab === 'integrations' ? 'connections' : 'account'
+  );
+  const chapterProps = (chapterKey: ChapterKey) => ({
+    chapterKey,
+    title: t(`modal.chapters.${chapterKey}`),
+    open: expanded === chapterKey,
+    onToggle: () => setExpanded(expanded === chapterKey ? null : chapterKey),
   });
   return (
     <>
-      <Chapter {...chapterProps('Account')} icon={<UserRound aria-hidden="true" />}>
+      <Chapter {...chapterProps('account')} icon={<UserRound aria-hidden="true" />}>
         <SettingsIdentity />
         <div className="journal-settings-actions">
           <button type="button" onClick={() => onEdit('profile')}>
-            Edit profile
+            {t('modal.actions.editProfile')}
           </button>
           <button type="button" onClick={() => onEdit('security')}>
-            Change password
+            {t('modal.actions.changePassword')}
           </button>
           <button
             type="button"
@@ -93,21 +97,21 @@ const SettingsContents = ({ onEdit }: { onEdit: (tab: Editor) => void }) => {
               logout();
             }}
           >
-            Sign out
+            {t('modal.actions.signOut')}
           </button>
           <button type="button" className="is-danger" onClick={() => onEdit('danger')}>
-            Delete account
+            {t('modal.actions.deleteAccount')}
           </button>
         </div>
       </Chapter>
       {studyEnabled && (
         <>
-          <Chapter {...chapterProps('Study preferences')} icon={<BookOpen aria-hidden="true" />}>
+          <Chapter {...chapterProps('study')} icon={<BookOpen aria-hidden="true" />}>
             <Link className="journal-settings-link" to="/app/study/settings">
-              Daily cards, lesson size &amp; known kanji <span aria-hidden="true">→</span>
+              {t('modal.studyPreferencesLink')} <span aria-hidden="true">→</span>
             </Link>
           </Chapter>
-          <Chapter {...chapterProps('Connections')} icon={<Link2 aria-hidden="true" />}>
+          <Chapter {...chapterProps('connections')} icon={<Link2 aria-hidden="true" />}>
             <GoogleCalendarConnectionCard />
           </Chapter>
         </>
@@ -130,7 +134,7 @@ function useSettingsDismissal(ref: RefObject<HTMLDialogElement>, nestedOverlay: 
 const AuthenticatedSettingsDialog = () => {
   const ref = useJournalModal();
   const { tab } = useParams();
-  const [editor, setEditor] = useState<Editor | null>(isEditor(tab) ? tab : null);
+  const [editor, setEditor] = useState<SettingsEditor | null>(isEditor(tab) ? tab : null);
   const [nestedOverlay, setNestedOverlay] = useState(false);
   const close = useSettingsDismissal(ref, nestedOverlay);
   return (
@@ -148,32 +152,12 @@ const AuthenticatedSettingsDialog = () => {
       }}
     >
       <ModalPortalContext.Provider value={ref}>
-        <header className="journal-settings-header">
-          {editor && (
-            <button
-              type="button"
-              aria-label="Back to settings"
-              disabled={nestedOverlay}
-              onClick={() => setEditor(null)}
-            >
-              <ArrowLeft />
-            </button>
-          )}
-          <div>
-            <p>
-              CONVO-LAB <span>コンボ・ラボ</span>
-            </p>
-            <h1 id="journal-settings-title">{editor ? EDITOR_TITLES[editor] : 'Settings'}</h1>
-          </div>
-          <button
-            type="button"
-            aria-label="Close settings"
-            disabled={nestedOverlay}
-            onClick={close}
-          >
-            <X />
-          </button>
-        </header>
+        <SettingsDialogHeader
+          editor={editor}
+          nestedOverlay={nestedOverlay}
+          back={() => setEditor(null)}
+          close={close}
+        />
         <div className="journal-settings-content">
           {editor ? (
             <SettingsPage
