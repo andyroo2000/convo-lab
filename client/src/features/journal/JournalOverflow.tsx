@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Ellipsis } from 'lucide-react';
+import JournalCopyFeedback from './JournalCopyFeedback';
 
 const JournalOverflow = ({ children }: { children: ReactNode }) => {
   const root = useRef<HTMLDetailsElement>(null);
@@ -29,12 +30,14 @@ const JournalOverflow = ({ children }: { children: ReactNode }) => {
     };
   }, []);
   return (
-    <details ref={root} className="journal-overflow">
-      <summary aria-label="More journal options">
-        <Ellipsis size={22} />
-      </summary>
-      <div className="journal-overflow-content">{children}</div>
-    </details>
+    <JournalCopyFeedback>
+      <details ref={root} className="journal-overflow">
+        <summary aria-label="More journal options">
+          <Ellipsis size={22} />
+        </summary>
+        <div className="journal-overflow-content">{children}</div>
+      </details>
+    </JournalCopyFeedback>
   );
 };
 export default JournalOverflow;

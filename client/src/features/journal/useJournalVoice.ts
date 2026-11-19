@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJournalAudioState, getJournalVoices, type JournalVoice } from './journalAudio';
 
@@ -46,6 +46,10 @@ export default function useJournalVoice({
   });
   const options = voices.data ?? [];
   const voiceId = currentVoice(options, chosen, saved.data);
+  const avatar = options.find((voice) => voice.id === voiceId)?.avatarUrl;
+  useEffect(() => {
+    if (avatar) new Image().src = avatar;
+  }, [avatar]);
   const loading = voices.isFetching || saved.isFetching;
   const error = saved.isError || voices.isError;
   const ready = Boolean(voiceId) && saved.isSuccess && !loading && !error;
