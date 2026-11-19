@@ -1,5 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
+import JournalCopyFeedbackContext from './JournalCopyFeedbackContext';
+
+function confirmCopy(button: HTMLButtonElement | null, feedback: (() => void) | null) {
+  if (!feedback) return;
+  feedback();
+  const menu = button?.closest('details');
+  menu?.removeAttribute('open');
+  menu?.querySelector('summary')?.focus();
+}
+
+function copyAnnouncement(copied: boolean, hasFeedback: boolean) {
+  return copied && !hasFeedback ? 'Copied' : '';
+}
 
 function copyMenuLabel(copied: boolean) {
   return copied ? 'Copied' : 'Copy text';
@@ -24,6 +37,8 @@ const JournalCopyButton = ({
   label?: string;
   menu?: boolean;
 }) => {
+  const feedback = useContext(JournalCopyFeedbackContext);
+  const button = useRef<HTMLButtonElement>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -36,6 +51,7 @@ const JournalCopyButton = ({
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setError(false);
+      confirmCopy(button.current, feedback);
     } catch {
       setError(true);
     }
@@ -46,6 +62,7 @@ const JournalCopyButton = ({
   return (
     <div className="relative">
       <button
+        ref={button}
         type="button"
         aria-label={menu ? `${menuLabel} (${copyLabel})` : label}
         title={label}
@@ -62,7 +79,7 @@ const JournalCopyButton = ({
         {menu && menuLabel}
       </button>
       <span role="status" className="sr-only">
-        {copied ? 'Copied' : ''}
+        {copyAnnouncement(copied, Boolean(feedback))}
       </span>
       <CopyError error={error} />
     </div>

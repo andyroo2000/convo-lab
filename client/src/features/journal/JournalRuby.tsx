@@ -23,7 +23,7 @@ const JournalRuby = ({ text }: { text: string }) => {
         const known = active && kanji.length > 0 && kanji.every((char) => knownKanji.has(char));
         return (
           <ruby key={part.key}>
-            {part.text}
+            <span>{part.text}</span>
             <rt className={known ? 'invisible' : ''} aria-hidden={known}>
               {part.reading}
             </rt>

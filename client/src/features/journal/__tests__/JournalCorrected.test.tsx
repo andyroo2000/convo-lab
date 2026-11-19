@@ -53,6 +53,7 @@ it('copies the selected version and follows saved correction changes without fur
   fireEvent.click(screen.getByRole('button', { name: 'Copy text (Copy draft text)' }));
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('映画を見ますた。'));
   fireEvent.click(screen.getByRole('button', { name: 'Final' }));
+  fireEvent.click(screen.getByLabelText('More journal options'));
   fireEvent.click(screen.getByRole('button', { name: 'Copy text (Copy final text)' }));
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('映画を見た。'));
   rerender(
@@ -69,8 +70,10 @@ it('copies the selected version and follows saved correction changes without fur
       }}
     />
   );
+  fireEvent.click(screen.getByLabelText('More journal options'));
   fireEvent.click(screen.getByRole('button', { name: 'Copy text (Copy final text)' }));
   await waitFor(() => expect(writeText).toHaveBeenLastCalledWith('映画を見ました。'));
+  fireEvent.click(screen.getByLabelText('More journal options'));
   expect(screen.getByRole('button', { name: 'Edit final text' })).toBeVisible();
 });
 it('keeps final reading, audio, and an edit action without a duplicate copy toolbar', () => {

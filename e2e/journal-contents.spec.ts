@@ -41,7 +41,7 @@ const analysis = {
   },
 };
 
-async function fixture(page: Page) {
+async function fixture(page: Page, correction = false) {
   let selectedId = 'hana';
   await page.route('**/sanctum/csrf-cookie', (route) => route.fulfill({ status: 204 }));
   await page.route('**/fixture-*.webp', async (route) => {
@@ -72,7 +72,30 @@ async function fixture(page: Page) {
       },
       '/api/journal/entries': { data: [entry], nextCursor: null },
       [`/api/journal/entries/${entry.id}`]: { data: entry },
-      [`/api/journal/entries/${entry.id}/analysis`]: { data: analysis, entry },
+      [`/api/journal/entries/${entry.id}/analysis`]: {
+        data: correction
+          ? {
+              ...analysis,
+              result: {
+                ...analysis.result,
+                segments: [
+                  {
+                    text: 'レッソンが取り消した',
+                    reading: 'レッソンが取[と]り消[け]した',
+                    kind: 'correction',
+                    replacement: 'レッスンが中止になった',
+                    replacementReading: 'レッスンが中止[ちゅうし]になった',
+                    explanation:
+                      'Use レッスン for the spelling. 中止になった means **was canceled** and fits a scheduled lesson. With が取り消した, the lesson itself would be doing the canceling. 留学生体験授業 describes a student trial lesson.',
+                    explanationReading:
+                      'Use レッスン for the spelling. 中止になった means **was canceled** and fits a scheduled lesson. With が取り消した, the lesson itself would be doing the canceling. 留学生[りゅうがくせい]体験[たいけん]授業[じゅぎょう] describes a student trial lesson.',
+                  },
+                ],
+              },
+            }
+          : analysis,
+        entry,
+      },
       [`/api/journal/entries/${entry.id}/conversation`]: { data: [] },
       [`/api/journal/entries/${entry.id}/question`]: {
         data: {
@@ -186,5 +209,80 @@ test('Journal serif settings keep account actions usable on desktop and phones',
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await expect(account).toBeFocused();
+  }
+});
+
+test('copy confirmation sits above the menu on Draft and Final', async ({
+  page,
+  context,
+}, info) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await fixture(page);
+  for (const version of ['Draft', 'Final']) {
+    await page.getByRole('button', { name: version, exact: true }).click();
+    const options = page.getByLabel('More journal options').first();
+    await options.click();
+    await page
+      .getByRole('button', { name: `Copy text (Copy ${version.toLowerCase()} text)` })
+      .click();
+    const toast = page.getByText('Text copied', { exact: true });
+    await expect(toast).toBeVisible();
+    await expect(options).toBeFocused();
+    const confirmation = (await toast.boundingBox())!;
+    const trigger = (await options.boundingBox())!;
+    expect(confirmation.y + confirmation.height).toBeLessThanOrEqual(trigger.y);
+    expect(confirmation.x).toBeGreaterThanOrEqual(0);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(entry.body);
+    await page.screenshot({ path: info.outputPath(`copy-${version.toLowerCase()}.png`) });
+    await expect(toast).not.toBeVisible({ timeout: 3500 });
+  }
+});
+
+test('mixed-language correction stays readable inside rounded paper', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await fixture(page, true);
+  await page.getByRole('button', { name: 'Draft', exact: true }).click();
+  await page.getByRole('button', { name: /^Correction: Replace/ }).click();
+  const popup = page.getByRole('dialog', { name: 'Correction', exact: true });
+  await expect(popup).toBeVisible();
+  await expect(popup).toContainText('canceling');
+  const box = (await popup.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: info.outputPath('correction.png') });
+});
+
+test('adjacent long readings keep their own space inside the correction', async ({
+  page,
+}, info) => {
+  await fixture(page, true);
+  await page.getByRole('button', { name: 'Draft', exact: true }).click();
+  const anchor = page.getByRole('button', { name: /^Correction: Replace/ });
+  const popup = page.getByRole('dialog', { name: 'Correction', exact: true });
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await anchor.blur();
+    await anchor.focus();
+    await expect(popup).toBeVisible();
+    const readings = await popup.locator('.journal-explanation rt').evaluateAll((elements) =>
+      elements.map((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const { left, right, top, bottom } = range.getBoundingClientRect();
+        const base = element.previousElementSibling!.getBoundingClientRect();
+        return { left, right, top, bottom, baseTop: base.top };
+      })
+    );
+    expect(readings).toHaveLength(3);
+    expect(readings.every((reading) => (reading.top + reading.bottom) / 2 < reading.baseTop)).toBe(
+      true
+    );
+    for (let i = 1; i < readings.length; i += 1) {
+      const previous = readings[i - 1];
+      const current = readings[i];
+      expect(current.left >= previous.right - 0.5 || current.top >= previous.bottom).toBe(true);
+    }
+    await page.screenshot({ path: info.outputPath(`adjacent-readings-${width}.png`) });
   }
 });
