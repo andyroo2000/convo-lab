@@ -1,5 +1,7 @@
-import { useId } from 'react';
+import { useContext, useId, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
+import JournalDeskContext from './JournalDeskContext';
+import { defaultTypography } from './journalTypography';
 import useJournalActionPopover from './useJournalActionPopover';
 import JournalRuby from './JournalRuby';
 import JournalCorrection from './JournalCorrection';
@@ -37,6 +39,7 @@ const JournalNote = ({ segment }: HighlightProps) => (
 const JournalHighlight = ({ segment }: HighlightProps) => {
   const { anchor, popup, open, position, pointer, show, hide, trigger } = useJournalActionPopover();
   const id = useId();
+  const { textSize = defaultTypography.size } = useContext(JournalDeskContext);
 
   if (segment.kind === 'plain' || segment.kind === 'keep')
     return <JournalRuby text={segment.reading} />;
@@ -70,7 +73,7 @@ const JournalHighlight = ({ segment }: HighlightProps) => {
             id={id}
             role="dialog"
             aria-label={labels[segment.kind]}
-            style={position}
+            style={{ ...position, '--journal-size': `${textSize}px` } as CSSProperties}
             className="journal-note-popover fixed z-50 w-max max-w-[min(30rem,calc(100vw-24px))] text-navy shadow-lg dark:text-[#e2e9ee]"
             onPointerEnter={show}
             onPointerLeave={(event) => {

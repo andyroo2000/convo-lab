@@ -69,8 +69,8 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
     [typography, appearanceSaved]
   );
   const deskValue = useMemo(
-    () => ({ target, appearance, editingChanged }),
-    [target, appearance, editingChanged]
+    () => ({ target, appearance, editingChanged, textSize: typography.size }),
+    [target, appearance, editingChanged, typography.size]
   );
   return (
     <JournalDeskContext.Provider value={deskValue}>

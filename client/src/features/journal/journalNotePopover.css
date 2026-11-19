@@ -76,3 +76,14 @@
   --journal-note-surface: #2a3338;
   --journal-note-edge: #455055;
 }
+
+/* Portaled notes receive the notebook size through React context. */
+.journal-note-popover .journal-correction {
+  font-size: max(14px, calc(var(--journal-size, 26px) - 2px));
+}
+.journal-note-popover .journal-explanation {
+  font-size: max(14px, calc(var(--journal-size, 26px) - 4px));
+}
+.journal-note-popover .journal-correction-arrow {
+  font-size: 1.1em;
+}
