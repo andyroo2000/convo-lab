@@ -34,6 +34,16 @@ jobs:
             exit 1
           fi
 
+      - name: Verify cloud tool audio is ready
+        run: |
+          audio_url="https://convo-lab.com/api/tools-audio/play/japanese-date/google-kento-professional/date/month/02.mp3"
+          status="$(curl --silent --show-error --connect-timeout 5 --max-time 20 --output /dev/null --write-out '%{http_code}' "$audio_url")"
+          if [ "$status" != 302 ]; then
+            echo "::error::Deploy the Learning OS cloud playback endpoint before unbundling audio."
+            exit 1
+          fi
+          curl --fail --silent --show-error --location --connect-timeout 5 --max-time 30 --output /dev/null "$audio_url"
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh

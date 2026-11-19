@@ -388,7 +388,12 @@ jobs:
               mail_from_name="ConvoLab"
             fi
 
+            media_config_revision="$(printf '%s\n' \
+              "$(read_env_value APP_MEDIA_DRIVER)" \
+              "$(read_env_value APP_MEDIA_BUCKET)" \
+              "$(read_env_value APP_MEDIA_PREFIX)" | sha256sum | cut -d ' ' -f1)"
             desired_deploy_config_revision="calendar-oauth-redirect-v1"
+            desired_deploy_config_revision="$desired_deploy_config_revision:private-media-$media_config_revision"
             upsert_env LEARNING_OS_DEPLOY_CONFIG_REVISION "$desired_deploy_config_revision"
             upsert_env LEARNING_OS_MAIL_FROM_ADDRESS "$mail_from_address"
             upsert_env LEARNING_OS_MAIL_FROM_NAME "$mail_from_name"

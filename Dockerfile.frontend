@@ -27,6 +27,8 @@ WORKDIR /app
 COPY shared/seo.mjs ./shared/seo.mjs
 COPY scripts/render-static-spa-entrypoints.mjs ./scripts/render-static-spa-entrypoints.mjs
 RUN node scripts/render-static-spa-entrypoints.mjs /app/client/dist
+# Tool clips are served from GCS through the existing API signing path.
+RUN rm -rf /app/client/dist/tools-audio /app/client/dist/voice-previews
 
 FROM nginx:1.27-alpine AS production
 COPY deploy/frontend-nginx.conf /etc/nginx/conf.d/default.conf
