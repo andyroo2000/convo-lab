@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import UserMenuItems from './UserMenuItems';
+import JournalAccountAvatar from './JournalAccountAvatar';
 
 export interface UserMenuMobileNavItem {
   id: string;
@@ -13,8 +14,6 @@ export interface UserMenuMobileNavItem {
 
 interface UserMenuProps {
   userName: string;
-  avatarColor?: string;
-  avatarUrl?: string;
   userRole: 'user' | 'moderator' | 'admin' | 'demo';
   mobileNavItems?: UserMenuMobileNavItem[];
   onLogout: () => void;
@@ -58,8 +57,6 @@ function useAccountMenuDisclosure() {
 
 const UserMenu = ({
   userName,
-  avatarColor: _avatarColor = 'indigo',
-  avatarUrl,
   userRole,
   mobileNavItems = [],
   onLogout,
@@ -76,7 +73,6 @@ const UserMenu = ({
     }
     navigate(path);
   };
-  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <div className="relative" ref={menuRef}>
@@ -84,20 +80,12 @@ const UserMenu = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="retro-user-pill hover:bg-[#1296bf]/70 transition-colors"
+        className="journal-account-trigger"
         data-testid="user-menu-button"
         aria-label="Account menu"
         aria-expanded={isOpen}
       >
-        {avatarUrl ? (
-          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#f6f2df]">
-            <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className="w-9 h-9 bg-[#f6f2df] rounded-full flex items-center justify-center">
-            <span className="retro-caps text-xl font-bold text-[#173b65]">{userInitial}</span>
-          </div>
-        )}
+        <JournalAccountAvatar name={userName} />
       </button>
 
       {(isOpen || journalSettings) && (

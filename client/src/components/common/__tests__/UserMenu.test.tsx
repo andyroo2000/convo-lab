@@ -37,18 +37,10 @@ describe('UserMenu', () => {
       expect(button).toBeInTheDocument();
     });
 
-    it('should display user initial when no avatar URL', () => {
+    it('should display the user initial', () => {
       renderWithRouter(<UserMenu {...defaultProps} />);
 
       expect(screen.getByText('J')).toBeInTheDocument();
-    });
-
-    it('should display avatar image when avatarUrl is provided', () => {
-      renderWithRouter(<UserMenu {...defaultProps} avatarUrl="https://example.com/avatar.png" />);
-
-      const img = screen.getByAltText('John Doe');
-      expect(img).toBeInTheDocument();
-      expect(img).toHaveAttribute('src', 'https://example.com/avatar.png');
     });
 
     it('should not show dropdown initially', () => {
@@ -65,7 +57,7 @@ describe('UserMenu', () => {
       fireEvent.click(screen.getByTestId('user-menu-button'));
 
       expect(screen.getByTestId('user-menu-item-settings')).toBeInTheDocument();
-      expect(screen.getByTestId('user-menu-item-credits')).toBeInTheDocument();
+      expect(screen.queryByTestId('user-menu-item-credits')).not.toBeInTheDocument();
       expect(screen.getByTestId('user-menu-item-logout')).toBeInTheDocument();
     });
 
@@ -217,16 +209,6 @@ describe('UserMenu', () => {
 
       expect(screen.queryByTestId('user-menu-item-settings')).not.toBeInTheDocument();
     });
-
-    it('should navigate to credits page', () => {
-      renderWithRouter(<UserMenu {...defaultProps} />);
-
-      fireEvent.click(screen.getByTestId('user-menu-button'));
-      fireEvent.click(screen.getByTestId('user-menu-item-credits'));
-
-      expect(mockNavigate).toHaveBeenCalledWith('/app/credits');
-      expect(screen.queryByTestId('user-menu-item-credits')).not.toBeInTheDocument();
-    });
   });
 
   describe('Logout', () => {
@@ -285,27 +267,6 @@ describe('UserMenu', () => {
     });
   });
 
-  describe('Avatar Colors', () => {
-    it('should use default indigo color', () => {
-      renderWithRouter(<UserMenu {...defaultProps} />);
-
-      // Should render with default color scheme
-      expect(screen.getByText('J')).toBeInTheDocument();
-    });
-
-    it('should accept different avatar colors', () => {
-      const colors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
-
-      colors.forEach((color) => {
-        const { unmount } = renderWithRouter(<UserMenu {...defaultProps} avatarColor={color} />);
-
-        // Should render without errors
-        expect(screen.getByTestId('user-menu-button')).toBeInTheDocument();
-        unmount();
-      });
-    });
-  });
-
   describe('User Initial', () => {
     it('should display uppercase first letter', () => {
       renderWithRouter(<UserMenu {...defaultProps} userName="alice" />);
@@ -313,10 +274,11 @@ describe('UserMenu', () => {
       expect(screen.getByText('A')).toBeInTheDocument();
     });
 
-    it('should handle empty name gracefully', () => {
-      renderWithRouter(<UserMenu {...defaultProps} userName="" />);
+    it.each(['', '   '])('shows a fallback for a blank name: %j', (userName) => {
+      renderWithRouter(<UserMenu {...defaultProps} userName={userName} />);
 
       expect(screen.getByTestId('user-menu-button')).toBeInTheDocument();
+      expect(screen.getByText('?')).toBeInTheDocument();
     });
   });
 });

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Settings, LogOut, Shield, BookMarked } from 'lucide-react';
+import { Settings, LogOut, Shield } from 'lucide-react';
 import type { UserMenuMobileNavItem } from './UserMenu';
 
 const itemClass =
@@ -25,7 +25,6 @@ const UserMenuItems = ({
       ? [{ id: 'admin', path: '/app/admin', label: t('admin'), icon: Shield }]
       : []),
     { id: 'settings', path: '/app/settings', label: t('settings'), icon: Settings },
-    { id: 'credits', path: '/app/credits', label: 'Credits', icon: BookMarked },
   ];
   return (
     <>
