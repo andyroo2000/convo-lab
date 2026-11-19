@@ -5,7 +5,8 @@ import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 
 const MobileLearningDock = () => {
   const { t } = useTranslation('common');
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const { isFeatureEnabled } = useFeatureFlags();
   const isCardsActive = [
     '/app/study/cards',
@@ -68,6 +69,7 @@ const MobileLearningDock = () => {
               <Link
                 key={item.id}
                 to={item.path}
+                state={item.id === 'settings' ? { backgroundLocation: location } : undefined}
                 aria-current={item.active ? 'page' : undefined}
                 className="mobile-learning-dock-link"
                 data-testid={`mobile-learning-dock-${item.id}`}

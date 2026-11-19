@@ -91,5 +91,29 @@
     "saveSuccess": "Settings saved successfully!",
     "deleteSuccess": "Account deleted successfully",
     "deleteError": "Failed to delete account"
+  },
+  "modal": {
+    "titles": {
+      "index": "Settings",
+      "profile": "Account settings",
+      "security": "Change password",
+      "danger": "Delete account"
+    },
+    "chapters": {
+      "account": "Account",
+      "study": "Study preferences",
+      "connections": "Connections"
+    },
+    "actions": {
+      "editProfile": "Edit profile",
+      "changePassword": "Change password",
+      "signOut": "Sign out",
+      "deleteAccount": "Delete account"
+    },
+    "back": "Back to settings",
+    "close": "Close settings",
+    "studyPreferencesLink": "Daily cards, lesson size & known kanji",
+    "profilePhoto": "Profile photo",
+    "email": "Email"
   }
 }

@@ -8,15 +8,26 @@ import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import { adminApi } from '../lib/adminApi';
 import GoogleCalendarConnectionCard from '../components/study/GoogleCalendarConnectionCard';
 
-type Tab = 'profile' | 'security' | 'integrations' | 'danger';
+export type SettingsTab = 'profile' | 'security' | 'integrations' | 'danger';
 const SETTINGS_TABS = new Set<string>(['profile', 'security', 'integrations', 'danger']);
 
-const SettingsPage = () => {
+interface SettingsPageProps {
+  embeddedTab?: SettingsTab;
+  calendarEnabled?: boolean;
+  onOverlayChange?: (open: boolean) => void;
+}
+
+const SettingsPage = ({
+  embeddedTab,
+  calendarEnabled = false,
+  onOverlayChange,
+}: SettingsPageProps) => {
   const { t } = useTranslation(['settings', 'common']);
   const { user, updateUser, deleteAccount, changePassword } = useAuth();
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
-  const activeTab: Tab = SETTINGS_TABS.has(tab ?? '') ? (tab as Tab) : 'profile';
+  const activeTab: SettingsTab =
+    embeddedTab ?? (SETTINGS_TABS.has(tab ?? '') ? (tab as SettingsTab) : 'profile');
 
   const AVATAR_COLORS = useMemo(
     () => [
@@ -95,10 +106,14 @@ const SettingsPage = () => {
   const [cropperImageUrl, setCropperImageUrl] = useState('');
 
   useEffect(() => {
-    if (tab && !SETTINGS_TABS.has(tab)) {
+    if (!embeddedTab && tab && !SETTINGS_TABS.has(tab)) {
       navigate('/app/settings/profile', { replace: true });
     }
-  }, [tab, navigate]);
+  }, [tab, navigate, embeddedTab]);
+
+  useEffect(() => {
+    onOverlayChange?.(showDeleteModal || cropperOpen);
+  }, [showDeleteModal, cropperOpen, onOverlayChange]);
 
   // Initialize form with user data
   useEffect(() => {
@@ -186,7 +201,7 @@ const SettingsPage = () => {
     setPasswordSuccess(null);
 
     // Validation
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if ([currentPassword, newPassword, confirmPassword].some((value) => !value)) {
       setPasswordError(t('settings:security.errors.required'));
       return;
     }
@@ -271,7 +286,7 @@ const SettingsPage = () => {
     return null;
   }
 
-  const getTabButtonClass = (tabKey: Tab) => {
+  const getTabButtonClass = (tabKey: SettingsTab) => {
     if (tabKey === 'danger') {
       return `retro-settings-tab ${activeTab === tabKey ? 'is-active-danger' : ''}`;
     }
@@ -282,51 +297,55 @@ const SettingsPage = () => {
     <div className="retro-settings-wrap">
       <div className="retro-settings-shell">
         {/* Header */}
-        <div className="retro-settings-top">
-          <h1 className="retro-settings-title">{t('settings:title')}</h1>
-          <p className="retro-settings-subtitle">{t('settings:subtitle')}</p>
-        </div>
+        {!embeddedTab && (
+          <div className="retro-settings-top">
+            <h1 className="retro-settings-title">{t('settings:title')}</h1>
+            <p className="retro-settings-subtitle">{t('settings:subtitle')}</p>
+          </div>
+        )}
 
         <div className="retro-settings-main">
           {/* Tab Navigation */}
-          <div className="retro-settings-tabs">
-            <button
-              type="button"
-              onClick={() => navigate('/app/settings/profile')}
-              className={getTabButtonClass('profile')}
-              data-testid="settings-tab-profile"
-            >
-              <User className="w-4 h-4" />
-              <span>{t('settings:tabs.profile')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/app/settings/security')}
-              className={getTabButtonClass('security')}
-              data-testid="settings-tab-security"
-            >
-              <Lock className="w-4 h-4" />
-              <span>{t('settings:tabs.security')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/app/settings/integrations')}
-              className={getTabButtonClass('integrations')}
-              data-testid="settings-tab-integrations"
-            >
-              <CalendarDays className="w-4 h-4" />
-              <span>{t('settings:tabs.integrations')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/app/settings/danger')}
-              className={getTabButtonClass('danger')}
-              data-testid="settings-tab-danger"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>{t('settings:tabs.danger')}</span>
-            </button>
-          </div>
+          {!embeddedTab && (
+            <div className="retro-settings-tabs">
+              <button
+                type="button"
+                onClick={() => navigate('/app/settings/profile')}
+                className={getTabButtonClass('profile')}
+                data-testid="settings-tab-profile"
+              >
+                <User className="w-4 h-4" />
+                <span>{t('settings:tabs.profile')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/app/settings/security')}
+                className={getTabButtonClass('security')}
+                data-testid="settings-tab-security"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{t('settings:tabs.security')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/app/settings/integrations')}
+                className={getTabButtonClass('integrations')}
+                data-testid="settings-tab-integrations"
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span>{t('settings:tabs.integrations')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/app/settings/danger')}
+                className={getTabButtonClass('danger')}
+                data-testid="settings-tab-danger"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{t('settings:tabs.danger')}</span>
+              </button>
+            </div>
+          )}
 
           {/* Success/Error Messages */}
           {success && (
@@ -347,85 +366,109 @@ const SettingsPage = () => {
                 <h2 className="retro-headline text-3xl mb-6">{t('settings:profile.title')}</h2>
 
                 {/* Avatar */}
-                <div className="mb-6">
-                  <p className="retro-settings-label mb-3">{t('settings:profile.avatar.label')}</p>
-                  <div className="flex flex-wrap items-center gap-4">
-                    {/* Current Avatar Preview */}
-                    {user?.avatarUrl ? (
-                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
-                        <img
-                          src={user.avatarUrl}
-                          alt={t('settings:profile.avatar.altText')}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className={`w-20 h-20 ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.bg || 'bg-indigo-100'} rounded-full flex items-center justify-center`}
-                      >
-                        <span
-                          className={`text-2xl font-medium ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.text || 'text-indigo-600'}`}
+                <details className="mb-6">
+                  <summary>{t('settings:modal.profilePhoto')}</summary>
+                  <div className="mt-4">
+                    <p className="retro-settings-label mb-3">
+                      {t('settings:profile.avatar.label')}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-4">
+                      {/* Current Avatar Preview */}
+                      {user?.avatarUrl ? (
+                        <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+                          <img
+                            src={user.avatarUrl}
+                            alt={t('settings:profile.avatar.altText')}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className={`w-20 h-20 ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.bg || 'bg-indigo-100'} rounded-full flex items-center justify-center`}
                         >
-                          {displayName.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
+                          <span
+                            className={`text-2xl font-medium ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.text || 'text-indigo-600'}`}
+                          >
+                            {displayName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
 
-                    {/* Upload Button */}
-                    <button
-                      type="button"
-                      onClick={handleAvatarUpload}
-                      className="retro-settings-btn-subtle"
-                      data-testid="settings-button-upload-avatar"
-                    >
-                      <Camera className="w-4 h-4" />
-                      {user?.avatarUrl
-                        ? t('settings:profile.avatar.change')
-                        : t('settings:profile.avatar.upload')}
-                    </button>
-
-                    {user?.avatarUrl && (
+                      {/* Upload Button */}
                       <button
                         type="button"
-                        onClick={async () => {
-                          try {
-                            await updateUser({ avatarUrl: null });
-                            setSuccess(t('settings:profile.avatar.removeSuccess'));
-                            setTimeout(() => setSuccess(null), 3000);
-                          } catch (removeError) {
-                            setError(t('settings:profile.avatar.removeError'));
-                          }
-                        }}
-                        className="retro-settings-link-danger"
-                        data-testid="settings-button-remove-avatar"
+                        onClick={handleAvatarUpload}
+                        className="retro-settings-btn-subtle"
+                        data-testid="settings-button-upload-avatar"
                       >
-                        {t('settings:profile.avatar.remove')}
+                        <Camera className="w-4 h-4" />
+                        {user?.avatarUrl
+                          ? t('settings:profile.avatar.change')
+                          : t('settings:profile.avatar.upload')}
                       </button>
-                    )}
+
+                      {user?.avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await updateUser({ avatarUrl: null });
+                              setSuccess(t('settings:profile.avatar.removeSuccess'));
+                              setTimeout(() => setSuccess(null), 3000);
+                            } catch (removeError) {
+                              setError(t('settings:profile.avatar.removeError'));
+                            }
+                          }}
+                          className="retro-settings-link-danger"
+                          data-testid="settings-button-remove-avatar"
+                        >
+                          {t('settings:profile.avatar.remove')}
+                        </button>
+                      )}
+                    </div>
+                    <p className="retro-settings-helper mt-2">
+                      {t('settings:profile.avatar.helper')}
+                    </p>
                   </div>
-                  <p className="retro-settings-helper mt-2">
-                    {t('settings:profile.avatar.helper')}
-                  </p>
-                </div>
+                </details>
 
                 {/* Display Name Section */}
-                <div className="mb-8">
-                  <label htmlFor="settings-display-name" className="retro-settings-label mb-3">
-                    {t('settings:profile.displayName.label')}
-                  </label>
-                  <input
-                    id="settings-display-name"
-                    type="text"
-                    className="retro-settings-input"
-                    placeholder={t('settings:profile.displayName.placeholder')}
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    maxLength={50}
-                    data-testid="settings-input-display-name"
-                  />
-                  <p className="retro-settings-helper mt-2">
-                    {t('settings:profile.displayName.helper')}
-                  </p>
+                <div className="journal-settings-fields">
+                  <div>
+                    <label htmlFor="settings-display-name" className="retro-settings-label mb-3">
+                      {t('settings:profile.displayName.label')}
+                    </label>
+                    <input
+                      id="settings-display-name"
+                      type="text"
+                      className="retro-settings-input"
+                      placeholder={t('settings:profile.displayName.placeholder')}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      maxLength={50}
+                      data-testid="settings-input-display-name"
+                    />
+                    {!embeddedTab && (
+                      <p className="retro-settings-helper mt-2">
+                        {t('settings:profile.displayName.helper')}
+                      </p>
+                    )}
+                  </div>
+
+                  {embeddedTab && (
+                    <div>
+                      <label htmlFor="settings-email" className="retro-settings-label mb-3">
+                        {t('settings:modal.email')}
+                        <input
+                          id="settings-email"
+                          type="email"
+                          value={user.email}
+                          readOnly
+                          className="retro-settings-input mt-3"
+                        />
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 {/* Save/Cancel Buttons */}
@@ -439,15 +482,17 @@ const SettingsPage = () => {
                   >
                     {isSaving ? t('settings:profile.saving') : t('settings:profile.saveButton')}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    disabled={!hasChanges() || isSaving}
-                    className="retro-settings-btn-secondary disabled:opacity-50"
-                    data-testid="settings-button-cancel"
-                  >
-                    {t('settings:profile.cancelButton')}
-                  </button>
+                  {!embeddedTab && (
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      disabled={!hasChanges() || isSaving}
+                      className="retro-settings-btn-secondary disabled:opacity-50"
+                      data-testid="settings-button-cancel"
+                    >
+                      {t('settings:profile.cancelButton')}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -540,7 +585,7 @@ const SettingsPage = () => {
             </div>
           )}
 
-          {activeTab === 'integrations' && (
+          {activeTab === 'integrations' && calendarEnabled && (
             <div className="mx-auto max-w-4xl">
               <GoogleCalendarConnectionCard />
             </div>

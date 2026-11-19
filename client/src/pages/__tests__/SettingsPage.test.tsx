@@ -47,10 +47,17 @@ function renderWithRouter(route = '/app/settings/profile') {
   return render(
     <MemoryRouter initialEntries={[route]}>
       <Routes>
-        <Route path="/app/settings/:tab?" element={<SettingsPage />} />
+        <Route path="/app/settings/:tab?" element={<SettingsPage calendarEnabled />} />
       </Routes>
     </MemoryRouter>
   );
+}
+
+function fillPasswords(current: string, password: string, confirmation: string) {
+  const fields = { current, new: password, confirm: confirmation };
+  Object.entries(fields).forEach(([field, value]) => {
+    fireEvent.change(screen.getByTestId(`settings-input-${field}-password`), { target: { value } });
+  });
 }
 
 describe('SettingsPage', () => {
@@ -176,15 +183,7 @@ describe('SettingsPage', () => {
     it('should validate password length', async () => {
       renderWithRouter('/app/settings/security');
 
-      fireEvent.change(screen.getByTestId('settings-input-current-password'), {
-        target: { value: 'current' },
-      });
-      fireEvent.change(screen.getByTestId('settings-input-new-password'), {
-        target: { value: 'short' },
-      });
-      fireEvent.change(screen.getByTestId('settings-input-confirm-password'), {
-        target: { value: 'short' },
-      });
+      fillPasswords('current', 'short', 'short');
 
       fireEvent.click(screen.getByTestId('settings-button-change-password'));
 
@@ -196,15 +195,7 @@ describe('SettingsPage', () => {
     it('should validate passwords match', async () => {
       renderWithRouter('/app/settings/security');
 
-      fireEvent.change(screen.getByTestId('settings-input-current-password'), {
-        target: { value: 'currentpass' },
-      });
-      fireEvent.change(screen.getByTestId('settings-input-new-password'), {
-        target: { value: 'newpassword1' },
-      });
-      fireEvent.change(screen.getByTestId('settings-input-confirm-password'), {
-        target: { value: 'newpassword2' },
-      });
+      fillPasswords('currentpass', 'newpassword1', 'newpassword2');
 
       fireEvent.click(screen.getByTestId('settings-button-change-password'));
 
@@ -216,15 +207,7 @@ describe('SettingsPage', () => {
     it('should call changePassword on valid submission', async () => {
       renderWithRouter('/app/settings/security');
 
-      fireEvent.change(screen.getByTestId('settings-input-current-password'), {
-        target: { value: 'currentpass' },
-      });
-      fireEvent.change(screen.getByTestId('settings-input-new-password'), {
-        target: { value: 'newpassword123' },
-      });
-      fireEvent.change(screen.getByTestId('settings-input-confirm-password'), {
-        target: { value: 'newpassword123' },
-      });
+      fillPasswords('currentpass', 'newpassword123', 'newpassword123');
 
       fireEvent.click(screen.getByTestId('settings-button-change-password'));
 
@@ -236,15 +219,7 @@ describe('SettingsPage', () => {
     it('should show success message after password change', async () => {
       renderWithRouter('/app/settings/security');
 
-      fireEvent.change(screen.getByTestId('settings-input-current-password'), {
-        target: { value: 'currentpass' },
-      });
-      fireEvent.change(screen.getByTestId('settings-input-new-password'), {
-        target: { value: 'newpassword123' },
-      });
-      fireEvent.change(screen.getByTestId('settings-input-confirm-password'), {
-        target: { value: 'newpassword123' },
-      });
+      fillPasswords('currentpass', 'newpassword123', 'newpassword123');
 
       fireEvent.click(screen.getByTestId('settings-button-change-password'));
 

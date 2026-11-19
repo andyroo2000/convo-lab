@@ -1,9 +1,10 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import LocaleProvider from './contexts/LocaleContext';
 import { AudioPreviewProvider } from './contexts/AudioPreviewContext';
 import { KnownKanjiProvider } from './contexts/KnownKanjiContext';
+import SettingsModalRoutes from './components/settings/SettingsModalRoutes';
 import Layout from './components/common/Layout';
 import SectionFeatureBoundary from './components/common/SectionFeatureBoundary';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
@@ -44,7 +45,7 @@ const PracticePage = lazy(() => import('./pages/PracticePage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const ReadingsPage = lazy(() => import('./pages/ReadingsPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const SettingsPage = lazy(() => import('./components/settings/SettingsDialog'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ManageStudyPilesPage = lazy(() => import('./pages/ManageStudyPilesPage'));
 const StudyPage = lazy(() => import('./pages/StudyPage'));
@@ -335,11 +336,11 @@ const App = () => (
           <AudioPreviewProvider>
             <PWAInstallPrompt />
             <Suspense fallback={<PageLoader />}>
-              <Routes>
+              <SettingsModalRoutes>
                 {renderPublicRoutes()}
                 {renderProtectedRoutes()}
                 <Route path="*" element={<NotFoundPage />} />
-              </Routes>
+              </SettingsModalRoutes>
             </Suspense>
           </AudioPreviewProvider>
         </LocaleProvider>
