@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import JournalHighlight from '../JournalHighlight';
+import JournalDeskContext from '../JournalDeskContext';
 import type { JournalSegment } from '../types';
 
 afterEach(() => {
@@ -48,4 +49,30 @@ it('keeps the note inside a phone viewport when its footer or error changes size
   expect(note).toHaveStyle({ left: '28px' });
   unmount();
   expect(disconnect).toHaveBeenCalledTimes(observers.size);
+});
+
+it('updates an open body-portaled note when the Journal font size changes', () => {
+  const note = (size: number) => (
+    <JournalDeskContext.Provider value={{ target: null, textSize: size }}>
+      <JournalHighlight
+        segment={{
+          text: 'ていう',
+          reading: 'ていう',
+          kind: 'correction',
+          suggestion: null,
+          suggestionReading: null,
+          replacement: 'っていう',
+          explanation: 'Add っ.',
+          explanationReading: null,
+        }}
+      />
+    </JournalDeskContext.Provider>
+  );
+  const { rerender } = render(note(20));
+  fireEvent.click(screen.getByRole('button'));
+  expect(screen.getByRole('dialog')).toHaveStyle({ '--journal-size': '20px' });
+  rerender(note(30));
+  expect(screen.getByRole('dialog')).toHaveStyle({ '--journal-size': '30px' });
+  rerender(note(16));
+  expect(screen.getByRole('dialog')).toHaveStyle({ '--journal-size': '16px' });
 });
