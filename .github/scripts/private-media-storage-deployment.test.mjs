@@ -49,3 +49,17 @@ test('invalid tool paths return 404 and deployment checks cloud playback before 
   assert.ok(gate > 0 && gate < steps.findIndex((step) => step.name === 'Setup SSH'));
   assert.match(steps[gate].run, /curl --fail.*--location/u);
 });
+
+
+test('voice previews use the existing cloud playback boundary and are not bundled', async () => {
+  const dockerfile = await read('Dockerfile.frontend');
+  const nginx = await read('deploy/frontend-nginx.conf');
+  assert.match(dockerfile, /RUN rm -rf .* \/app\/client\/dist\/voice-previews/u);
+  const pattern = nginx.match(/location ~ (\^\/voice-previews\/[^ ]+) \{/u)?.[1];
+  assert.ok(pattern);
+  const route = new RegExp(pattern);
+  assert.equal(route.test('/voice-previews/ja-jp-neural2-b.mp3'), true);
+  assert.equal(route.test('/voice-previews/../secret.mp3'), false);
+  assert.ok(nginx.includes('return 302 /api/tools-audio/play/voice-previews/$1;'));
+  assert.match(nginx, /location \/voice-previews\/ \{\s+return 404;/u);
+});

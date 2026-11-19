@@ -43,3 +43,5 @@ Learning OS. Never upload these recordings into the public tool-audio namespace.
 - `tools-audio/japanese-time/google-kento-professional/`
 - `tools-audio/japanese-money/google-kento-professional/`
 - `tools-audio/japanese-verbs/google-kento-professional/`
+
+Voice preview clips also live in `convolab-storage/tools-audio/voice-previews`. Their legacy `/voice-previews/*.mp3` URLs redirect through the same cloud playback API, and the frontend runtime image excludes those bundled files.
