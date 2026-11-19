@@ -13,11 +13,12 @@
 }
 .workspace-switcher {
   position: relative;
-  margin-left: 24px;
-  padding-left: 12px;
+  margin-left: 28px;
+  padding-left: 16px;
   border-left: 1px solid #ffffff66;
 }
 .workspace-switcher summary,
+.workspace-switcher .workspace-single,
 .journal-topbar .journal-entries-trigger {
   display: flex;
   align-items: center;
@@ -42,6 +43,7 @@
 }
 .workspace-contents {
   min-width: 0;
+  margin-left: -4px;
 }
 .workspace-options,
 .workspace-account-menu {
@@ -61,15 +63,19 @@
 .workspace-options {
   left: 0;
   right: auto;
-  width: 220px;
+  width: 280px;
+  padding: 14px;
+  border-radius: 20px;
+  background: #fcf6df;
+  border-color: #d7d4bd;
 }
 .workspace-options a {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 44px;
-  padding: 9px 11px;
-  border-radius: 6px;
+  min-height: 49px;
+  padding: 10px 12px;
+  border-radius: 9px;
   font:
     500 20px/1.2 'Crimson Pro',
     Georgia,
@@ -77,7 +83,7 @@
 }
 .workspace-options a:hover,
 .workspace-options a[aria-current='page'] {
-  background: #e8f0df;
+  background: #e7edcf;
 }
 .journal-account-preferences {
   border-bottom: 1px solid #d5ddcc;
@@ -104,11 +110,12 @@
     font-size: 30px;
   }
   .workspace-switcher {
-    margin-left: 8px;
+    margin-left: 12px;
     padding-left: 0;
     border: 0;
   }
   .workspace-switcher summary,
+  .workspace-switcher .workspace-single,
   .journal-topbar .journal-entries-trigger {
     font-size: 18px;
     padding-inline: 5px;
@@ -127,9 +134,10 @@
     font-size: 26px;
   }
   .workspace-switcher {
-    margin-left: 4px;
+    margin-left: 8px;
   }
   .workspace-switcher summary,
+  .workspace-switcher .workspace-single,
   .journal-topbar .journal-entries-trigger {
     padding-inline: 2px;
   }
@@ -140,4 +148,25 @@
 
 .workspace-account-menu[hidden] {
   display: none;
+}
+
+.workspace-group h2 {
+  margin: 6px 10px 7px;
+  font:
+    500 10px/1.4 Inter,
+    sans-serif;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #596773;
+}
+.workspace-group + .workspace-group {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #d7d4bd;
+}
+.workspace-check {
+  margin-left: auto;
+}
+.workspace-options a > svg {
+  flex-shrink: 0;
 }
