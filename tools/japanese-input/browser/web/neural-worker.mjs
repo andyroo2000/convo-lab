@@ -20,8 +20,13 @@ self.onmessage = async ({ data }) => {
       await model.load();
       postMessage({ ready: true });
     } else {
-      const result =
-        data.op === 'score' ? await model.score(data.text, data.prompt) : await review(model, data);
+      let result;
+      if (data.op === 'scores') {
+        const scores = [];
+        if (model.scoreMany) scores.push(...await model.scoreMany(data.texts, data.prompt));
+        else for (const text of data.texts) scores.push((await model.score(data.prompt + text, data.prompt)).score);
+        result = { kind: 'scores', scores };
+      } else result = data.op === 'score' ? await model.score(data.text, data.prompt) : await review(model, data);
       answer(result);
     }
   } catch (error) {

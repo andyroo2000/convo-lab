@@ -7,7 +7,9 @@ const roots = new Map([
   ['/browser/', 'browser/web'],
   ['/vendor/wllama/', process.env.WLLAMA_DIRECTORY ?? 'node_modules/@wllama/wllama/esm'],
   ['/vendor/wasi/', 'node_modules/@bjorn3/browser_wasi_shim/dist'],
-  ['/assets/', '.engines/browser-assets'],
+  ['/assets/', process.env.BROWSER_ASSETS ?? '.engines/browser-assets'],
+  ['/gpu/', 'performance/webgpu'],
+  ['/vendor/gpu/', '.engines/webgpu-source/esm'],
 ]);
 const types = {
   '.mjs': 'text/javascript',
@@ -24,6 +26,8 @@ const aliases = new Map([
   ['/wanakana.js', 'node_modules/wanakana/esm/index.js'],
   ['/tutor.webp', '../../client/public/images/tutor-hana.webp'],
   ['/', 'web/index.html'],
+  ...(process.env.IOS_BROWSER ? [['/browser/neural-model.mjs', 'performance/webgpu/cpu-model.mjs'], ['/browser/base-neural-model.mjs', 'browser/web/neural-model.mjs']] : []),
+  ...(process.env.NEURAL_GPU ? [['/browser/neural-model.mjs', 'performance/webgpu/model.mjs'], ['/browser/base-neural-model.mjs', 'browser/web/neural-model.mjs']] : []),
   ...(Boolean(process.env.NEURAL_BATCH)
     ? [
         [
@@ -53,7 +57,13 @@ export function createBrowserServer() {
     response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     response.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
     response.setHeader('X-Content-Type-Options', 'nosniff');
-    const file = asset(new URL(request.url, 'http://localhost').pathname);
+    const pathname = new URL(request.url, 'http://localhost').pathname;
+    if (pathname === '/gpu/config.mjs') {
+      response.setHeader('Content-Type', 'text/javascript');
+      response.end(`export const gpu = ${process.env.NEURAL_GPU === 'gpu'}; export const incremental = ${process.env.NEURAL_SCALAR === '1'};`);
+      return;
+    }
+    const file = asset(pathname);
     try {
       if (!['GET', 'HEAD'].includes(request.method) || !file) throw Error('Not found');
       if (!(await stat(file)).isFile()) throw Error('Not found');

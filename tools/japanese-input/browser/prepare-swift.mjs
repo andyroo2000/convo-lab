@@ -35,7 +35,8 @@ put(
 for (const name of ['WholePhraseCandidates', 'NeuralBoundaryRanker']) {
   put(
     `Sources/KanaKanjiConverterModule/ConverterAPI/Browser${name}.swift`,
-    readFileSync(resolve(root, `engine/adapter/${name}.swift`), 'utf8')
+    readFileSync(resolve(root, name === 'NeuralBoundaryRanker' && process.env.IOS_OPTIMIZED
+      ? 'performance/webgpu/NeuralBoundaryRanker.swift' : `engine/adapter/${name}.swift`), 'utf8')
   );
 }
 // Remove copies injected by the native playground; use the tracked adapters above.
@@ -60,6 +61,11 @@ for (const name of readdirSync(resolve(root, 'engine/Sources/InputWorker'))) {
       'let inferenceLimit = 1\nlet neuralInferenceLimit = inferenceLimit\nlet modelURL = URL(fileURLWithPath: "/model.gguf")\nlet boundaryRanker ='
     );
     source = source.slice(0, source.indexOf('while let line = readLine()'));
+  }
+  if (name === 'main.swift' && process.env.IOS_OPTIMIZED) {
+    source = source.replace('let results = converter.requestCandidates(composition, options: options)\n',
+      'let reuse = request.boundaries?.isEmpty == false && previousReading == request.reading\n    let results = reuse ? previousResults! : converter.requestCandidates(composition, options: options)\n    previousReading = request.reading\n    previousResults = results\n');
+    source = source.replace('@MainActor func convert(', 'var previousReading = \"\"\nvar previousResults: ConversionResult?\n\n@MainActor func convert(');
   }
   put(`Sources/BrowserInput/${name}`, source);
 }

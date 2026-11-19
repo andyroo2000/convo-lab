@@ -1,0 +1,927 @@
+{
+  "baseline": {
+    "version": "157.0.8103.79",
+    "adapter": {
+      "vendor": "apple",
+      "architecture": "metal-3",
+      "device": "",
+      "description": ""
+    },
+    "startup": [
+      1350.7453750000002,
+      383.84249999999975,
+      373.5283330000002
+    ],
+    "ordinaryMedianMs": 114.68749988079071,
+    "ordinaryP95Ms": 202.67499995231628,
+    "ordinaryFirstMatches": 72,
+    "ordinaryFullListMatches": 72,
+    "ordinarySectionsMatch": true,
+    "samples": 72,
+    "prefixMs": [
+      17.475000143051147,
+      17.125,
+      27.709999799728394,
+      28.375,
+      37.99499988555908,
+      43.6800000667572,
+      51.855000019073486,
+      57.875
+    ],
+    "boundaryDiffs": [
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 7039.774999856949,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 30.960000038146973,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 2202.729999780655,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 33.080000162124634,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 6819.964999914169,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 44.9449999332428,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 6410.539999961853,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 28.515000104904175,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      }
+    ],
+    "errors": []
+  },
+  "ios-reuse": {
+    "version": "157.0.8103.79",
+    "adapter": {
+      "vendor": "apple",
+      "architecture": "metal-3",
+      "device": "",
+      "description": ""
+    },
+    "startup": [
+      931.597792,
+      310.680875,
+      279.05925000000025
+    ],
+    "ordinaryMedianMs": 118.66499996185303,
+    "ordinaryP95Ms": 226.4300000667572,
+    "ordinaryFirstMatches": 72,
+    "ordinaryFullListMatches": 72,
+    "ordinarySectionsMatch": true,
+    "samples": 72,
+    "prefixMs": [
+      18.230000019073486,
+      17.319999933242798,
+      27.52999997138977,
+      28.115000009536743,
+      38.625,
+      104.99000000953674,
+      159.31500005722046,
+      76.35999989509583
+    ],
+    "boundaryDiffs": [
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 6816.115000009537,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 22.585000038146973,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 2205.2799999713898,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 19.539999961853027,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 6973.640000104904,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 32.420000076293945,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 6602.035000085831,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 23.625,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": true,
+        "maxScoreDelta": 0,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 160
+      }
+    ],
+    "errors": []
+  },
+  "gpu": {
+    "version": "157.0.8103.79",
+    "adapter": {
+      "vendor": "apple",
+      "architecture": "metal-3",
+      "device": "",
+      "description": ""
+    },
+    "startup": [
+      1099.720666,
+      342.747292,
+      324.7594170000002
+    ],
+    "ordinaryMedianMs": 90.31000006198883,
+    "ordinaryP95Ms": 146.63000011444092,
+    "ordinaryFirstMatches": 72,
+    "ordinaryFullListMatches": 72,
+    "ordinarySectionsMatch": true,
+    "samples": 72,
+    "prefixMs": [
+      23.96499991416931,
+      15.039999961853027,
+      28.509999990463257,
+      30.179999828338623,
+      45.74000000953674,
+      74.21999979019165,
+      81.30999994277954,
+      133.57499980926514
+    ],
+    "boundaryDiffs": [
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 1637.039999961853,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6418099999999995,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 71
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 19.670000076293945,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6418099999999995,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 71
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 696.4800000190735,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6418099999999995,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 54
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 19.924999952316284,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6418099999999995,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 54
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 1789.5899999141693,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.918647,
+        "sameSections": true,
+        "sameTopFive": false,
+        "matchingPositions": 56
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 28.96500015258789,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.918647,
+        "sameSections": true,
+        "sameTopFive": false,
+        "matchingPositions": 56
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 1556.6799998283386,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6492494999999998,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 60
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 18.93500018119812,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6492494999999998,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 60
+      }
+    ],
+    "errors": []
+  },
+  "runtime-cpu": {
+    "version": "157.0.8103.79",
+    "adapter": {
+      "vendor": "apple",
+      "architecture": "metal-3",
+      "device": "",
+      "description": ""
+    },
+    "startup": [
+      1100.2353749999997,
+      363.19425000000047,
+      286.5630830000009
+    ],
+    "ordinaryMedianMs": 118.52250003814697,
+    "ordinaryP95Ms": 218.17000007629395,
+    "ordinaryFirstMatches": 72,
+    "ordinaryFullListMatches": 72,
+    "ordinarySectionsMatch": true,
+    "samples": 72,
+    "prefixMs": [
+      24.295000076293945,
+      24.044999837875366,
+      34.15999984741211,
+      35.50499987602234,
+      49.41000008583069,
+      55.87999987602234,
+      59.69999980926514,
+      62.610000133514404
+    ],
+    "boundaryDiffs": [
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 13522.005000114441,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.7327270000000006,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 55
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 20.875,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.7327270000000006,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 55
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 5514.1900000572205,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.8153609999999993,
+        "sameSections": true,
+        "sameTopFive": false,
+        "matchingPositions": 46
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 22.230000019073486,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.8153609999999993,
+        "sameSections": true,
+        "sameTopFive": false,
+        "matchingPositions": 46
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 16570.664999961853,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 1.1719009999999983,
+        "sameSections": true,
+        "sameTopFive": false,
+        "matchingPositions": 51
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 31.96499991416931,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 1.1719009999999983,
+        "sameSections": true,
+        "sameTopFive": false,
+        "matchingPositions": 51
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 14033.170000076294,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.7469229999999989,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 51
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 22.200000047683716,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.7469229999999989,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 51
+      }
+    ],
+    "errors": []
+  },
+  "gpu-incremental": {
+    "version": "157.0.8103.79",
+    "adapter": {
+      "vendor": "apple",
+      "architecture": "metal-3",
+      "device": "",
+      "description": ""
+    },
+    "startup": [
+      1052.120875,
+      427.7835839999998,
+      438.1589590000003
+    ],
+    "ordinaryMedianMs": 96.23749995231628,
+    "ordinaryP95Ms": 146.30499982833862,
+    "ordinaryFirstMatches": 72,
+    "ordinaryFullListMatches": 72,
+    "ordinarySectionsMatch": true,
+    "samples": 72,
+    "prefixMs": [
+      31.144999980926514,
+      18.475000143051147,
+      36.35000014305115,
+      39.105000019073486,
+      61.15999984741211,
+      102.91000008583069,
+      93.47000002861023,
+      87.85500001907349
+    ],
+    "boundaryDiffs": [
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 10556.210000038147,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6341250000000009,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 71
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            1
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 21.945000171661377,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6341250000000009,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 71
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 2183.7350001335144,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6341250000000009,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 54
+      },
+      {
+        "input": {
+          "reading": "はしでたべました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 20.99500012397766,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6341250000000009,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 54
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 7982.225000143051,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.9031330000000004,
+        "sameSections": true,
+        "sameTopFive": false,
+        "matchingPositions": 57
+      },
+      {
+        "input": {
+          "reading": "きょうはいいてんきです",
+          "boundaries": [
+            3
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 33.39999985694885,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.9031330000000004,
+        "sameSections": true,
+        "sameTopFive": false,
+        "matchingPositions": 57
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 0,
+        "ms": 6715.169999837875,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6443704999999991,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 63
+      },
+      {
+        "input": {
+          "reading": "かみをきりました",
+          "boundaries": [
+            2
+          ],
+          "expanded": true
+        },
+        "repeat": 1,
+        "ms": 21.34999990463257,
+        "count": 160,
+        "sameFirst": true,
+        "sameSet": true,
+        "sameOrder": false,
+        "maxScoreDelta": 0.6443704999999991,
+        "sameSections": true,
+        "sameTopFive": true,
+        "matchingPositions": 63
+      }
+    ],
+    "errors": []
+  }
+}

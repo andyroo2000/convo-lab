@@ -8,7 +8,7 @@ before(async () => {
   server = createBrowserServer();
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   url = `http://127.0.0.1:${server.address().port}`;
-  browser = await { chromium, webkit, firefox }[process.env.BROWSER || 'chromium'].launch();
+  browser = await { chromium, webkit, firefox }[process.env.BROWSER || 'chromium'].launch({ channel: process.env.CHROME_CHANNEL, headless: !process.env.HEADED });
   context = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
   page = await context.newPage();
   await page.goto(url);

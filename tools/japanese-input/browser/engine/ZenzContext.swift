@@ -10,6 +10,7 @@ final class ZenzContext {
     struct Reply: Decodable {
         let kind: String
         let score: Float?
+        let scores: [Float]?
         let prefix: [UInt8]?
         let text: String?
         let alternatives: [CandidateEvaluationResult.AlternativeConstraint]?
@@ -35,6 +36,9 @@ final class ZenzContext {
         }
         guard count > 0, count <= 65536 else { return nil }
         return try? JSONDecoder().decode(Reply.self, from: Data(bytes: buffer, count: Int(count)))
+    }
+    func scores(texts: [String], prompt: String) -> [Float]? {
+        request(["op": "scores", "texts": texts, "prompt": prompt])?.scores
     }
     func evaluate(text: String, ignorePrompt: String = "") -> Float {
         request(["op": "score", "text": text, "prompt": ignorePrompt])?.score ?? .nan
