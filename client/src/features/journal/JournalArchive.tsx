@@ -99,7 +99,7 @@ const JournalArchive = ({
 }: ArchiveProps) => (
   <div className="journal-archive space-y-4 p-5">
     <div className="flex items-center justify-between">
-      <h1 className="text-2xl font-semibold text-navy">My entries</h1>
+      <h1 className="text-2xl font-semibold text-navy">Contents</h1>
       <div className="flex items-center gap-2">
         {appearance}
         <button

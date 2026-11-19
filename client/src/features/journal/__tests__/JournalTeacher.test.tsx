@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import JournalTeacher from '../JournalTeacher';
+import JournalPreferences from '../JournalPreferences';
 import { getTutorPreferences, prepareTutorQuestion, saveTutorPreference } from '../journalTutor';
 import type { JournalTutor, TutorQuestion } from '../journalTutor';
 import type { JournalAnalysis } from '../types';
@@ -33,10 +34,20 @@ const analysis: JournalAnalysis = {
     segments: [],
   },
 };
+const originalDialogs = {
+  showModal: HTMLDialogElement.prototype.showModal,
+  close: HTMLDialogElement.prototype.close,
+};
 let selected: string | null;
 let question: TutorQuestion;
 beforeEach(() => {
   vi.clearAllMocks();
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+    this.removeAttribute('open');
+  };
   selected = null;
   question = {
     id: 'question',
@@ -58,12 +69,14 @@ beforeEach(() => {
     return { data: question };
   });
 });
+afterEach(() => Object.assign(HTMLDialogElement.prototype, originalDialogs));
 function mount() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
+      <JournalPreferences ownerId="a" appearance={null} />
       <JournalTeacher ownerId="a" entryId="entry" analysis={analysis} />
     </QueryClientProvider>
   );
@@ -98,7 +111,7 @@ it('changes the account default while keeping the existing question with its ori
   [question.tutor] = tutors;
   mount();
   await screen.findByRole('img', { name: 'Hana, your tutor' });
-  fireEvent.click(screen.getByRole('button', { name: 'Choose tutor' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Choose your tutor' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Ren (M)' }));
   await waitFor(() => expect(selected).toBe('ren'));
   expect(screen.getByRole('img', { name: 'Hana, your tutor' })).toBeInTheDocument();

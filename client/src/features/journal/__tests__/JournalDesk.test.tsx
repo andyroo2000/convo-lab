@@ -47,13 +47,13 @@ it('closes the entries drawer on a selection or entry change but preserves modif
   const { rerender } = render(
     <JournalEntriesDrawer entryId="one">{contents}</JournalEntriesDrawer>
   );
-  fireEvent.click(screen.getByRole('button', { name: 'My entries' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Contents' }));
   expect(screen.getByRole('dialog')).toBeVisible();
   fireEvent.click(screen.getByRole('link'), { ctrlKey: true });
   expect(screen.getByRole('dialog')).toBeVisible();
   fireEvent.click(screen.getByRole('link'));
   expect(screen.queryByRole('dialog')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'My entries' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Contents' }));
   rerender(<JournalEntriesDrawer entryId="two">{contents}</JournalEntriesDrawer>);
   expect(screen.queryByRole('dialog')).toBeNull();
 });

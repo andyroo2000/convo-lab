@@ -224,15 +224,20 @@ describe('Layout', () => {
       expect(createLinks).toHaveLength(0);
     });
 
-    it('renders desktop workspace tabs and the mobile learning dock', () => {
+    it('offers the allowed sections in one switcher and retains the mobile learning dock', () => {
       window.history.pushState({}, '', '/app/library');
       const { container } = renderLayout('/app/library');
-
-      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/library"]')).toBeNull();
-      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/create"]')).toBeNull();
-      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study"]')).toBeTruthy();
-      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study/time"]')).toBeTruthy();
-      expect(container.querySelector('.sm\\:hidden .retro-nav-tab')).toBeNull();
+      const switcher = container.querySelector('.workspace-switcher') as HTMLDetailsElement;
+      switcher.open = true;
+      expect(within(switcher).getByRole('link', { name: 'Study' })).toHaveAttribute(
+        'href',
+        '/app/study'
+      );
+      expect(within(switcher).getByRole('link', { name: 'Study Time' })).toHaveAttribute(
+        'href',
+        '/app/study/time'
+      );
+      expect(within(switcher).queryByRole('link', { name: 'Library' })).not.toBeInTheDocument();
 
       const learningDock = screen.getByRole('navigation', { name: 'Learning navigation' });
       expect(within(learningDock).getByRole('link', { name: 'Study' })).toHaveAttribute(
@@ -273,15 +278,19 @@ describe('Layout', () => {
       expect(screen.queryByRole('link', { name: '＋ New entry' })).not.toBeInTheDocument();
     });
 
-    it('opens a new Journal draft even from the Journal route', () => {
+    it('switches sections without a global New entry shortcut', () => {
       window.history.pushState({}, '', '/app/journal');
-      renderLayout('/app/journal');
-      fireEvent.click(screen.getByRole('link', { name: '＋ New entry' }));
-      expect(window.location.pathname).toBe('/app/journal');
-      expect(window.history.state.usr).toEqual({ blank: true });
-      const firstKey = window.history.state.key;
-      fireEvent.click(screen.getByRole('link', { name: '＋ New entry' }));
-      expect(window.history.state.key).not.toBe(firstKey);
+      const { container } = renderLayout('/app/journal');
+      expect(screen.queryByRole('link', { name: '＋ New entry' })).not.toBeInTheDocument();
+      const switcher = container.querySelector('.workspace-switcher') as HTMLDetailsElement;
+      switcher.open = true;
+      expect(within(switcher).getByRole('link', { name: 'Journal' })).toHaveAttribute(
+        'aria-current',
+        'page'
+      );
+      fireEvent.click(within(switcher).getByRole('link', { name: 'Study' }));
+      expect(window.location.pathname).toBe('/app/study');
+      expect(switcher.open).toBe(false);
     });
 
     it('marks the matching mobile learning destination as current', () => {

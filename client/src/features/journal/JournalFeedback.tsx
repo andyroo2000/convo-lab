@@ -1,6 +1,4 @@
-import { useContext, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import JournalDeskContext from './JournalDeskContext';
+import { useState, type ReactNode } from 'react';
 import JournalOverflow from './JournalOverflow';
 import JournalVersionPicker from './JournalVersionPicker';
 import JournalAnnotatedText from './JournalAnnotatedText';
@@ -27,7 +25,6 @@ const JournalFeedback = (props: FeedbackProps) => {
     Boolean(analysis.result && versionText(analysis, 'final').trim())
   );
   const [toolbarTarget, setToolbarTarget] = useState<HTMLSpanElement | null>(null);
-  const desk = useContext(JournalDeskContext);
   const controls = useJournalDocument(props);
   const feedback = analysis.result;
   if (!feedback) return null;
@@ -44,13 +41,12 @@ const JournalFeedback = (props: FeedbackProps) => {
           label={`Copy ${version} text`}
         />
         <span ref={setToolbarTarget} className={version === 'final' ? 'contents' : 'hidden'} />
-        {desk.appearance}
       </JournalOverflow>
     </div>
   );
   return (
-    <div className="space-y-5">
-      {heading && desk.target ? createPortal(toolbar, desk.target) : toolbar}
+    <div className="journal-entry-feedback">
+      {toolbar}
       <div hidden={version !== 'draft'} className="space-y-6">
         <JournalAnnotatedText sourceId={analysis.id} feedback={feedback} heading={heading} />
         {reply?.result && (

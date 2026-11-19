@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
-import { BookOpen, X } from 'lucide-react';
+import { List, X } from 'lucide-react';
 import useDialogDismissal from '../../hooks/useDialogDismissal';
 
 function useCloseOnEntryClick(dialog: RefObject<HTMLDialogElement>) {
@@ -43,9 +43,10 @@ const JournalEntriesDrawer = ({
           dialog.current?.showModal();
         }}
       >
-        <BookOpen size={18} aria-hidden="true" /> My entries
+        <List size={18} aria-hidden="true" />
+        <span>Contents</span>
       </button>
-      <dialog ref={dialog} aria-label="My entries" className="journal-entries-drawer">
+      <dialog ref={dialog} aria-label="Contents" className="journal-entries-drawer">
         <button
           type="button"
           className="journal-drawer-close"
