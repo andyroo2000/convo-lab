@@ -85,9 +85,9 @@
   background: #60b048;
   color: #242424;
   font:
-    14px/1.5 Inter,
-    Arial,
-    sans-serif;
+    18px/1.5 'Crimson Pro',
+    'Noto Serif JP',
+    serif;
   position: relative;
   isolation: isolate;
   display: grid;
@@ -126,15 +126,16 @@
 }
 .journal-auth-panel h1 {
   font:
-    900 32px/1.2 Nunito,
-    sans-serif;
-  letter-spacing: -1px;
+    500 40px/1.15 'Crimson Pro',
+    'Noto Serif JP',
+    serif;
+  letter-spacing: -0.7px;
   color: #242424;
   margin: 0 0 16px;
   text-transform: none;
 }
 .journal-auth-heading p {
-  font-size: 12px;
+  font-size: 18px;
   color: #555;
   margin: 0 0 29px;
 }
@@ -150,7 +151,7 @@
   text-underline-offset: 2px;
 }
 .journal-auth-forgot {
-  font-size: 11px;
+  font-size: 16px;
 }
 .journal-auth-panel form {
   display: grid;
@@ -161,7 +162,8 @@
 }
 .journal-auth-label {
   display: block;
-  font-size: 12px;
+  font-size: 18px;
+  font-weight: 500;
   color: #444;
   margin: 0;
 }
@@ -182,7 +184,7 @@
 }
 .journal-auth-input::placeholder {
   color: #777;
-  font-size: 13px;
+  font-size: 14px;
 }
 .journal-auth-submit {
   min-height: 40px;
@@ -193,8 +195,9 @@
   padding: 0 22px;
   justify-self: end;
   font:
-    600 13px Inter,
-    sans-serif;
+    500 18px/1.2 'Crimson Pro',
+    'Noto Serif JP',
+    serif;
   margin: 1px 0 3px;
   box-shadow: none;
   text-transform: none;
@@ -205,7 +208,7 @@
   align-items: center;
   gap: 12px;
   color: #777;
-  font-size: 12px;
+  font-size: 16px;
   margin: 24px 0;
 }
 .journal-auth-divider-line {
@@ -224,8 +227,8 @@
   border-radius: 25px;
   background: #fff;
   color: #414141;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 500;
   text-decoration: none;
 }
 .journal-auth-error {
@@ -233,15 +236,15 @@
   background: #fff0f0;
   padding: 10px;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 18px;
 }
 .journal-auth-description {
-  font-size: 13px;
+  font-size: 18px;
   color: #555;
   margin: 0 0 28px;
 }
 .journal-auth-contact {
-  font-size: 12px;
+  font-size: 16px;
   color: #666;
   text-align: center;
 }
@@ -271,9 +274,6 @@
   border-radius: 0;
   padding: 60px clamp(30px, 5vw, 90px);
   box-shadow: none;
-}
-.journal-auth-invite .journal-auth-panel h1 {
-  font-size: 30px;
 }
 .journal-auth-invite:after {
   right: calc(44% + 14px);

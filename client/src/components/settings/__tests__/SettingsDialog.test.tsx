@@ -13,6 +13,10 @@ const auth = vi.hoisted(() => ({
   logout: vi.fn(),
   updateUser: vi.fn(),
 }));
+vi.mock('../WaniKaniConnectionCard', () => ({
+  default: () => <p>WaniKani connection</p>,
+}));
+
 const calendarMount = vi.hoisted(() => vi.fn());
 vi.mock('../../../contexts/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../study/GoogleCalendarConnectionCard', () => ({
@@ -101,9 +105,10 @@ describe('Journal settings modal', () => {
     expect(screen.getByLabelText('Journal draft')).toHaveValue('Mobile draft');
   });
 
-  it('hides Study and Calendar for a disabled non-admin, including a direct integration URL', () => {
+  it('offers WaniKani without enabling Study or Calendar for a non-admin', () => {
     setup(false, '/app/settings/integrations');
-    expect(screen.queryByRole('button', { name: 'Connections' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Connections' })).toBeInTheDocument();
+    expect(screen.getByText('WaniKani connection')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Study preferences' })).not.toBeInTheDocument();
     expect(calendarMount).not.toHaveBeenCalled();
   });
@@ -116,6 +121,7 @@ describe('Journal settings modal', () => {
       await openSettings();
       fireEvent.click(screen.getByRole('button', { name: 'Connections' }));
       expect(screen.getByText('Google Calendar connection')).toBeInTheDocument();
+      expect(screen.getByText('WaniKani connection')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Edit profile' })).not.toBeInTheDocument();
     }
   );

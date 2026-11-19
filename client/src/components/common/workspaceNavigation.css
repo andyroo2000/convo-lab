@@ -69,6 +69,12 @@
   background: #fcf6df;
   border-color: #d7d4bd;
 }
+.workspace-account-menu > button {
+  font:
+    500 20px/1.2 'Crimson Pro',
+    Georgia,
+    serif;
+}
 .workspace-options a {
   display: flex;
   align-items: center;
