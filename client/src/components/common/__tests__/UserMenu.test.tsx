@@ -37,17 +37,10 @@ describe('UserMenu', () => {
       expect(button).toBeInTheDocument();
     });
 
-    it('should display user initial when no avatar URL', () => {
+    it('should display the user initial', () => {
       renderWithRouter(<UserMenu {...defaultProps} />);
 
       expect(screen.getByText('J')).toBeInTheDocument();
-    });
-
-    it('uses the iOS-style initial even when the account has a stored avatar URL', () => {
-      renderWithRouter(<UserMenu {...defaultProps} avatarUrl="https://example.com/avatar.png" />);
-
-      expect(screen.getByText('J')).toBeInTheDocument();
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
     });
 
     it('should not show dropdown initially', () => {
@@ -274,26 +267,6 @@ describe('UserMenu', () => {
     });
   });
 
-  describe('Legacy avatar preferences', () => {
-    it('uses the initial with the shared Journal appearance', () => {
-      renderWithRouter(<UserMenu {...defaultProps} />);
-
-      expect(screen.getByText('J')).toBeInTheDocument();
-    });
-
-    it('keeps the account menu available for existing avatar color preferences', () => {
-      const colors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
-
-      colors.forEach((color) => {
-        const { unmount } = renderWithRouter(<UserMenu {...defaultProps} avatarColor={color} />);
-
-        // Should render without errors
-        expect(screen.getByTestId('user-menu-button')).toBeInTheDocument();
-        unmount();
-      });
-    });
-  });
-
   describe('User Initial', () => {
     it('should display uppercase first letter', () => {
       renderWithRouter(<UserMenu {...defaultProps} userName="alice" />);
@@ -301,10 +274,11 @@ describe('UserMenu', () => {
       expect(screen.getByText('A')).toBeInTheDocument();
     });
 
-    it('should handle empty name gracefully', () => {
-      renderWithRouter(<UserMenu {...defaultProps} userName="" />);
+    it.each(['', '   '])('shows a fallback for a blank name: %j', (userName) => {
+      renderWithRouter(<UserMenu {...defaultProps} userName={userName} />);
 
       expect(screen.getByTestId('user-menu-button')).toBeInTheDocument();
+      expect(screen.getByText('?')).toBeInTheDocument();
     });
   });
 });

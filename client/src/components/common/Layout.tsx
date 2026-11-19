@@ -154,8 +154,6 @@ const LayoutTopBar = ({
             />
             <UserMenu
               userName={menuUser.displayName || menuUser.name}
-              avatarColor={menuUser.avatarColor}
-              avatarUrl={menuUser.avatarUrl}
               userRole={menuUser.role}
               journalSettings={journal ? <div ref={slots.setSettings} /> : undefined}
               onLogout={onLogout}

@@ -14,8 +14,6 @@ export interface UserMenuMobileNavItem {
 
 interface UserMenuProps {
   userName: string;
-  avatarColor?: string;
-  avatarUrl?: string;
   userRole: 'user' | 'moderator' | 'admin' | 'demo';
   mobileNavItems?: UserMenuMobileNavItem[];
   onLogout: () => void;
@@ -59,8 +57,6 @@ function useAccountMenuDisclosure() {
 
 const UserMenu = ({
   userName,
-  avatarColor: _avatarColor,
-  avatarUrl: _avatarUrl,
   userRole,
   mobileNavItems = [],
   onLogout,
