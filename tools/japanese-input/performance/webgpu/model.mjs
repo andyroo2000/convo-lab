@@ -1,7 +1,7 @@
 import { NeuralModel as Base } from '/browser/base-neural-model.mjs';
 import { Wllama } from '/vendor/gpu/index.js';
 import { cachedAsset } from '/browser/asset-cache.mjs';
-import { gpu, incremental } from '/gpu/config.mjs';
+import { gpu, incremental, batchTokens, sequenceCapacity, sharePrompt, profiling } from '/gpu/config.mjs';
 
 export class NeuralModel extends Base {
   prompt = '';
@@ -49,12 +49,16 @@ export class NeuralModel extends Base {
     return result;
   }
   async scoreMissing(missing, prompt) {
+    const started = performance.now();
     const start = (await this.tokenize(prompt, true)).length;
     const sentences = [];
     for (const text of missing) sentences.push([
       ...(await this.tokenize(prompt + text, true)), this.model.getEOS(),
     ]);
-    const values = await this.call({ op: 'scores', sentences, start, capacity: gpu ? 16 : 1 });
+    const tokenized = performance.now();
+    const result = await this.call({ op: 'scores', sentences, start, batchTokens, sharePrompt, capacity: gpu ? sequenceCapacity : 1 });
+    const values = result.scores;
+    if (profiling) console.log('journal-profile', JSON.stringify({ candidates: missing.length, tokens: sentences.reduce((n,s) => n+s.length,0), tokenizeMs: tokenized-started, inferMs: performance.now()-tokenized, decodeMs: result.decodeMs, normalizeMs: result.normalizeMs, batches: result.batches, decodedTokens: result.tokens }));
     if (values.length !== missing.length || !values.every(Number.isFinite)) throw Error('Invalid scores');
     missing.forEach((text, index) => this.scores.set(text, values[index]));
   }

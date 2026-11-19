@@ -10,6 +10,8 @@ function patch(path, before, after) {
   if (!text.includes(before)) throw Error(`Patch anchor missing: ${path}`);
   writeFileSync(url, text.replace(before, after));
 }
+copyFileSync(new URL('shared.hpp', import.meta.url), new URL('cpp/journal-shared.hpp', source));
+copyFileSync(new URL('settings.hpp', import.meta.url), new URL('cpp/journal-settings.hpp', source));
 copyFileSync(new URL('logits.hpp', import.meta.url), new URL('cpp/journal-logits.hpp', source));
 copyFileSync(new URL('codec.hpp', import.meta.url), new URL('cpp/journal-codec.hpp', source));
 copyFileSync(new URL('neural.hpp', import.meta.url), new URL('cpp/journal-neural.hpp', source));

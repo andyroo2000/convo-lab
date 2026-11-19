@@ -1,0 +1,263 @@
+{
+  "ordinaryMatches": 72,
+  "corpusResults": [
+    {
+      "reading": "きのうえいがをみました",
+      "beforeMs": 1995.6449999809265,
+      "afterMs": 907.1050000190735,
+      "count": 160,
+      "matchingPositions": 153,
+      "maxScoreDifference": 0.01661799999999758
+    },
+    {
+      "reading": "きょうはいいてんきです",
+      "beforeMs": 1779.5150001049042,
+      "afterMs": 696.2149999141693,
+      "count": 160,
+      "matchingPositions": 152,
+      "maxScoreDifference": 0.023805000000002963
+    },
+    {
+      "reading": "あたらしいほんをかいました",
+      "beforeMs": 2059.9800000190735,
+      "afterMs": 936.8949999809265,
+      "count": 160,
+      "matchingPositions": 156,
+      "maxScoreDifference": 0.024604000000003623
+    },
+    {
+      "reading": "にほんごをべんきょうしています",
+      "beforeMs": 2208.109999895096,
+      "afterMs": 954.3250000476837,
+      "count": 160,
+      "matchingPositions": 154,
+      "maxScoreDifference": 0.017867999999999995
+    },
+    {
+      "reading": "そのあとともだちにあいました",
+      "beforeMs": 2221.375,
+      "afterMs": 1023.3400001525879,
+      "count": 160,
+      "matchingPositions": 156,
+      "maxScoreDifference": 0.01373500000000405
+    },
+    {
+      "reading": "あしたはやくおきます",
+      "beforeMs": 1788.869999885559,
+      "afterMs": 805.8699998855591,
+      "count": 160,
+      "matchingPositions": 150,
+      "maxScoreDifference": 0.02589800000000153
+    },
+    {
+      "reading": "きんようびにかえります",
+      "beforeMs": 1862.5899999141693,
+      "afterMs": 834.664999961853,
+      "count": 160,
+      "matchingPositions": 152,
+      "maxScoreDifference": 0.020393999999996026
+    },
+    {
+      "reading": "くるまをうんてんしました",
+      "beforeMs": 1866.9449999332428,
+      "afterMs": 852.3150000572205,
+      "count": 160,
+      "matchingPositions": 158,
+      "maxScoreDifference": 0.01783400000000057
+    },
+    {
+      "reading": "えいごのじまくがありました",
+      "beforeMs": 2106.5549998283386,
+      "afterMs": 978.2850000858307,
+      "count": 160,
+      "matchingPositions": 156,
+      "maxScoreDifference": 0.01876100000000136
+    },
+    {
+      "reading": "ひこうきがとべなくなりました",
+      "beforeMs": 2265.859999895096,
+      "afterMs": 1162.9900000095367,
+      "count": 160,
+      "matchingPositions": 156,
+      "maxScoreDifference": 0.010622000000001464
+    },
+    {
+      "reading": "はしをわたりました",
+      "beforeMs": 1685.954999923706,
+      "afterMs": 759.2549998760223,
+      "count": 160,
+      "matchingPositions": 156,
+      "maxScoreDifference": 0.01051000000000002
+    },
+    {
+      "reading": "はしでたべました",
+      "beforeMs": 1628.6999998092651,
+      "afterMs": 712.0199999809265,
+      "count": 160,
+      "matchingPositions": 150,
+      "maxScoreDifference": 0.014009999999998968
+    },
+    {
+      "reading": "あめがふっています",
+      "beforeMs": 1678.5549998283386,
+      "afterMs": 709.5650000572205,
+      "count": 160,
+      "matchingPositions": 148,
+      "maxScoreDifference": 0.01588599999999829
+    },
+    {
+      "reading": "あめをたべました",
+      "beforeMs": 1611.159999847412,
+      "afterMs": 670.6900000572205,
+      "count": 160,
+      "matchingPositions": 152,
+      "maxScoreDifference": 0.011389000000001204
+    },
+    {
+      "reading": "かみをきりました",
+      "beforeMs": 1600.8149998188019,
+      "afterMs": 692.0200002193451,
+      "count": 160,
+      "matchingPositions": 160,
+      "maxScoreDifference": 0.013763999999998333
+    },
+    {
+      "reading": "きしゃがきしゃできしゃにきた",
+      "beforeMs": 2170.2249999046326,
+      "afterMs": 995.039999961853,
+      "count": 160,
+      "matchingPositions": 154,
+      "maxScoreDifference": 0.010426999999999964
+    },
+    {
+      "reading": "とうきょうえきでまちあわせしました",
+      "beforeMs": 2438.1449999809265,
+      "afterMs": 1066.1800000667572,
+      "count": 160,
+      "matchingPositions": 152,
+      "maxScoreDifference": 0.02287199999999956
+    },
+    {
+      "reading": "しんじゅくにいきました",
+      "beforeMs": 1881.2850000858307,
+      "afterMs": 839.0949997901917,
+      "count": 160,
+      "matchingPositions": 158,
+      "maxScoreDifference": 0.020360999999999407
+    },
+    {
+      "reading": "らーめんをたべました",
+      "beforeMs": 1884.9500000476837,
+      "afterMs": 874.3450000286102,
+      "count": 160,
+      "matchingPositions": 156,
+      "maxScoreDifference": 0.015385999999999456
+    },
+    {
+      "reading": "こーひーをのみました",
+      "beforeMs": 1900.5750000476837,
+      "afterMs": 909.8650000095367,
+      "count": 160,
+      "matchingPositions": 154,
+      "maxScoreDifference": 0.017826000000003006
+    },
+    {
+      "reading": "えいがはおもしろかったです。",
+      "beforeMs": 989.9250001907349,
+      "afterMs": 480.3550000190735,
+      "count": 68,
+      "matchingPositions": 66,
+      "maxScoreDifference": 0.009375999999999607
+    },
+    {
+      "reading": "わたしはがっこうにいきませんでした",
+      "beforeMs": 1336.5299999713898,
+      "afterMs": 677.664999961853,
+      "count": 80,
+      "matchingPositions": 80,
+      "maxScoreDifference": 0.011829999999999785
+    },
+    {
+      "reading": "たべなければなりません",
+      "beforeMs": 1615.4100000858307,
+      "afterMs": 792.4400000572205,
+      "count": 128,
+      "matchingPositions": 126,
+      "maxScoreDifference": 0.0275660000000002
+    },
+    {
+      "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+      "beforeMs": 4088.7400000095367,
+      "afterMs": 1835.1400001049042,
+      "count": 160,
+      "matchingPositions": 156,
+      "maxScoreDifference": 0.021744000000001762
+    }
+  ],
+  "boundaries": [
+    {
+      "reading": "はしでたべました",
+      "beforeMs": 1637.039999961853,
+      "afterMs": 763.0899999141693,
+      "count": 160,
+      "matchingPositions": 154,
+      "maxScoreDifference": 0.014000000000002899
+    },
+    {
+      "reading": "はしでたべました",
+      "beforeMs": 19.670000076293945,
+      "afterMs": 18.705000162124634,
+      "count": 160,
+      "matchingPositions": 154,
+      "maxScoreDifference": 0.014000000000002899
+    },
+    {
+      "reading": "はしでたべました",
+      "beforeMs": 696.4800000190735,
+      "afterMs": 317.25,
+      "count": 160,
+      "matchingPositions": 144,
+      "maxScoreDifference": 0.012725999999997128
+    },
+    {
+      "reading": "はしでたべました",
+      "beforeMs": 19.924999952316284,
+      "afterMs": 17.764999866485596,
+      "count": 160,
+      "matchingPositions": 144,
+      "maxScoreDifference": 0.012725999999997128
+    },
+    {
+      "reading": "きょうはいいてんきです",
+      "beforeMs": 1789.5899999141693,
+      "afterMs": 778.4700000286102,
+      "count": 160,
+      "matchingPositions": 154,
+      "maxScoreDifference": 0.020077000000000567
+    },
+    {
+      "reading": "きょうはいいてんきです",
+      "beforeMs": 28.96500015258789,
+      "afterMs": 29.539999961853027,
+      "count": 160,
+      "matchingPositions": 154,
+      "maxScoreDifference": 0.020077000000000567
+    },
+    {
+      "reading": "かみをきりました",
+      "beforeMs": 1556.6799998283386,
+      "afterMs": 672.2149999141693,
+      "count": 160,
+      "matchingPositions": 160,
+      "maxScoreDifference": 0.013763999999998333
+    },
+    {
+      "reading": "かみをきりました",
+      "beforeMs": 18.93500018119812,
+      "afterMs": 19.649999856948853,
+      "count": 160,
+      "matchingPositions": 160,
+      "maxScoreDifference": 0.013763999999998333
+    }
+  ]
+}

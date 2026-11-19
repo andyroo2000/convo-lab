@@ -3,7 +3,8 @@
 This is an opt-in experiment, not the Journal production input engine. It ports
 native iOS optimizations without changing the model, normal effort level, or
 160-candidate boundary pool. See `../../benchmarks/WEBGPU.md` for measured results
-and the candidate-order caveat.
+and the candidate-order caveat. The follow-up shared-prompt optimization is
+measured in `../../benchmarks/WEBGPU-SHARED.md`.
 
 ## Implementation
 
@@ -12,6 +13,11 @@ and the candidate-order caveat.
 - Keep model contexts alive; the original browser port already did this.
 - Cache complete sentence scores for the current reading. Repeated adjustments
   reuse them; a different reading invalidates them.
+- Evaluate the exact shared reading prompt once, retain its KV rows in a
+  prompt-only sequence, and share those rows with each independent candidate.
+  Every candidate suffix and EOS is still scored. This is enabled by default
+  for the GPU experiment; `GPU_SHARE_PROMPT=0` restores the earlier full-batch
+  path for comparison.
 - Send the complete candidate pool across the worker bridge once, and batch up to
   16 independent sentences / 512 total tokens per neural decode. Every candidate
   is scored against the full vocabulary, including EOS. Nothing is truncated to
@@ -67,7 +73,9 @@ Open `http://127.0.0.1:5203` in desktop Chrome for the accelerated playground.
 All conversion stays on the computer. This server only serves static assets;
 there is no remote conversion service or conversion-history storage.
 
-Run benchmarks sequentially with other heavy work stopped:
+Run benchmarks sequentially with other heavy work stopped. To reproduce the
+original `WEBGPU.md` measurements, start the GPU server with `GPU_SHARE_PROMPT=0`;
+the new default enables the follow-up optimization:
 
 ```sh
 BROWSER_URL=http://127.0.0.1:5201 VARIANT=baseline node performance/webgpu/benchmark.mjs
@@ -88,3 +96,28 @@ The original wllama 2 CPU path remains available without `NEURAL_GPU`.
 Compile the native tokenizer probe following `../../browser/README.md`, then
 run `node performance/webgpu/tokenizer.mjs` against server 5203. This compares
 all 85 original diagnostic samples, including ASCII spaces and special tokens.
+
+## Shared-prompt follow-up
+
+`GPU_BATCH_TOKENS` (512–2048) and `GPU_SEQUENCES` (1–160) expose bounded
+experimental batch configurations. The selected defaults remain 512 and 16:
+larger full-sentence batches did not improve latency. `GPU_PROFILE=1` logs only
+counts and timings, including decode and normalization time; it does not log
+candidate text. Profiling is off in the normal playground.
+
+```sh
+# Uses installed Chrome and starts its own temporary local static server.
+node performance/webgpu/sweep.mjs
+CONFIGS='[[512,16,true],[512,32,true],[1024,64,true],[2048,128,true]]' REPORT=webgpu-shared-sweep node performance/webgpu/sweep.mjs
+CONFIGS='[[512,16,false],[512,16,true]]' TRIALS=1 FULL_CORPUS=1 REPORT=webgpu-shared-quality node performance/webgpu/sweep.mjs
+
+# With server 5203 running using the new defaults:
+BROWSER_URL=http://127.0.0.1:5203 VARIANT=gpu-shared-final node performance/webgpu/benchmark.mjs
+node performance/webgpu/verify-shared.mjs
+node --test performance/webgpu/shared.test.mjs
+```
+
+The verifier compares full candidate sets and section structures, all ordinary
+candidate orders, and the top five constrained alternatives. It reports rather
+than hides the small lower-ranked ordering differences. The edge tests cover
+EOS-only suffixes, batch sizes, invalid shapes, and recovery after errors.

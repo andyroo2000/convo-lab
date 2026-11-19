@@ -60,7 +60,7 @@ export function createBrowserServer() {
     const pathname = new URL(request.url, 'http://localhost').pathname;
     if (pathname === '/gpu/config.mjs') {
       response.setHeader('Content-Type', 'text/javascript');
-      response.end(`export const gpu = ${process.env.NEURAL_GPU === 'gpu'}; export const incremental = ${process.env.NEURAL_SCALAR === '1'};`);
+      response.end(`export const gpu = ${process.env.NEURAL_GPU === 'gpu'}; export const incremental = ${process.env.NEURAL_SCALAR === '1'}; export const sharePrompt = ${process.env.NEURAL_GPU === 'gpu' && process.env.GPU_SHARE_PROMPT !== '0'}; export const profiling = ${process.env.GPU_PROFILE === '1'}; export const batchTokens = ${Number(process.env.GPU_BATCH_TOKENS ?? 512)}; export const sequenceCapacity = ${Number(process.env.GPU_SEQUENCES ?? 16)};`);
       return;
     }
     const file = asset(pathname);

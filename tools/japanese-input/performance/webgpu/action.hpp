@@ -9,7 +9,12 @@
     if (op == "tokenize") output = journal.tokenize(vocab, input.at("text"), input.value("special", false));
     else if (op == "detokenize") output = journal.detokenize(vocab, input.at("tokens").get<std::vector<llama_token>>());
     else if (op == "probabilities") output = journal.probabilities(ctx, input.at("tokens").get<std::vector<llama_token>>(), llama_vocab_n_tokens(vocab));
-    else if (op == "scores") output = journal.scores(model, sentences, input.at("start").get<int>(), input.value("capacity", 16));
+    else if (op == "scores") {
+      journal_settings settings{input.value("batchTokens", 512), input.value("capacity", 16), input.value("sharePrompt", false)};
+      output = json{{"scores", journal.scores(model, sentences, input.at("start").get<int>(), settings)},
+                    {"decodeMs", journal.profile.decode_ms}, {"normalizeMs", journal.profile.normalize_ms},
+                    {"batches", journal.profile.batches}, {"tokens", journal.profile.tokens}};
+    }
     else throw std::runtime_error("Unknown Journal operation");
     return output;
   }
