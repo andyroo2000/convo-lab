@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Eye, BookOpen, BookMarked, Clock3, NotebookPen } from 'lucide-react';
-import JournalNav from '../../features/journal/JournalNav';
-import ReadingsNav from '../../features/readings/ReadingsNav';
 import useReadings from '../../features/readings/useReadings';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
@@ -11,6 +9,10 @@ import useEffectiveUser from '../../hooks/useEffectiveUser';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import UserMenu, { type UserMenuMobileNavItem } from './UserMenu';
 import JournalBrand from './JournalBrand';
+import WorkspaceSwitcher from './WorkspaceSwitcher';
+import JournalNavigationContext from '../../features/journal/JournalNavigationContext';
+import JournalNavigationProvider from '../../features/journal/JournalNavigationProvider';
+import './workspaceNavigation.css';
 import OnboardingModal from '../onboarding/OnboardingModal';
 import { SHOW_ONBOARDING_WELCOME } from '../../config';
 import { StudyActivityProvider } from '../../contexts/StudyActivityContext';
@@ -21,11 +23,6 @@ import type { User } from '../../types';
 type LayoutRouteState = {
   isStudyActive: boolean;
   isTimeActive: boolean;
-};
-
-type NavigationLabels = {
-  study: string;
-  studyTime: string;
 };
 
 function getViewAsUserId(searchParams: URLSearchParams) {
@@ -91,82 +88,50 @@ const ImpersonationBadge = ({ user, mobile = false }: { user: User; mobile?: boo
   );
 };
 
-const DesktopNavigation = ({
-  flashcardsEnabled,
-  labels,
-  route,
-  viewAsUserId,
+const SessionBadges = ({
+  demoLabel,
+  isDemo,
+  impersonated,
+  mobile = false,
 }: {
-  flashcardsEnabled: boolean;
-  labels: NavigationLabels;
-  route: LayoutRouteState;
-  viewAsUserId?: string;
-}) => {
-  const { isFeatureEnabled } = useFeatureFlags();
-  return (
-    <div className="hidden sm:ml-6 sm:flex h-[4.5rem] items-center gap-2">
-      {flashcardsEnabled && !viewAsUserId ? (
-        <Link
-          to="/app/study"
-          className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
-            route.isStudyActive
-              ? 'is-active bg-white text-navy shadow-md'
-              : 'text-white hover:bg-white/20'
-          }`}
-        >
-          <BookOpen className="w-5 h-5 mr-2.5 flex-shrink-0" />
-          {labels.study}
-        </Link>
-      ) : null}
-      {isFeatureEnabled('readingsEnabled') && <ReadingsNav disabled={Boolean(viewAsUserId)} />}
-      <JournalNav disabled={Boolean(viewAsUserId)} />
-      {!viewAsUserId && isFeatureEnabled('studyTimeEnabled') ? (
-        <Link
-          to="/app/study/time"
-          className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
-            route.isTimeActive
-              ? 'is-active bg-white text-navy shadow-md'
-              : 'text-white hover:bg-white/20'
-          }`}
-        >
-          <Clock3 className="w-5 h-5 mr-2.5 flex-shrink-0" />
-          {labels.studyTime}
-        </Link>
-      ) : null}
-    </div>
-  );
-};
+  demoLabel: string;
+  isDemo: boolean;
+  impersonated: User | null | false;
+  mobile?: boolean;
+}) => (
+  <>
+    {isDemo && <DemoBadge label={demoLabel} mobile={mobile} />}
+    {impersonated && <ImpersonationBadge user={impersonated} mobile={mobile} />}
+  </>
+);
 
 const LayoutTopBar = ({
   demoLabel,
   effectiveUser,
-  flashcardsEnabled,
   isDemo,
   isImpersonating,
-  labels,
   menuUser,
   mobileNavItems,
   onLogout,
-  route,
   viewAsUserId,
 }: {
   demoLabel: string;
   effectiveUser: User | null;
-  flashcardsEnabled: boolean;
   isDemo: boolean;
   isImpersonating: boolean;
-  labels: NavigationLabels;
   menuUser: User;
   mobileNavItems: UserMenuMobileNavItem[];
   onLogout: () => void;
-  route: LayoutRouteState;
   viewAsUserId?: string;
 }) => {
   const { t } = useTranslation('common');
   const showImpersonation = isImpersonating && effectiveUser;
+  const location = useLocation();
+  const journal = location.pathname.startsWith('/app/journal') && !viewAsUserId;
+  const slots = useContext(JournalNavigationContext);
   return (
     <nav className="sticky top-0 z-20 journal-topbar">
-      <div className="max-w-7xl xl:max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="workspace-nav-inner">
         <div className="flex h-[4.5rem] items-center">
           <div className="flex items-center flex-1 min-w-0">
             <Link
@@ -176,29 +141,23 @@ const LayoutTopBar = ({
             >
               <JournalBrand compact />
             </Link>
-            {isDemo ? <DemoBadge label={demoLabel} /> : null}
-            {showImpersonation ? <ImpersonationBadge user={showImpersonation} /> : null}
-            <DesktopNavigation
-              flashcardsEnabled={flashcardsEnabled}
-              labels={labels}
-              route={route}
-              viewAsUserId={viewAsUserId}
-            />
+            <SessionBadges demoLabel={demoLabel} isDemo={isDemo} impersonated={showImpersonation} />
+            <WorkspaceSwitcher items={mobileNavItems} />
+            {journal && <div ref={slots.setContents} className="workspace-contents" />}
           </div>
           <div className="flex items-center ml-2 gap-2">
-            {isDemo ? <DemoBadge label={demoLabel} mobile /> : null}
-            {showImpersonation ? <ImpersonationBadge user={showImpersonation} mobile /> : null}
-            {!viewAsUserId && (
-              <Link to="/app/journal" state={{ blank: true }} className="journal-new-entry">
-                ＋ <span>{t('journalBrand.newEntry')}</span>
-              </Link>
-            )}
+            <SessionBadges
+              demoLabel={demoLabel}
+              isDemo={isDemo}
+              impersonated={showImpersonation}
+              mobile
+            />
             <UserMenu
               userName={menuUser.displayName || menuUser.name}
               avatarColor={menuUser.avatarColor}
               avatarUrl={menuUser.avatarUrl}
               userRole={menuUser.role}
-              mobileNavItems={mobileNavItems}
+              journalSettings={journal ? <div ref={slots.setSettings} /> : undefined}
               onLogout={onLogout}
             />
           </div>
@@ -234,6 +193,73 @@ const useVisibleReadings = (viewAsUserId: string | undefined, enabled: boolean):
   const readings = useReadings(!viewAsUserId && enabled);
   return enabled && !viewAsUserId && Boolean(readings.data?.length);
 };
+
+function getWorkspaceItems({
+  flashcardsEnabled,
+  viewAsUserId,
+  labels,
+  route,
+  isJournalActive,
+  hasReadings,
+  isReadingsActive,
+  studyTimeEnabled,
+}: {
+  flashcardsEnabled: boolean;
+  viewAsUserId?: string;
+  labels: { study: string; studyTime: string };
+  route: LayoutRouteState;
+  isJournalActive: boolean;
+  hasReadings: boolean;
+  isReadingsActive: boolean;
+  studyTimeEnabled: boolean;
+}): UserMenuMobileNavItem[] {
+  return [
+    ...(flashcardsEnabled && !viewAsUserId
+      ? [
+          {
+            id: 'study',
+            label: labels.study,
+            path: '/app/study',
+            isActive: route.isStudyActive,
+            icon: BookOpen,
+          },
+        ]
+      : []),
+    ...(!viewAsUserId
+      ? [
+          {
+            id: 'journal',
+            label: 'Journal',
+            path: '/app/journal',
+            isActive: isJournalActive,
+            icon: NotebookPen,
+          },
+        ]
+      : []),
+    ...(hasReadings
+      ? [
+          {
+            id: 'readings',
+            label: 'Readings',
+            path: '/app/readings',
+            isActive: isReadingsActive,
+            icon: BookMarked,
+          },
+        ]
+      : []),
+    ...(!viewAsUserId && studyTimeEnabled
+      ? [
+          {
+            id: 'time',
+            label: labels.studyTime,
+            path: '/app/study/time',
+            isActive: route.isTimeActive,
+            icon: Clock3,
+          },
+        ]
+      : []),
+  ];
+}
 
 const Layout = () => {
   const [dismissedOnboardingUser, setDismissedOnboardingUser] = useState<User['id'] | null>(null);
@@ -277,33 +303,16 @@ const Layout = () => {
     study: t('common:nav.study'),
     studyTime: t('common:nav.studyTime'),
   };
-  const mobileNavItems = useMemo<UserMenuMobileNavItem[]>(
-    () => [
-      ...(!viewAsUserId
-        ? [
-            {
-              id: 'journal',
-              label: 'Journal',
-              path: '/app/journal',
-              isActive: isJournalActive,
-              icon: NotebookPen,
-            },
-          ]
-        : []),
-      ...(hasReadings
-        ? [
-            {
-              id: 'readings',
-              label: 'Readings',
-              path: '/app/readings',
-              isActive: isReadingsActive,
-              icon: BookMarked,
-            },
-          ]
-        : []),
-    ],
-    [hasReadings, isReadingsActive, isJournalActive, viewAsUserId]
-  );
+  const mobileNavItems = getWorkspaceItems({
+    flashcardsEnabled,
+    viewAsUserId,
+    labels,
+    route,
+    isJournalActive,
+    hasReadings,
+    isReadingsActive,
+    studyTimeEnabled: isFeatureEnabled('studyTimeEnabled'),
+  });
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -322,26 +331,25 @@ const Layout = () => {
   const menuUser = getMenuUser(user, effectiveUser, isImpersonating);
 
   return (
-    <div className="min-h-screen bg-cream retro-shell">
-      <LayoutTopBar
-        demoLabel={t('common:demoMode')}
-        effectiveUser={effectiveUser}
-        flashcardsEnabled={flashcardsEnabled}
-        isDemo={isDemo}
-        isImpersonating={isImpersonating}
-        labels={labels}
-        menuUser={menuUser}
-        mobileNavItems={mobileNavItems}
-        onLogout={handleLogout}
-        route={route}
-        viewAsUserId={viewAsUserId}
-      />
-      <LayoutBody
-        isImpersonating={isImpersonating}
-        showMobileLearningDock={showMobileLearningDock}
-        userId={user.id}
-      />
-    </div>
+    <JournalNavigationProvider>
+      <div className="min-h-screen bg-cream retro-shell">
+        <LayoutTopBar
+          demoLabel={t('common:demoMode')}
+          effectiveUser={effectiveUser}
+          isDemo={isDemo}
+          isImpersonating={isImpersonating}
+          menuUser={menuUser}
+          mobileNavItems={mobileNavItems}
+          onLogout={handleLogout}
+          viewAsUserId={viewAsUserId}
+        />
+        <LayoutBody
+          isImpersonating={isImpersonating}
+          showMobileLearningDock={showMobileLearningDock}
+          userId={user.id}
+        />
+      </div>
+    </JournalNavigationProvider>
   );
 };
 

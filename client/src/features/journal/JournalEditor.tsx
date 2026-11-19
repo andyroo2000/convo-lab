@@ -30,7 +30,7 @@ function entryPresentation(nested: boolean) {
     ? { 'aria-label': 'Your reply', className: 'journal-reply space-y-6' }
     : {
         'aria-label': 'Journal entry',
-        className: 'mx-auto w-full max-w-3xl space-y-6 p-5 sm:p-8',
+        className: 'mx-auto w-full max-w-[52.5rem] space-y-6',
       };
 }
 

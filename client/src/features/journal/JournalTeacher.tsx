@@ -1,6 +1,5 @@
 import { useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Settings2 } from 'lucide-react';
 import { retrySavedQuestion } from './journalConversationApi';
 import JournalAvatar from './JournalAvatar';
 import JournalQuestion from './JournalQuestion';
@@ -65,16 +64,12 @@ const TeacherRibbon = ({
   question,
   tutor,
   feedback,
-  choosing,
-  choose,
 }: {
   ownerId: string;
   entryId: string;
   question?: TutorQuestion;
   tutor: JournalTutor | null | undefined;
   feedback: JournalFeedback;
-  choosing: boolean;
-  choose: () => void;
 }) => {
   const [englishVisible, setEnglishVisible] = useState(false);
   const translationId = useId();
@@ -88,27 +83,16 @@ const TeacherRibbon = ({
           <JournalAvatar
             src={tutorAvatar(tutor)}
             alt={`${tutor.name}, your tutor`}
-            className="h-9 w-9 shrink-0 rounded-full bg-white object-cover sm:h-10 sm:w-10"
+            className="journal-tutor-avatar"
           />
         )
       }
       controls={
-        <>
-          <JournalEnglish
-            visible={englishVisible}
-            translationId={translationId}
-            onToggle={() => setEnglishVisible(!englishVisible)}
-          />
-          <button
-            type="button"
-            onClick={choose}
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-indigo hover:bg-white"
-            aria-label="Choose tutor"
-            aria-expanded={choosing}
-          >
-            <Settings2 size={18} aria-hidden="true" />
-          </button>
-        </>
+        <JournalEnglish
+          visible={englishVisible}
+          translationId={translationId}
+          onToggle={() => setEnglishVisible(!englishVisible)}
+        />
       }
     >
       <JournalQuestion feedback={feedback} />
@@ -125,23 +109,20 @@ const TeacherRibbon = ({
 };
 
 const JournalTeacher = ({ ownerId, entryId, analysis, savedQuestion }: Props) => {
-  const [choosing, setChoosing] = useState(false);
   const { question, feedback, tutor, unassigned, playbackKey } = useTeacherQuestion({
     ownerId,
     entryId,
     analysis,
     savedQuestion,
   });
-  const pickerOpen = choosing || unassigned;
+  const pickerOpen = unassigned;
   if (!feedback) return null;
   return (
     <div className="space-y-3">
       {pickerOpen && (
         <JournalTutorPicker
           ownerId={ownerId}
-          onClose={unassigned ? undefined : () => setChoosing(false)}
           onSelected={() => {
-            setChoosing(false);
             question.refetch().catch(() => undefined);
           }}
         />
@@ -153,8 +134,6 @@ const JournalTeacher = ({ ownerId, entryId, analysis, savedQuestion }: Props) =>
           question={question.data?.data}
           tutor={tutor}
           feedback={feedback}
-          choosing={pickerOpen}
-          choose={() => setChoosing(!choosing)}
         />
       </JournalPlaybackProvider>
       {question.error && (

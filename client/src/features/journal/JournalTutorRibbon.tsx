@@ -16,7 +16,7 @@ const JournalTutorRibbon = ({
   label = 'tutor question',
 }: TutorRibbonSlots & { player?: Player; label?: string }) => (
   <div className="min-w-0 rounded-xl border border-[#dae5f2] bg-white">
-    <div className="relative flex flex-wrap items-center gap-2 rounded-t-xl bg-[#e4effc] px-3 py-2 sm:gap-3 sm:px-4">
+    <div className="journal-tutor-audio-header">
       {portrait}
       {player && <ListenButton player={player} label={label} />}
       <div className="ml-auto flex items-center">{controls}</div>

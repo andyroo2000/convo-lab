@@ -7,7 +7,8 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import JournalEntriesDrawer from '../features/journal/JournalEntriesDrawer';
-import JournalOverflow from '../features/journal/JournalOverflow';
+import JournalNavigationSlots from '../features/journal/JournalNavigationSlots';
+import JournalPreferences from '../features/journal/JournalPreferences';
 import JournalDeskContext from '../features/journal/JournalDeskContext';
 import '../features/journal/journalDesk.css';
 import {
@@ -47,7 +48,6 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
     (delta: number) => setEditingCount((value) => Math.max(0, value + delta)),
     []
   );
-  const [target, setTarget] = useState<HTMLDivElement | null>(null);
   const close = () => {
     archive.refresh();
     navigate('/app/journal', { state: { blank: true } });
@@ -69,38 +69,38 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
     [typography, appearanceSaved]
   );
   const deskValue = useMemo(
-    () => ({ target, appearance, editingChanged, textSize: typography.size }),
-    [target, appearance, editingChanged, typography.size]
+    () => ({ target: null, editingChanged, textSize: typography.size }),
+    [editingChanged, typography.size]
+  );
+  const contents = (
+    <JournalEntriesDrawer
+      entryId={entryId ?? location.key}
+      onOpen={archive.refresh}
+      disabled={editingCount > 0}
+    >
+      <JournalArchive
+        archive={archive}
+        selectedId={activeId}
+        onCreate={close}
+        busyId={editorBusy ? activeId : undefined}
+        onDeleted={(id) => {
+          if (id === activeId) close();
+        }}
+        onRenamed={(id) => {
+          if (id !== activeId) return;
+          if (entryId) setEditorRevision((value) => value + 1);
+          else open(id);
+        }}
+      />
+    </JournalEntriesDrawer>
   );
   return (
     <JournalDeskContext.Provider value={deskValue}>
       <div className="journal-desk">
-        <header className="journal-desk-toolbar">
-          <JournalEntriesDrawer
-            entryId={entryId ?? location.key}
-            onOpen={archive.refresh}
-            disabled={editingCount > 0}
-          >
-            <JournalArchive
-              archive={archive}
-              selectedId={activeId}
-              onCreate={close}
-              busyId={editorBusy ? activeId : undefined}
-              onDeleted={(id) => {
-                if (id === activeId) close();
-              }}
-              onRenamed={(id) => {
-                if (id !== activeId) return;
-                if (entryId) setEditorRevision((value) => value + 1);
-                else open(id);
-              }}
-            />
-          </JournalEntriesDrawer>
-          <div ref={setTarget} className="journal-desk-slot" />
-          <div className="journal-desk-fallback">
-            <JournalOverflow>{appearance}</JournalOverflow>
-          </div>
-        </header>
+        <JournalNavigationSlots
+          contents={contents}
+          settings={<JournalPreferences ownerId={ownerId} appearance={appearance} />}
+        />
         <section
           aria-label="Journal entry"
           style={

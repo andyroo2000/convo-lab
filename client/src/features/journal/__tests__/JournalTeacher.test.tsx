@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
 import JournalTeacher from '../JournalTeacher';
+import JournalPreferences from '../JournalPreferences';
 import { getTutorPreferences, prepareTutorQuestion, saveTutorPreference } from '../journalTutor';
 import type { JournalTutor, TutorQuestion } from '../journalTutor';
 import type { JournalAnalysis } from '../types';
@@ -37,6 +38,12 @@ let selected: string | null;
 let question: TutorQuestion;
 beforeEach(() => {
   vi.clearAllMocks();
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute('open');
+  };
   selected = null;
   question = {
     id: 'question',
@@ -64,6 +71,7 @@ function mount() {
   });
   return render(
     <QueryClientProvider client={client}>
+      <JournalPreferences ownerId="a" appearance={null} />
       <JournalTeacher ownerId="a" entryId="entry" analysis={analysis} />
     </QueryClientProvider>
   );
@@ -98,7 +106,7 @@ it('changes the account default while keeping the existing question with its ori
   [question.tutor] = tutors;
   mount();
   await screen.findByRole('img', { name: 'Hana, your tutor' });
-  fireEvent.click(screen.getByRole('button', { name: 'Choose tutor' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Choose your tutor' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Ren (M)' }));
   await waitFor(() => expect(selected).toBe('ren'));
   expect(screen.getByRole('img', { name: 'Hana, your tutor' })).toBeInTheDocument();

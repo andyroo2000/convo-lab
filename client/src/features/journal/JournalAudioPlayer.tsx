@@ -13,7 +13,7 @@ const JournalAudioSession = (props: Props & { voice: ReturnType<typeof useJourna
   const { voice } = props;
   const { entryId, analysisId, expectedReplyRevision = 0, toolbarTarget, listenTarget } = props;
   return (
-    <div className="space-y-2">
+    <div className={toolbarTarget ? undefined : 'space-y-2'}>
       <JournalVoicePicker
         toolbarTarget={toolbarTarget}
         voices={voice.voices}
