@@ -86,7 +86,9 @@ async function fixture(page: Page, correction = false) {
                     replacement: 'レッスンが中止になった',
                     replacementReading: 'レッスンが中止[ちゅうし]になった',
                     explanation:
-                      'Use レッスン for the spelling. 中止になった means **was canceled** and fits a scheduled lesson. With が取り消した, the lesson itself would be doing the canceling.',
+                      'Use レッスン for the spelling. 中止になった means **was canceled** and fits a scheduled lesson. With が取り消した, the lesson itself would be doing the canceling. 留学生体験授業 describes a student trial lesson.',
+                    explanationReading:
+                      'Use レッスン for the spelling. 中止になった means **was canceled** and fits a scheduled lesson. With が取り消した, the lesson itself would be doing the canceling. 留学生[りゅうがくせい]体験[たいけん]授業[じゅぎょう] describes a student trial lesson.',
                   },
                 ],
               },
@@ -249,4 +251,38 @@ test('mixed-language correction stays readable inside rounded paper', async ({ p
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   await page.screenshot({ path: info.outputPath('correction.png') });
+});
+
+test('adjacent long readings keep their own space inside the correction', async ({
+  page,
+}, info) => {
+  await fixture(page, true);
+  await page.getByRole('button', { name: 'Draft', exact: true }).click();
+  const anchor = page.getByRole('button', { name: /^Correction: Replace/ });
+  const popup = page.getByRole('dialog', { name: 'Correction', exact: true });
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await anchor.blur();
+    await anchor.focus();
+    await expect(popup).toBeVisible();
+    const readings = await popup.locator('.journal-explanation rt').evaluateAll((elements) =>
+      elements.map((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const { left, right, top, bottom } = range.getBoundingClientRect();
+        const base = element.previousElementSibling!.getBoundingClientRect();
+        return { left, right, top, bottom, baseTop: base.top };
+      })
+    );
+    expect(readings).toHaveLength(3);
+    expect(readings.every((reading) => (reading.top + reading.bottom) / 2 < reading.baseTop)).toBe(
+      true
+    );
+    for (let i = 1; i < readings.length; i += 1) {
+      const previous = readings[i - 1];
+      const current = readings[i];
+      expect(current.left >= previous.right - 0.5 || current.top >= previous.bottom).toBe(true);
+    }
+    await page.screenshot({ path: info.outputPath(`adjacent-readings-${width}.png`) });
+  }
 });

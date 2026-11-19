@@ -95,15 +95,20 @@
 .journal-note-popover .journal-explanation [lang='ja'] {
   line-height: 1;
 }
+/* Both layers share a column, so long readings reserve width without adding line height. */
 .journal-note-popover ruby {
-  position: relative;
-  display: inline-block;
+  display: inline-grid;
+  text-align: center;
+}
+.journal-note-popover ruby > span,
+.journal-note-popover rt {
+  grid-area: 1 / 1;
 }
 .journal-note-popover rt {
-  position: absolute;
-  bottom: calc(100% - 0.08em);
-  left: 50%;
-  transform: translateX(-50%);
+  display: block;
+  align-self: start;
+  height: 0;
+  transform: translateY(-1em);
   white-space: nowrap;
   line-height: 1;
 }
