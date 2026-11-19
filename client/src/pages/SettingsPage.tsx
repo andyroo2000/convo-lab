@@ -1,11 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Trash2, Lock, Camera, CalendarDays } from 'lucide-react';
+import { User, Trash2, Lock, CalendarDays } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
-import AvatarCropperModal from '../components/admin/AvatarCropperModal';
-import { adminApi } from '../lib/adminApi';
 import GoogleCalendarConnectionCard from '../components/study/GoogleCalendarConnectionCard';
 
 export type SettingsTab = 'profile' | 'security' | 'integrations' | 'danger';
@@ -29,62 +27,7 @@ const SettingsPage = ({
   const activeTab: SettingsTab =
     embeddedTab ?? (SETTINGS_TABS.has(tab ?? '') ? (tab as SettingsTab) : 'profile');
 
-  const AVATAR_COLORS = useMemo(
-    () => [
-      {
-        name: t('settings:profile.colors.indigo'),
-        value: 'indigo',
-        bg: 'bg-indigo-100',
-        text: 'text-indigo-600',
-      },
-      {
-        name: t('settings:profile.colors.teal'),
-        value: 'teal',
-        bg: 'bg-teal-100',
-        text: 'text-teal-600',
-      },
-      {
-        name: t('settings:profile.colors.purple'),
-        value: 'purple',
-        bg: 'bg-purple-100',
-        text: 'text-purple-600',
-      },
-      {
-        name: t('settings:profile.colors.pink'),
-        value: 'pink',
-        bg: 'bg-pink-100',
-        text: 'text-pink-600',
-      },
-      {
-        name: t('settings:profile.colors.emerald'),
-        value: 'emerald',
-        bg: 'bg-emerald-100',
-        text: 'text-emerald-600',
-      },
-      {
-        name: t('settings:profile.colors.amber'),
-        value: 'amber',
-        bg: 'bg-amber-100',
-        text: 'text-amber-600',
-      },
-      {
-        name: t('settings:profile.colors.rose'),
-        value: 'rose',
-        bg: 'bg-rose-100',
-        text: 'text-rose-600',
-      },
-      {
-        name: t('settings:profile.colors.cyan'),
-        value: 'cyan',
-        bg: 'bg-cyan-100',
-        text: 'text-cyan-600',
-      },
-    ],
-    [t]
-  );
-
   const [displayName, setDisplayName] = useState('');
-  const [selectedColor, setSelectedColor] = useState('indigo');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -101,34 +44,29 @@ const SettingsPage = ({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
-  // Avatar cropper state
-  const [cropperOpen, setCropperOpen] = useState(false);
-  const [cropperImageUrl, setCropperImageUrl] = useState('');
-
   useEffect(() => {
-    if (!embeddedTab && tab && !SETTINGS_TABS.has(tab)) {
+    if (embeddedTab || !tab) return;
+    if (!SETTINGS_TABS.has(tab)) {
       navigate('/app/settings/profile', { replace: true });
     }
   }, [tab, navigate, embeddedTab]);
 
   useEffect(() => {
-    onOverlayChange?.(showDeleteModal || cropperOpen);
-  }, [showDeleteModal, cropperOpen, onOverlayChange]);
+    onOverlayChange?.(showDeleteModal);
+  }, [showDeleteModal, onOverlayChange]);
 
   // Initialize form with user data
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName || user.name);
-      setSelectedColor(user.avatarColor || 'indigo');
     }
   }, [user]);
 
   const hasChanges = () => {
     if (!user) return false;
     const currentDisplayName = user.displayName || user.name;
-    const currentColor = user.avatarColor || 'indigo';
 
-    return displayName !== currentDisplayName || selectedColor !== currentColor;
+    return displayName !== currentDisplayName;
   };
 
   const handleSave = async () => {
@@ -144,7 +82,6 @@ const SettingsPage = ({
     try {
       await updateUser({
         displayName: displayName.trim() || undefined,
-        avatarColor: selectedColor,
       });
       setSuccess(t('settings:messages.saveSuccess'));
       setTimeout(() => setSuccess(null), 3000);
@@ -158,7 +95,6 @@ const SettingsPage = ({
   const handleCancel = () => {
     if (user) {
       setDisplayName(user.displayName || user.name);
-      setSelectedColor(user.avatarColor || 'indigo');
 
       setError(null);
       setSuccess(null);
@@ -229,56 +165,6 @@ const SettingsPage = ({
       setPasswordError(err instanceof Error ? err.message : t('settings:messages.failedToSave'));
     } finally {
       setIsChangingPassword(false);
-    }
-  };
-
-  const handleAvatarUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e: Event) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (readerEvent) => {
-          const dataUrl = readerEvent.target?.result as string;
-          setCropperImageUrl(dataUrl);
-          setCropperOpen(true);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
-  };
-
-  const handleSaveAvatarCrop = async (blob: Blob, cropArea: Record<string, unknown>) => {
-    try {
-      if (!user) return;
-
-      const formData = new FormData();
-      formData.append('image', blob, 'avatar.jpg');
-      formData.append('cropArea', JSON.stringify(cropArea));
-
-      const response = await fetch(adminApi.userAvatarUpload(user.id), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload avatar');
-      }
-
-      const data = await response.json();
-
-      // Update user context with new avatar URL
-      await updateUser({ avatarUrl: data.avatarUrl });
-
-      setSuccess(t('settings:profile.avatar.uploadSuccess'));
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (uploadError) {
-      console.error('Failed to upload avatar:', uploadError);
-      setError(t('settings:profile.avatar.uploadError'));
     }
   };
 
@@ -364,73 +250,6 @@ const SettingsPage = ({
             <div className="max-w-4xl mx-auto">
               <div className="retro-settings-panel retro-paper-panel mb-6">
                 <h2 className="retro-headline text-3xl mb-6">{t('settings:profile.title')}</h2>
-
-                {/* Avatar */}
-                <details className="mb-6">
-                  <summary>{t('settings:modal.profilePhoto')}</summary>
-                  <div className="mt-4">
-                    <p className="retro-settings-label mb-3">
-                      {t('settings:profile.avatar.label')}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4">
-                      {/* Current Avatar Preview */}
-                      {user?.avatarUrl ? (
-                        <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
-                          <img
-                            src={user.avatarUrl}
-                            alt={t('settings:profile.avatar.altText')}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div
-                          className={`w-20 h-20 ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.bg || 'bg-indigo-100'} rounded-full flex items-center justify-center`}
-                        >
-                          <span
-                            className={`text-2xl font-medium ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.text || 'text-indigo-600'}`}
-                          >
-                            {displayName.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Upload Button */}
-                      <button
-                        type="button"
-                        onClick={handleAvatarUpload}
-                        className="retro-settings-btn-subtle"
-                        data-testid="settings-button-upload-avatar"
-                      >
-                        <Camera className="w-4 h-4" />
-                        {user?.avatarUrl
-                          ? t('settings:profile.avatar.change')
-                          : t('settings:profile.avatar.upload')}
-                      </button>
-
-                      {user?.avatarUrl && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await updateUser({ avatarUrl: null });
-                              setSuccess(t('settings:profile.avatar.removeSuccess'));
-                              setTimeout(() => setSuccess(null), 3000);
-                            } catch (removeError) {
-                              setError(t('settings:profile.avatar.removeError'));
-                            }
-                          }}
-                          className="retro-settings-link-danger"
-                          data-testid="settings-button-remove-avatar"
-                        >
-                          {t('settings:profile.avatar.remove')}
-                        </button>
-                      )}
-                    </div>
-                    <p className="retro-settings-helper mt-2">
-                      {t('settings:profile.avatar.helper')}
-                    </p>
-                  </div>
-                </details>
 
                 {/* Display Name Section */}
                 <div className="journal-settings-fields">
@@ -662,15 +481,6 @@ const SettingsPage = ({
           </p>
         )}
       </ConfirmModal>
-
-      {/* Avatar Cropper Modal */}
-      <AvatarCropperModal
-        isOpen={cropperOpen}
-        onClose={() => setCropperOpen(false)}
-        imageUrl={cropperImageUrl}
-        onSave={handleSaveAvatarCrop}
-        title={t('settings:profile.avatar.cropTitle')}
-      />
     </div>
   );
 };

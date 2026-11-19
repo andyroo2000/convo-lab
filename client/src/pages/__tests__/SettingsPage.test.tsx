@@ -148,10 +148,11 @@ describe('SettingsPage', () => {
       expect(input).toHaveValue('Johnny');
     });
 
-    it('should render avatar upload button', () => {
+    it('does not offer profile photo uploads', () => {
       renderWithRouter('/app/settings/profile');
 
-      expect(screen.getByTestId('settings-button-upload-avatar')).toBeInTheDocument();
+      expect(screen.queryByTestId('settings-button-upload-avatar')).not.toBeInTheDocument();
+      expect(screen.queryByText('Profile photo')).not.toBeInTheDocument();
     });
   });
 

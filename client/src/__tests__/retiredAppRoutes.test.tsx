@@ -19,6 +19,8 @@ vi.mock('../contexts/KnownKanjiContext', () => ({
 vi.mock('../components/common/Layout', () => ({ default: () => <Outlet /> }));
 vi.mock('../components/common/PWAInstallPrompt', () => ({ default: () => null }));
 vi.mock('../components/study/StudyFeatureBoundary', () => ({ default: () => <Outlet /> }));
+vi.mock('../pages/ToolsPage', () => ({ default: () => <h1>Public tools</h1> }));
+vi.mock('../components/common/ToolsPublicLayout', () => ({ default: () => <Outlet /> }));
 vi.mock('../pages/StudyPage', () => ({ default: () => <h1>Study home</h1> }));
 vi.mock('../pages/JournalPage', () => ({ default: () => <h1>Journal home</h1> }));
 
@@ -40,10 +42,16 @@ describe('App route retirement', () => {
     expect(screen.getByRole('link', { name: 'Go to Study' })).toBeVisible();
   });
 
-  it('opens Journal from the app index', async () => {
-    window.history.replaceState(null, '', '/app');
+  it.each(['/', '/app'])('opens Journal from %s', async (path) => {
+    window.history.replaceState(null, '', path);
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Journal home' })).toBeVisible();
     await waitFor(() => expect(window.location.pathname).toBe('/app/journal'));
+  });
+  it('keeps a direct tools visit public', async () => {
+    window.history.replaceState(null, '', '/tools');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Public tools' })).toBeVisible();
+    expect(window.location.pathname).toBe('/tools');
   });
 });

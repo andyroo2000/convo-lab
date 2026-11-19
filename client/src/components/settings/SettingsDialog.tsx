@@ -19,6 +19,7 @@ import JournalAccountAvatar from '../common/JournalAccountAvatar';
 import useJournalModal from '../../features/journal/useJournalModal';
 import SettingsPage, { type SettingsTab } from '../../pages/SettingsPage';
 import GoogleCalendarConnectionCard from '../study/GoogleCalendarConnectionCard';
+import WaniKaniConnectionCard from './WaniKaniConnectionCard';
 import './settings.css';
 
 const isEditor = (tab?: string): tab is SettingsEditor =>
@@ -121,17 +122,16 @@ const SettingsContents = ({ onEdit }: { onEdit: (tab: SettingsEditor) => void })
         <SettingsAccountActions onEdit={onEdit} />
       </Chapter>
       {studyEnabled && (
-        <>
-          <Chapter {...chapterProps('study')} icon={<BookOpen aria-hidden="true" />}>
-            <Link className="journal-settings-link" to="/app/study/settings">
-              {t('modal.studyPreferencesLink')} <span aria-hidden="true">→</span>
-            </Link>
-          </Chapter>
-          <Chapter {...chapterProps('connections')} icon={<Link2 aria-hidden="true" />}>
-            <GoogleCalendarConnectionCard />
-          </Chapter>
-        </>
+        <Chapter {...chapterProps('study')} icon={<BookOpen aria-hidden="true" />}>
+          <Link className="journal-settings-link" to="/app/study/settings">
+            {t('modal.studyPreferencesLink')} <span aria-hidden="true">→</span>
+          </Link>
+        </Chapter>
       )}
+      <Chapter {...chapterProps('connections')} icon={<Link2 aria-hidden="true" />}>
+        <WaniKaniConnectionCard />
+        {studyEnabled && <GoogleCalendarConnectionCard />}
+      </Chapter>
     </>
   );
 };
