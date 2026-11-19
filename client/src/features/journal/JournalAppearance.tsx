@@ -10,6 +10,22 @@ interface Props {
   saved: boolean;
   menu?: boolean;
 }
+const FontPreview = ({ value }: { value: JournalTypography }) => (
+  <p
+    aria-label="Font preview"
+    className="mb-5 rounded-xl bg-gray-50 p-4 leading-relaxed"
+    style={{
+      fontFamily: journalFonts[value.font],
+      fontSize: value.size,
+      fontWeight: value.font === 'klee' ? 600 : 400,
+    }}
+  >
+    <span lang="ja">今日はいい一日でした。</span>
+    <br />
+    <span lang="en">Today was a good day.</span>
+  </p>
+);
+
 const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -51,6 +67,7 @@ const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
               <X size={18} />
             </button>
           </div>
+          <FontPreview value={value} />
           <fieldset>
             <legend className="sr-only">Font</legend>
             <div className="grid grid-cols-2 gap-3">

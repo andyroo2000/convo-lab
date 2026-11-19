@@ -241,8 +241,8 @@
 }
 
 .journal-entry-feedback > .journal-feedback-toolbar {
-  padding: 5px 16px;
-  min-height: 54px;
+  padding: 12px 16px;
+  min-height: 68px;
   background: #fffdf5;
   border: 1px solid #e6dfcc;
   border-bottom: 0;
