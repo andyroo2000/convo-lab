@@ -20,6 +20,16 @@ not appropriate.
 3. In client code, build paths like `/tools-audio/<tool-name>/google-kento-professional/<id>.mp3`
 4. Use the default `resolveToolAudioUrls: true` behavior in `playAudioClipSequence` — this resolves paths to GCS signed URLs via `POST /api/tools-audio/signed-urls`
 
+Production frontend images omit bundled `tools-audio` files. Clients should still
+use the batch signed-URL resolver above. Legacy/direct clip URLs redirect through
+`GET /api/tools-audio/play/{path}` to short-lived GCS URLs; this is a compatibility
+fallback, not a replacement for batching. Upload and verify clips in GCS before
+publishing client references. Deploy the Learning OS playback endpoint before
+shipping an unbundled frontend; the production workflow checks a real clip.
+
+Private Journal and generated user audio use a separate private bucket through
+Learning OS. Never upload these recordings into the public tool-audio namespace.
+
 ### Do NOT
 
 - Set `resolveToolAudioUrls: false` — this bypasses GCS and tries to serve from the local filesystem
