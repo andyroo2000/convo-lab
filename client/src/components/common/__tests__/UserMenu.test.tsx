@@ -199,7 +199,14 @@ describe('UserMenu', () => {
       fireEvent.click(screen.getByTestId('user-menu-button'));
       fireEvent.click(screen.getByTestId('user-menu-item-settings'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('/app/settings');
+      expect(mockNavigate).toHaveBeenCalledWith('/app/settings', {
+        state: {
+          backgroundLocation: expect.objectContaining({
+            pathname: '/app/library',
+            search: '?viewAs=user-1',
+          }),
+        },
+      });
     });
 
     it('should close dropdown after navigation', () => {

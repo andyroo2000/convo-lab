@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CalendarDays, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useModalPortalHost } from '../common/ModalPortalContext';
 import {
   useGoogleCalendars,
   usePreviewGoogleCalendarEvents,
@@ -47,11 +48,16 @@ function mergeBoolean(fresh: boolean, base: boolean, draft: boolean) {
   return draft === base ? fresh : draft;
 }
 
+function settingsOrEmpty(settings: GoogleCalendarSettings | null) {
+  return settings ?? { calendarIds: [], titleMatchTerms: [], syncEnabled: false };
+}
+
 const GoogleCalendarSettingsDialog = ({
   settings,
   refreshSettings,
   onClose,
 }: GoogleCalendarSettingsDialogProps) => {
+  const portalHost = useModalPortalHost();
   const { t } = useTranslation(['study']);
   const tc = (key: string) => t(`time.calendarConnection.${key}`);
   const limit = GOOGLE_CALENDAR_SETTINGS_LIMITS.calendars;
@@ -140,6 +146,9 @@ const GoogleCalendarSettingsDialog = ({
       titleMatchTerms: draftResult.settings.titleMatchTerms,
     });
   };
+  const ifStillOpen = (action: () => void) => {
+    if (!closedRef.current) action();
+  };
   const submit = async () => {
     if (!draftResult.settings) return;
     setRefreshError(false);
@@ -152,8 +161,8 @@ const GoogleCalendarSettingsDialog = ({
         setMergeError('conflict');
         return;
       }
-      const base = baseSettings ?? { calendarIds: [], titleMatchTerms: [], syncEnabled: false };
-      const fresh = freshSettings ?? { calendarIds: [], titleMatchTerms: [], syncEnabled: false };
+      const base = settingsOrEmpty(baseSettings);
+      const fresh = settingsOrEmpty(freshSettings);
       const calendarIds = mergeList(
         fresh.calendarIds,
         base.calendarIds,
@@ -186,9 +195,9 @@ const GoogleCalendarSettingsDialog = ({
       await save.mutateAsync(merged.settings);
       if (!closedRef.current) close();
     } catch {
-      if (!closedRef.current) setRefreshError(true);
+      ifStillOpen(() => setRefreshError(true));
     } finally {
-      if (!closedRef.current) setIsRefreshing(false);
+      ifStillOpen(() => setIsRefreshing(false));
     }
   };
   const listedIds = new Set(calendars.data?.calendars.map((calendar) => calendar.id));
@@ -489,7 +498,7 @@ const GoogleCalendarSettingsDialog = ({
         </footer>
       </section>
     </div>,
-    document.body
+    portalHost
   );
 };
 export default GoogleCalendarSettingsDialog;

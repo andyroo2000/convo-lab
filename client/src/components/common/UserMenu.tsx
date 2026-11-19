@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import UserMenuItems from './UserMenuItems';
 
@@ -67,6 +67,15 @@ const UserMenu = ({
 }: UserMenuProps) => {
   const { isOpen, setIsOpen, menuRef } = useAccountMenuDisclosure();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigateFromMenu = (path: string) => {
+    if (path === '/app/settings') {
+      menuRef.current?.querySelector('button')?.focus();
+      navigate(path, { state: { backgroundLocation: location } });
+      return;
+    }
+    navigate(path);
+  };
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
@@ -99,7 +108,7 @@ const UserMenu = ({
               userRole={userRole}
               mobileNavItems={mobileNavItems}
               close={() => setIsOpen(false)}
-              navigate={navigate}
+              navigate={navigateFromMenu}
               logout={onLogout}
             />
           )}
