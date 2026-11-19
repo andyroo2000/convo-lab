@@ -107,6 +107,7 @@
 }
 .journal-note-popover rt {
   display: block;
+  text-align: center;
   align-self: start;
   height: 0;
   transform: translateY(-1em);
