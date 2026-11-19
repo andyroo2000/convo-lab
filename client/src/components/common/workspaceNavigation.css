@@ -137,3 +137,7 @@
     display: none;
   }
 }
+
+.workspace-account-menu[hidden] {
+  display: none;
+}

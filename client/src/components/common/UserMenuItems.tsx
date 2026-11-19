@@ -21,9 +21,11 @@ const UserMenuItems = ({
 }) => {
   const { t } = useTranslation('common');
   const destinations = [
-    ...(userRole === 'admin' ? [{ id: 'admin', label: t('admin'), icon: Shield }] : []),
-    { id: 'settings', label: t('settings'), icon: Settings },
-    { id: 'credits', label: 'Credits', icon: BookMarked },
+    ...(userRole === 'admin'
+      ? [{ id: 'admin', path: '/app/admin', label: t('admin'), icon: Shield }]
+      : []),
+    { id: 'settings', path: '/app/settings', label: t('settings'), icon: Settings },
+    { id: 'credits', path: '/app/credits', label: 'Credits', icon: BookMarked },
   ];
   return (
     <>
@@ -43,7 +45,7 @@ const UserMenuItems = ({
           ))}
         </div>
       )}
-      {destinations.map(({ id, label, icon: Icon }) => (
+      {destinations.map(({ id, path, label, icon: Icon }) => (
         <button
           key={id}
           type="button"
@@ -51,7 +53,7 @@ const UserMenuItems = ({
           data-testid={`user-menu-item-${id}`}
           onClick={() => {
             close();
-            navigate(`/app/${id}`);
+            navigate(path);
           }}
         >
           <Icon className="w-4 h-4" />

@@ -119,11 +119,17 @@ test('Contents, entry actions, and account preferences stay at their proper leve
   await page.getByRole('button', { name: 'Sans-serif', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Journal appearance' })).toBeVisible();
   await page.getByRole('button', { name: 'Close appearance' }).click();
-  await nav.getByRole('button', { name: 'Account menu' }).click();
+  await expect(page.getByRole('button', { name: 'Appearance', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'Choose your tutor', exact: true }).click();
   await page.getByRole('button', { name: 'Ren (M)' }).click();
   await expect(page.getByRole('dialog', { name: 'Choose your tutor' })).not.toBeVisible();
   await expect(page.getByRole('img', { name: 'Hana, your tutor' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Choose your tutor', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(nav.getByRole('button', { name: 'Account menu' })).toBeFocused();
+  await page.getByLabel('More journal options').first().click();
+  await page.getByRole('button', { name: 'Edit final text' }).click();
+  await expect(nav.getByRole('button', { name: 'Contents', exact: true })).toBeDisabled();
 });
 
 test('phone header fits and the larger illustrated Listen bars stay attached to entries', async ({

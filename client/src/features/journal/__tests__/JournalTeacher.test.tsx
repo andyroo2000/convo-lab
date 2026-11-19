@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import JournalTeacher from '../JournalTeacher';
 import JournalPreferences from '../JournalPreferences';
 import { getTutorPreferences, prepareTutorQuestion, saveTutorPreference } from '../journalTutor';
@@ -34,14 +34,18 @@ const analysis: JournalAnalysis = {
     segments: [],
   },
 };
+const originalDialogs = {
+  showModal: HTMLDialogElement.prototype.showModal,
+  close: HTMLDialogElement.prototype.close,
+};
 let selected: string | null;
 let question: TutorQuestion;
 beforeEach(() => {
   vi.clearAllMocks();
-  HTMLDialogElement.prototype.showModal = function showModal() {
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
     this.setAttribute('open', '');
   };
-  HTMLDialogElement.prototype.close = function close() {
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
     this.removeAttribute('open');
   };
   selected = null;
@@ -65,6 +69,7 @@ beforeEach(() => {
     return { data: question };
   });
 });
+afterEach(() => Object.assign(HTMLDialogElement.prototype, originalDialogs));
 function mount() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },

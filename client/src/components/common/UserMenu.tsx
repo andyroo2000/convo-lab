@@ -21,26 +21,14 @@ interface UserMenuProps {
   journalSettings?: ReactNode;
 }
 
-const UserMenu = ({
-  userName,
-  avatarColor: _avatarColor = 'indigo',
-  avatarUrl,
-  userRole,
-  mobileNavItems = [],
-  onLogout,
-  journalSettings,
-}: UserMenuProps) => {
+function useAccountMenuDisclosure() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-
-  // Color scheme for future use - currently using direct avatarColor
-  // const colorScheme = AVATAR_COLOR_MAP[avatarColor] || AVATAR_COLOR_MAP.indigo;
-  const userInitial = userName.charAt(0).toUpperCase();
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      if (document.querySelector('dialog[open]')) return;
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
@@ -48,7 +36,8 @@ const UserMenu = ({
 
     // Close on ESC key
     function handleEscKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !document.querySelector('dialog[open]')) {
+        menuRef.current?.querySelector('button')?.focus();
         setIsOpen(false);
       }
     }
@@ -63,6 +52,22 @@ const UserMenu = ({
     }
     return undefined;
   }, [isOpen]);
+
+  return { isOpen, setIsOpen, menuRef };
+}
+
+const UserMenu = ({
+  userName,
+  avatarColor: _avatarColor = 'indigo',
+  avatarUrl,
+  userRole,
+  mobileNavItems = [],
+  onLogout,
+  journalSettings,
+}: UserMenuProps) => {
+  const { isOpen, setIsOpen, menuRef } = useAccountMenuDisclosure();
+  const navigate = useNavigate();
+  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <div className="relative" ref={menuRef}>

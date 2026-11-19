@@ -35,7 +35,7 @@ const WorkspaceSwitcher = ({ items }: { items: UserMenuMobileNavItem[] }) => {
   const active = items.find((item) => item.isActive)?.label ?? 'Workspace';
   return (
     <details className="workspace-switcher" ref={details}>
-      <summary aria-label={`Switch section, ${active}`}>
+      <summary aria-label={`${active}, switch section`}>
         {active}
         <ChevronDown size={16} aria-hidden="true" />
       </summary>
