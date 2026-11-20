@@ -50,6 +50,12 @@ export class LiveComposition {
     this.request.cancel();
     this.expansion.reset();
     this.picker.hide();
+    if (this.session.active.preview && this.sections.length) {
+      this.session.active.convertedSections = this.sections.map(({ text, reading }) => ({
+        text,
+        reading,
+      }));
+    }
     this.sections = [];
     this.choosing = false;
     this.paint();

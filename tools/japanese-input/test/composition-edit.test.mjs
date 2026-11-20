@@ -63,6 +63,7 @@ for (const count of [10, 200]) {
     };
     replaceCompositionRange(session, session.active.end - 1, 1, '');
     assert.equal(session.field.value, `前${'か'.repeat(count - 1)}後`);
+    // At most three prefix probes plus replacement and caret conversion; allow one extra.
     assert.ok(calls <= 6, `Expected bounded conversion calls, received ${calls}`);
   });
 }

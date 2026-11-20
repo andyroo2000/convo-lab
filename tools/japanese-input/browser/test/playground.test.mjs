@@ -75,6 +75,7 @@ test('conversion in the middle preserves emoji and surrounding text', async () =
   await input.press('Backspace');
   await expect(input).toHaveValue('前🙂はしでたべまし後');
 });
+
 test('live neural preview deletes immediately and repeated Backspace clears the phrase', async () => {
   await empty();
   const input = page.locator('#notebook');
@@ -90,6 +91,7 @@ test('live neural preview deletes immediately and repeated Backspace clears the 
   }
   await expect(input).not.toHaveClass(/composing/);
 });
+
 test('expanded alternatives and manual boundaries retain whole-phrase neural scores', async () => {
   const result = await page.evaluate(() =>
     browserEngine.convert({ reading: 'はしでたべました', expanded: true, boundaries: [1] })

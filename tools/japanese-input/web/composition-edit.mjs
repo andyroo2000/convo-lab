@@ -64,7 +64,9 @@ export function restoreCaret(session, sections) {
   const mapping =
     sections.length || !active.convertedReading
       ? sections
-      : [{ text: active.convertedText, reading: active.convertedReading }];
+      : (active.convertedSections ?? [
+          { text: active.convertedText, reading: active.convertedReading },
+        ]);
   const start = readingOffset(mapping, session.field.selectionStart - active.start);
   const end = readingOffset(mapping, session.field.selectionEnd - active.start);
   session.restore();
