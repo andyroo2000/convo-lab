@@ -25,7 +25,6 @@ function dismissPopover(
   document.addEventListener('pointerdown', outside);
   document.addEventListener('focusin', outside);
   document.addEventListener('keydown', escape);
-  window.addEventListener('resize', close);
   const scroll = (event: Event) => {
     if (!popup.current?.contains(event.target as Node)) close();
   };
@@ -34,7 +33,6 @@ function dismissPopover(
     document.removeEventListener('pointerdown', outside);
     document.removeEventListener('focusin', outside);
     document.removeEventListener('keydown', escape);
-    window.removeEventListener('resize', close);
     window.removeEventListener('scroll', scroll, true);
   };
 }
@@ -68,10 +66,13 @@ export default function useJournalPopover(gap = 6) {
       if (placement) setPosition(placement);
     };
     reposition();
-    if (!popup.current || typeof ResizeObserver === 'undefined') return undefined;
-    const observer = new ResizeObserver(reposition);
-    observer.observe(popup.current);
-    return () => observer.disconnect();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reposition);
+    if (popup.current) observer?.observe(popup.current);
+    window.addEventListener('resize', reposition);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', reposition);
+    };
   }, [open, gap]);
 
   useEffect(() => {
