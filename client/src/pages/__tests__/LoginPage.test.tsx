@@ -177,6 +177,7 @@ describe('LoginPage', () => {
       const field = screen.getByTestId('auth-input-password');
       fireEvent.change(field, { target: { value: '日😀本' } });
       expect(field).toBeValid();
+      expect(field).not.toHaveAttribute('pattern');
       fillSignupDetails('Reader', 'INVITE');
       expect(field).toHaveAccessibleDescription('At least 8 characters');
       fireEvent.change(field, { target: { value: '123456😀' } });

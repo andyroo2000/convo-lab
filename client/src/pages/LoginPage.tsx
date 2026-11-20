@@ -130,6 +130,7 @@ const CredentialsFields = ({
     : {
         autoComplete: 'new-password',
         pattern: '.{8,}',
+        title: t('auth:signup.passwordHelp'),
         'aria-describedby': 'signup-password-help',
       };
 
@@ -174,7 +175,7 @@ const CredentialsFields = ({
         />
         {!isLogin && (
           <p id="signup-password-help" className="mt-1 text-sm text-gray-600">
-            {t('auth:resetPassword.newPasswordPlaceholder')}
+            {t('auth:signup.passwordHelp')}
           </p>
         )}
       </div>
