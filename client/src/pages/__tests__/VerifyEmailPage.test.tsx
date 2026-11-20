@@ -16,7 +16,8 @@ vi.mock('react-router-dom', async () => {
 
 // Mock AuthContext
 const mockRefreshUser = vi.fn();
-let mockUser = { id: '1', email: 'test@example.com', emailVerified: false };
+const testUser = { id: '1', email: 'test@example.com', emailVerified: false };
+let mockUser: typeof testUser | null = { ...testUser };
 
 // Create a getter function to always return the current mockUser value
 vi.mock('../../contexts/AuthContext', () => ({
@@ -83,7 +84,7 @@ async function renderExpiredVerification() {
 }
 
 function resendWithoutToken(ok: boolean, payload: Record<string, string>) {
-  mockUser.emailVerified = false;
+  mockUser = { ...testUser, emailVerified: false };
   mockVerificationResponse(ok, payload);
   renderWithRouter('/verify-email');
   fireEvent.click(screen.getByRole('button', { name: /Resend Verification Email/ }));
@@ -104,7 +105,7 @@ describe('VerifyEmailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset mockUser to a fresh object
-    mockUser = { id: '1', email: 'test@example.com', emailVerified: false };
+    mockUser = { ...testUser };
     (global.fetch as ReturnType<typeof vi.fn>).mockReset();
   });
 
@@ -403,29 +404,17 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should show sending state while resending email', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce({
-          ok: false,
-          json: async () => ({ error: 'Token has expired' }),
-        })
-        .mockImplementationOnce(
-          () =>
-            new Promise((resolve) => {
-              setTimeout(resolve, 1000);
-            })
-        );
-
-      renderWithRouter('/verify-email/expired-token');
-
-      await waitFor(() => {
-        expect(screen.getByText('Verification Failed')).toBeInTheDocument();
-      });
+      const pending = deferred<Response>();
+      await renderExpiredVerification();
+      vi.mocked(fetch).mockReturnValueOnce(pending.promise);
 
       const resendButton = screen.getByRole('button', { name: /Resend Verification Email/ });
       fireEvent.click(resendButton);
 
       expect(screen.getByRole('button', { name: /Sending.../ })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Sending.../ })).toBeDisabled();
+      pending.resolve(Response.json({ message: 'Verification email sent' }));
+      expect(await screen.findByText('Verification email sent! Check your inbox.')).toBeVisible();
     });
 
     it('should handle resend email errors', async () => {
@@ -456,7 +445,7 @@ describe('VerifyEmailPage', () => {
 
   describe('Already Verified State', () => {
     it('should show already verified message when user is already verified', () => {
-      mockUser.emailVerified = true;
+      mockUser = { ...testUser, emailVerified: true };
 
       renderWithRouter('/verify-email');
 
@@ -467,8 +456,15 @@ describe('VerifyEmailPage', () => {
   });
 
   describe('No Token State', () => {
+    it('offers sign-in to signed-out learners without a verification token', () => {
+      mockUser = null;
+      renderWithRouter('/verify-email');
+      expect(screen.getByRole('link', { name: 'Go to Login' })).toHaveAttribute('href', '/login');
+      expect(screen.getByText(/Sign in to view your verification status/)).toBeVisible();
+    });
+
     it('should show verification instructions when no token and user not verified', () => {
-      mockUser.emailVerified = false;
+      mockUser = { ...testUser, emailVerified: false };
 
       renderWithRouter('/verify-email');
 
@@ -499,8 +495,7 @@ describe('VerifyEmailPage', () => {
     it('should render logo and title', () => {
       renderWithRouter('/verify-email');
 
-      expect(screen.getByRole('heading', { name: /ConvoLab/ })).toBeInTheDocument();
-      expect(screen.getByText('Email Verification')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /ConvoLab Journal home/i })).toBeInTheDocument();
     });
 
     it('should render back to study link', () => {

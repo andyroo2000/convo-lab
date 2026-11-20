@@ -66,7 +66,9 @@ describe('ResetPasswordPage', () => {
     renderPage(route);
 
     expect(screen.getByRole('heading', { name: /Invalid Reset Link/i })).toBeInTheDocument();
-    expect(screen.getByText('Invalid reset link')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your password reset link may have expired or is invalid/i)
+    ).toBeVisible();
     expect(screen.getByRole('link', { name: /Request New Link/i })).toHaveAttribute(
       'href',
       '/forgot-password'
@@ -88,8 +90,8 @@ describe('ResetPasswordPage', () => {
     expect(await screen.findByText(/Passwords do not match/i)).toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByLabelText(/New Password/i), { target: { value: 'short' } });
-    fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: 'short' } });
+    fireEvent.change(screen.getByLabelText(/New Password/i), { target: { value: '😀😀😀😀' } });
+    fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: '😀😀😀😀' } });
     fireEvent.click(screen.getByRole('button', { name: /Reset Password/i }));
 
     expect(await screen.findByText(/Password must be at least 8 characters/i)).toBeInTheDocument();
@@ -146,7 +148,10 @@ describe('ResetPasswordPage', () => {
   });
 
   it.each([
-    [{ error: { message: 'Broker token expired' } }, 'Broker token expired'],
+    [
+      { error: { message: 'Broker token expired' }, message: 'Bad request' },
+      'Broker token expired',
+    ],
     [{ message: 'Password rejected' }, 'Password rejected'],
   ])('surfaces API error envelopes', async (body, expectedMessage) => {
     mockFetch.mockResolvedValueOnce({
@@ -159,6 +164,14 @@ describe('ResetPasswordPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Reset Password/i }));
 
     expect(await screen.findByText(expectedMessage)).toBeInTheDocument();
+  });
+
+  it('shows the localized reset error when the server returns an unreadable response', async () => {
+    mockFetch.mockResolvedValueOnce(new Response('Service unavailable', { status: 503 }));
+    renderPage();
+    fillValidPassword();
+    fireEvent.click(screen.getByRole('button', { name: /Reset Password/i }));
+    expect(await screen.findByText('Failed to reset password. Please try again.')).toBeVisible();
   });
 
   it('redirects to login after a successful reset', async () => {
@@ -186,7 +199,7 @@ describe('ResetPasswordPage', () => {
   it('keeps the ConvoLab identity and login navigation visible', () => {
     renderPage();
 
-    expect(screen.getByRole('heading', { name: /ConvoLab/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /ConvoLab Journal home/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Back to Login/i })).toHaveAttribute('href', '/login');
   });
 });
