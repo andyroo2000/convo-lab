@@ -210,6 +210,26 @@ describe('Layout', () => {
       expect(screen.getByTestId('public-page')).toBeVisible();
     });
 
+    it('preserves the return URL if sign-out fails and the session later expires', async () => {
+      const error = new Error('Session cleanup failed');
+      const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      try {
+        window.history.replaceState({}, '', '/app/study/browse');
+        mockAuthState.logout.mockRejectedValueOnce(error);
+        const view = renderAuthRoutes();
+        fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+        await waitFor(() => expect(warning).toHaveBeenCalledWith('Unable to sign out:', error));
+        mockAuthState.user = null;
+        view.rerenderAuthRoutes();
+        expect(await screen.findByTestId('login-page')).toBeVisible();
+        expect(new URLSearchParams(window.location.search).get('returnUrl')).toBe(
+          '/app/study/browse'
+        );
+      } finally {
+        warning.mockRestore();
+      }
+    });
+
     it('leaves signed-in protected routes and signed-out public routes unchanged', async () => {
       window.history.replaceState({}, '', '/app/study/browse?noteId=note-1');
       const view = renderAuthRoutes();

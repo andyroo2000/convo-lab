@@ -289,7 +289,12 @@ const Layout = () => {
 
   const handleLogout = async () => {
     setSigningOut(true);
-    await logout();
+    try {
+      await logout();
+    } catch (error) {
+      setSigningOut(false);
+      console.warn('Unable to sign out:', error);
+    }
   };
 
   const flashcardsEnabled = isFeatureEnabled('flashcardsEnabled');
