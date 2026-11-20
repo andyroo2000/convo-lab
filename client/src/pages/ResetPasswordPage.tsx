@@ -48,7 +48,10 @@ const ResetPasswordPage = () => {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(errorMessageFromPayload(data) ?? 'Failed to reset password');
+        const detail = errorMessageFromPayload({ error: data?.error });
+        throw new Error(
+          detail ?? errorMessageFromPayload(data) ?? t('auth:resetPassword.errors.failed')
+        );
       }
 
       setSuccess(true);
@@ -78,7 +81,6 @@ const ResetPasswordPage = () => {
           <div className="text-center">
             <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h1>{t('auth:resetPassword.invalid.title')}</h1>
-            <p className="text-red-600 mb-6">Invalid reset link</p>
             <p className="text-medium-brown mb-6">{t('auth:resetPassword.invalid.description')}</p>
             <Link to="/forgot-password" className="journal-auth-link inline-block">
               {t('auth:resetPassword.invalid.requestNewLink')}

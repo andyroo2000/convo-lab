@@ -66,7 +66,6 @@ describe('ResetPasswordPage', () => {
     renderPage(route);
 
     expect(screen.getByRole('heading', { name: /Invalid Reset Link/i })).toBeInTheDocument();
-    expect(screen.getByText('Invalid reset link')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Request New Link/i })).toHaveAttribute(
       'href',
       '/forgot-password'
@@ -146,7 +145,10 @@ describe('ResetPasswordPage', () => {
   });
 
   it.each([
-    [{ error: { message: 'Broker token expired' } }, 'Broker token expired'],
+    [
+      { error: { message: 'Broker token expired' }, message: 'Bad request' },
+      'Broker token expired',
+    ],
     [{ message: 'Password rejected' }, 'Password rejected'],
   ])('surfaces API error envelopes', async (body, expectedMessage) => {
     mockFetch.mockResolvedValueOnce({

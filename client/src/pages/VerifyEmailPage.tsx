@@ -258,16 +258,14 @@ const VerifyEmailPage = () => {
         {status === 'idle' && !user && (
           <div className="text-center">
             <Mail className="w-16 h-16 text-periwinkle mx-auto mb-4" />
-            <h1>Verify your email</h1>
-            <p className="text-medium-brown mb-6">
-              Sign in to view your verification status or request a new verification email.
-            </p>
+            <h1>{t('auth:verifyEmail.signedOut.title')}</h1>
+            <p className="text-medium-brown mb-6">{t('auth:verifyEmail.signedOut.description')}</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/login" className="journal-auth-link inline-block">
-                Go to Login
+                {t('auth:verifyEmail.signedOut.login')}
               </Link>
               <Link to="/" className="journal-auth-link inline-block">
-                Back Home
+                {t('auth:verifyEmail.signedOut.home')}
               </Link>
             </div>
           </div>
