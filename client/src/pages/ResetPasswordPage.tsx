@@ -29,7 +29,7 @@ const ResetPasswordPage = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
+    if (Array.from(newPassword).length < 8) {
       setError(t('auth:resetPassword.errors.passwordLength'));
       return;
     }
@@ -47,7 +47,7 @@ const ResetPasswordPage = () => {
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => null);
         const detail = errorMessageFromPayload({ error: data?.error });
         throw new Error(
           detail ?? errorMessageFromPayload(data) ?? t('auth:resetPassword.errors.failed')
@@ -61,7 +61,7 @@ const ResetPasswordPage = () => {
         navigate('/login');
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('auth:resetPassword.errors.failed'));
     } finally {
       setLoading(false);
     }
