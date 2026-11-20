@@ -155,6 +155,22 @@ test('Contents, entry actions, and account preferences stay at their proper leve
   await expect(nav.getByRole('button', { name: 'Contents', exact: true })).toBeDisabled();
 });
 
+test('a tutor reply uses notebook paper and restores multiline writing on a phone', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await fixture(page);
+  const reply = page
+    .getByRole('article', { name: 'Notebook sheet' })
+    .getByRole('textbox', { name: 'Your answer' });
+  await expect(reply).toHaveAttribute('placeholder', '返事を書く…');
+  const answer = '先生、ありがとうございます。\n次は友達と京都へ行きたいです。'.repeat(5);
+  await reply.fill(answer);
+  expect(await reply.evaluate((field) => field.scrollHeight <= field.clientHeight + 1)).toBe(true);
+  await page.reload();
+  await expect(reply).toHaveValue(answer);
+});
+
 test('phone header fits and the larger illustrated Listen bars stay attached to entries', async ({
   page,
 }, info) => {
