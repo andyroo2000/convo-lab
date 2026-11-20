@@ -278,10 +278,17 @@ test('adjacent long readings keep their own space inside the correction', async 
   await page.getByRole('button', { name: 'Draft', exact: true }).click();
   const anchor = page.getByRole('button', { name: /^Correction: Replace/ });
   const popup = page.getByRole('dialog', { name: 'Correction', exact: true });
+  await anchor.focus();
+  await expect(popup).toBeVisible();
   for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 1000 });
-    await anchor.blur();
-    await anchor.focus();
+    await expect(anchor).toBeFocused();
+    await expect
+      .poll(async () => {
+        const box = await popup.boundingBox();
+        return Boolean(box && box.x >= 0 && box.x + box.width <= width);
+      })
+      .toBe(true);
     await expect(popup).toBeVisible();
     const readings = await popup.locator('.journal-explanation rt').evaluateAll((elements) =>
       elements.map((element) => {

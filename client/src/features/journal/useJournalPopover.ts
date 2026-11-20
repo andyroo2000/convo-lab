@@ -11,6 +11,11 @@ function positionPopover(anchor: HTMLElement | null, popup: HTMLElement | null, 
   );
 }
 
+function hasPopoverFocus(anchor: HTMLElement | null, popup: HTMLElement | null) {
+  const focused = document.activeElement;
+  return focused === anchor || popup?.contains(focused);
+}
+
 function dismissPopover(
   { anchor, popup }: { anchor: RefObject<HTMLElement>; popup: RefObject<HTMLElement> },
   close: () => void
@@ -25,7 +30,6 @@ function dismissPopover(
   document.addEventListener('pointerdown', outside);
   document.addEventListener('focusin', outside);
   document.addEventListener('keydown', escape);
-  window.addEventListener('resize', close);
   const scroll = (event: Event) => {
     if (!popup.current?.contains(event.target as Node)) close();
   };
@@ -34,8 +38,18 @@ function dismissPopover(
     document.removeEventListener('pointerdown', outside);
     document.removeEventListener('focusin', outside);
     document.removeEventListener('keydown', escape);
-    window.removeEventListener('resize', close);
     window.removeEventListener('scroll', scroll, true);
+  };
+}
+
+function observePopoverSize(popup: HTMLElement | null, reposition: () => void) {
+  reposition();
+  const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reposition);
+  if (popup) observer?.observe(popup);
+  window.addEventListener('resize', reposition);
+  return () => {
+    observer?.disconnect();
+    window.removeEventListener('resize', reposition);
   };
 }
 
@@ -56,7 +70,10 @@ export default function useJournalPopover(gap = 6) {
     setOpen(true);
   };
   const hide = () => {
-    timeout.current = setTimeout(() => setOpen(false), 120);
+    clearTimeout(timeout.current);
+    timeout.current = setTimeout(() => {
+      if (!hasPopoverFocus(anchor.current, popup.current)) setOpen(false);
+    }, 120);
   };
 
   useEffect(() => () => clearTimeout(timeout.current), []);
@@ -67,11 +84,7 @@ export default function useJournalPopover(gap = 6) {
       const placement = positionPopover(anchor.current, popup.current, gap);
       if (placement) setPosition(placement);
     };
-    reposition();
-    if (!popup.current || typeof ResizeObserver === 'undefined') return undefined;
-    const observer = new ResizeObserver(reposition);
-    observer.observe(popup.current);
-    return () => observer.disconnect();
+    return observePopoverSize(popup.current, reposition);
   }, [open, gap]);
 
   useEffect(() => {
