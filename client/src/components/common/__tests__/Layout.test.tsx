@@ -21,6 +21,7 @@ const mockAuthState = vi.hoisted(() => ({
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   } as User | null,
   loading: false,
+  logout: vi.fn<() => Promise<void>>(),
 }));
 
 // Mock the auth context
@@ -28,7 +29,7 @@ vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: mockAuthState.user,
     loading: mockAuthState.loading,
-    logout: vi.fn(),
+    logout: mockAuthState.logout,
   }),
 }));
 
@@ -51,7 +52,9 @@ vi.mock('../../../hooks/useFeatureFlags', () => ({
 vi.mock('../UserMenu', () => ({
   default: ({
     mobileNavItems = [],
+    onLogout,
   }: {
+    onLogout: () => void;
     mobileNavItems?: Array<{
       id: string;
       label: string;
@@ -62,6 +65,9 @@ vi.mock('../UserMenu', () => ({
   }) => (
     <div data-testid="user-menu">
       User Menu
+      <button type="button" onClick={onLogout}>
+        Sign out
+      </button>
       <div data-testid="user-menu-mobile-nav-items">
         {mobileNavItems.map((item) => (
           <span key={item.id} data-active={item.isActive ? 'true' : 'false'} data-path={item.path}>
@@ -179,6 +185,29 @@ describe('Layout', () => {
       } finally {
         consoleError.mockRestore();
       }
+    });
+
+    it('redirects deliberate sign-out once even when device cleanup finishes later', async () => {
+      window.history.replaceState({}, '', '/app/study/browse');
+      let finish = () => {};
+      mockAuthState.logout.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          })
+      );
+      const { rerenderAuthRoutes } = renderAuthRoutes();
+      fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+      mockAuthState.user = null;
+      rerenderAuthRoutes();
+      expect(await screen.findByTestId('login-page')).toBeVisible();
+      expect(window.location.search).toBe('');
+      window.history.pushState({}, '', '/public');
+      await act(async () => {
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        finish();
+      });
+      expect(screen.getByTestId('public-page')).toBeVisible();
     });
 
     it('leaves signed-in protected routes and signed-out public routes unchanged', async () => {
