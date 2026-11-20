@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { engineInfo } from '../contract.mjs';
+import { replaceRequired } from './source-patches.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const upstream = resolve(root, '.engines/AzooKeyKanaKanjiConverter');
 const target = resolve(root, '.engines/browser-swift');
@@ -68,13 +69,13 @@ for (const name of readdirSync(resolve(root, 'engine/Sources/InputWorker'))) {
       'let inferenceLimit = 1\nlet neuralInferenceLimit = inferenceLimit\nlet modelURL = URL(fileURLWithPath: "/model.gguf")\nlet boundaryRanker ='
     );
     source = source.slice(0, source.indexOf('while let line = readLine()'));
-    source = source
-      .replace(
-        'ConversionLearning(directory: nil)',
-        'ConversionLearning(directory: URL(fileURLWithPath: "/memory"))'
-      )
-      .replace('learningType: .nothing', 'learningType: .inputAndOutput')
-      .replaceAll('URL: scratch', 'URL: URL(fileURLWithPath: "/memory")');
+    source = replaceRequired(
+      source,
+      'ConversionLearning(directory: nil)',
+      'ConversionLearning(directory: URL(fileURLWithPath: "/memory"))'
+    );
+    source = replaceRequired(source, 'learningType: .nothing', 'learningType: .inputAndOutput');
+    source = replaceRequired(source, 'URL: scratch', 'URL: URL(fileURLWithPath: "/memory")', 2);
   }
   if (name === 'main.swift' && process.env.IOS_OPTIMIZED) {
     source = source.replace(
@@ -87,13 +88,14 @@ for (const name of readdirSync(resolve(root, 'engine/Sources/InputWorker'))) {
     );
   }
   if (name === 'ConversionLearning.swift')
-    source = source.replace('options: .atomic', 'options: []');
+    source = replaceRequired(source, 'options: .atomic', 'options: []');
   put(`Sources/BrowserInput/${name}`, source);
 }
 put('Sources/BrowserInput/Exports.swift', local('Exports.swift'));
 put(
   'Sources/BrowserInput/Learning.swift',
-  local('Learning.swift').replace(
+  replaceRequired(
+    local('Learning.swift'),
     '/* invalidate cached proposals */',
     process.env.IOS_OPTIMIZED ? 'previousReading = ""; previousResults = nil' : ''
   )
@@ -106,5 +108,10 @@ const builder =
 // in one IndexedDB transaction after all engine writes finish.
 put(
   builder,
-  readFileSync(resolve(target, builder), 'utf8').replaceAll('options: .atomic', 'options: []')
+  replaceRequired(
+    readFileSync(resolve(target, builder), 'utf8'),
+    'options: .atomic',
+    'options: []',
+    2
+  )
 );
