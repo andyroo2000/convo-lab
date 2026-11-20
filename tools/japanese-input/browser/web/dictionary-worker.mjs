@@ -6,7 +6,8 @@ import {
   PreopenDirectory,
   Directory,
 } from '/vendor/wasi/index.js';
-let instance, shared;
+import { loadLearning, saveLearning } from './learning-storage.mjs';
+let instance, shared, memory, revision;
 const encoder = new TextEncoder(),
   decoder = new TextDecoder();
 function neural(input, length, output, capacity) {
@@ -44,11 +45,15 @@ async function filesystem() {
       new File(bytes.subarray(start, start + size), { readonly: true })
     );
   }
+  const saved = await loadLearning();
+  revision = saved.revision;
+  memory = new Directory(new Map(saved.files.map(([name, data]) => [name, new File(data)])));
   return new PreopenDirectory(
     '/',
     new Map([
       ['resources', root],
       ['tmp', new Directory(new Map())],
+      ['memory', memory],
     ])
   );
 }
@@ -87,13 +92,28 @@ function convert(request) {
     if (result) instance.exports.release_buffer(result);
   }
 }
-self.onmessage = async ({ data }) => {
+async function handle(data) {
   try {
     if (data.op === 'init') {
       await initialize(data.buffer);
       postMessage({ ready: true });
-    } else postMessage({ id: data.id, result: convert(data) });
+    } else {
+      const result = convert(data);
+      if (['learn', 'resetLearning'].includes(data.op) && !result.error) {
+        revision = await saveLearning(
+          [...memory.contents].map(([name, file]) => [name, file.data.slice()]),
+          data.op === 'resetLearning' ? null : revision
+        );
+      }
+      postMessage({ id: data.id, result });
+    }
   } catch (error) {
     postMessage({ id: data.id, error: error.message });
   }
+}
+
+// Persistence must finish before a later conversion or reset starts.
+let queue = Promise.resolve();
+self.onmessage = ({ data }) => {
+  queue = queue.then(() => handle(data));
 };

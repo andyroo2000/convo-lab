@@ -68,6 +68,13 @@ for (const name of readdirSync(resolve(root, 'engine/Sources/InputWorker'))) {
       'let inferenceLimit = 1\nlet neuralInferenceLimit = inferenceLimit\nlet modelURL = URL(fileURLWithPath: "/model.gguf")\nlet boundaryRanker ='
     );
     source = source.slice(0, source.indexOf('while let line = readLine()'));
+    source = source
+      .replace(
+        'ConversionLearning(directory: nil)',
+        'ConversionLearning(directory: URL(fileURLWithPath: "/memory"))'
+      )
+      .replace('learningType: .nothing', 'learningType: .inputAndOutput')
+      .replaceAll('URL: scratch', 'URL: URL(fileURLWithPath: "/memory")');
   }
   if (name === 'main.swift' && process.env.IOS_OPTIMIZED) {
     source = source.replace(
@@ -79,14 +86,24 @@ for (const name of readdirSync(resolve(root, 'engine/Sources/InputWorker'))) {
       'var previousReading = \"\"\nvar previousResults: ConversionResult?\n\n@MainActor func convert('
     );
   }
+  if (name === 'ConversionLearning.swift')
+    source = source.replace('options: .atomic', 'options: []');
   put(`Sources/BrowserInput/${name}`, source);
 }
 put('Sources/BrowserInput/Exports.swift', local('Exports.swift'));
+put(
+  'Sources/BrowserInput/Learning.swift',
+  local('Learning.swift').replace(
+    '/* invalidate cached proposals */',
+    process.env.IOS_OPTIMIZED ? 'previousReading = ""; previousResults = nil' : ''
+  )
+);
 console.log(target);
 
 const builder =
   'Sources/KanaKanjiConverterModule/DictionaryManagement/DataStructure/DictionaryBuilder.swift';
-// No learning or dictionary writes are enabled; WASI has no atomic-file flag.
+// WASI has no atomic-file flag. The worker persists the complete memory snapshot
+// in one IndexedDB transaction after all engine writes finish.
 put(
   builder,
   readFileSync(resolve(target, builder), 'utf8').replaceAll('options: .atomic', 'options: []')

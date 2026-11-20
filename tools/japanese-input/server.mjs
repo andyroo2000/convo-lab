@@ -13,6 +13,7 @@ const assets = new Map([
   ['/candidates.mjs', ['web/candidates.mjs', 'text/javascript']],
   ['/readiness.mjs', ['web/readiness.mjs', 'text/javascript']],
   ['/inline-editor.mjs', ['web/inline-editor.mjs', 'text/javascript']],
+  ['/confirmed-learning.mjs', ['web/confirmed-learning.mjs', 'text/javascript']],
   ['/composition-edit.mjs', ['web/composition-edit.mjs', 'text/javascript']],
   ['/inline-session.mjs', ['web/inline-session.mjs', 'text/javascript']],
   ['/history.mjs', ['web/history.mjs', 'text/javascript']],
