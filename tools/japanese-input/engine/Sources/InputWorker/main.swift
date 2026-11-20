@@ -24,8 +24,10 @@ struct ConversionOutput: Encodable {
 }
 
 // One sequential worker. Neural inference is an explicit experimental build trait.
-let converter = KanaKanjiConverter.withDefaultDictionary()
-let boundaryConverter = BoundaryCandidateConverter(dicdataStore: .withDefaultDictionary())
+let dictionary = DicdataStore.withDefaultDictionary()
+let converter = KanaKanjiConverter(dicdataStore: dictionary)
+var boundaryConverter = BoundaryCandidateConverter(dicdataStore: dictionary)
+let learning = try ConversionLearning(directory: nil)
 let scratch = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 var options = ConvertRequestOptions(
     needTypoCorrection: false,
@@ -77,6 +79,8 @@ options.zenzaiMode = .on(
     } else if request.expanded == true {
         pool += expandedCandidates(composition, converter: converter, options: options, reference: results.mainResults.first)
     }
+    pool = learning.ranked(pool, reading: request.reading)
+    learning.remember(pool, reading: request.reading)
     let candidates = serializeCandidates(pool, reading: request.reading, neuralRanked: isNeuralBoundaryRequest(request))
     let elapsed = start.duration(to: .now).components
     let milliseconds = Double(elapsed.seconds) * 1000 + Double(elapsed.attoseconds) / 1e15

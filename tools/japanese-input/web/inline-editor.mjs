@@ -2,6 +2,7 @@ import { replaceCompositionRange, restoreCaret } from './composition-edit.mjs';
 import { InlineSession, kanaComposer } from './inline-session.mjs';
 import { NotebookHistory } from './history.mjs';
 import { LiveComposition } from './live-composition.mjs';
+import { rememberConversions } from './confirmed-learning.mjs';
 
 export class InlineEditor {
   native = false;
@@ -58,6 +59,22 @@ export class InlineEditor {
     this.history.remember();
     this.elements.status.textContent =
       'Type in the notebook · Conversion appears as you pause · Enter to commit.';
+  }
+
+  commit() {
+    const reading = this.session.reading();
+    const selections = this.session.active?.preview
+      ? this.live.sections.map((part) => ({
+          reading,
+          text: part.text,
+          start: part.start,
+          end: part.start + part.reading.length,
+        }))
+      : [];
+    if (selections.length)
+      selections.unshift({ reading, text: this.live.text(), start: 0, end: reading.length });
+    this.finish();
+    void rememberConversions(selections, this.elements.status);
   }
 
   toggleMode() {
@@ -185,7 +202,7 @@ export class InlineEditor {
   compositionKey(event) {
     if (event.key === ' ' && this.japanese) return this.convert();
     if (!this.session.active) return false;
-    const actions = { Enter: () => this.finish(), Escape: () => this.escape() };
+    const actions = { Enter: () => this.commit(), Escape: () => this.escape() };
     if (actions[event.key]) {
       actions[event.key]();
       return true;

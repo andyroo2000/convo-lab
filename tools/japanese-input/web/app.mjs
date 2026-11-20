@@ -2,6 +2,7 @@ import { toHiragana } from '/wanakana.js';
 import { attachNotebook, restoreLegacyPhrase } from './editor.mjs';
 import { InlineEditor } from './inline-editor.mjs';
 import { watchReadiness } from './readiness.mjs';
+import { setupLearningControl } from './confirmed-learning.mjs';
 
 const byId = (id) => document.getElementById(id);
 const notebook = byId('notebook');
@@ -53,3 +54,5 @@ document.querySelectorAll('[data-reading]').forEach((button) => {
   button.addEventListener('click', () => editor.insertExample(button.dataset.reading));
 });
 restoreLegacyPhrase(byId('restore-phrase'), (text) => editor.insertExample(text));
+
+void setupLearningControl(byId('reset-learning'), status);

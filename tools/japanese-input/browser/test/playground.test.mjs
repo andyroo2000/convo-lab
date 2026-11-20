@@ -1,4 +1,4 @@
-import { test, before, after } from 'node:test';
+import { test, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, webkit, firefox, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
@@ -18,6 +18,9 @@ before(async () => {
   await expect(page.locator('#engine-status')).toHaveText('Ready to write · Neural conversion', {
     timeout: 90000,
   });
+});
+beforeEach(async () => {
+  await page.evaluate(() => browserEngine.resetLearning());
 });
 after(async () => {
   await browser?.close();

@@ -55,7 +55,15 @@ export class BrowserRuntime {
     } else pending.resolve(data.result);
   }
   convert(input) {
-    input = validateConversionRequest(input);
+    return this.request(validateConversionRequest(input));
+  }
+  learn(selection) {
+    return this.request({ ...selection, op: 'learn' });
+  }
+  resetLearning() {
+    return this.request({ op: 'resetLearning' });
+  }
+  request(input) {
     if (this.state !== 'ready') return Promise.reject(Error(this.error || 'Model is not ready'));
     return new Promise((resolve, reject) => {
       const id = String(++this.counter);
