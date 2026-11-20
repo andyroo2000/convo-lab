@@ -11,18 +11,21 @@ export default function useJournalArchive(ownerId: string) {
   const store = useMemo(() => new JournalDraftStore(ownerId), [ownerId]);
   const [drafts, setDrafts] = useState<JournalDraft[]>([]);
   const [error, setError] = useState('');
+  const [draftReadError, setDraftReadError] = useState('');
   const query = useInfiniteQuery({
     queryKey: ['journal-archive', ownerId],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) => listJournalEntries(pageParam, signal),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
+    networkMode: 'offlineFirst',
     retry: false,
   });
   const refresh = useCallback(() => {
     try {
       setDrafts(store.list().filter((draft) => !draft.rootEntryId));
+      setDraftReadError('');
     } catch {
-      setError('Device drafts could not be read. Keep open entries on screen.');
+      setDraftReadError('Device drafts could not be read. Keep open entries on screen.');
     }
   }, [store]);
   useEffect(() => {
@@ -92,5 +95,15 @@ export default function useJournalArchive(ownerId: string) {
     return local ? { ...entry, title: local.title, body: local.body } : entry;
   }
 
-  return { query, entries, drafts, error, saved, remove, rename, snapshot, refresh };
+  return {
+    query,
+    entries,
+    drafts,
+    error: error || draftReadError,
+    saved,
+    remove,
+    rename,
+    snapshot,
+    refresh,
+  };
 }
