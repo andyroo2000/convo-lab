@@ -93,6 +93,17 @@ it('preserves Japanese and English as text rather than interpreting markup', () 
   expect(screen.getByText('にほん').tagName).toBe('RT');
 });
 
+it('keeps a preview open on the first click and closes it on the second', () => {
+  render(<JournalHighlight segment={segment} />);
+  const anchor = screen.getByRole('button');
+  fireEvent.focus(anchor);
+  fireEvent.pointerDown(anchor, { pointerType: 'mouse' });
+  fireEvent.click(anchor);
+  expect(screen.getByRole('dialog')).toBeVisible();
+  fireEvent.click(anchor);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
 it('keeps a tapped popup open when the anchor blurs and toggles it on another tap', () => {
   render(<JournalHighlight segment={segment} />);
   const anchor = screen.getByRole('button');
