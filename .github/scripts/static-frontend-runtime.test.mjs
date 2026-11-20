@@ -32,7 +32,7 @@ test('static frontend workflow builds and smokes the dedicated image', async () 
 test('frontend image contains only the built client and nginx runtime', async () => {
   const dockerfile = await readFile(path.join(repositoryRoot, 'Dockerfile.frontend'), 'utf8');
 
-  assert.match(dockerfile, /FROM nginx:1\.27-alpine AS production/u);
+  assert.match(dockerfile, /FROM nginx:1\.30\.7-alpine AS production/u);
   assert.match(
     dockerfile,
     /RUN node scripts\/render-static-spa-entrypoints\.mjs \/app\/client\/dist/u
