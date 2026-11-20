@@ -30,7 +30,7 @@
 .journal-correction [lang='ja'] {
   font-family: 'Noto Serif JP', 'Yu Mincho', serif;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 700;
 }
 .journal-explanation .journal-corrected-term,
 .journal-correction .journal-correction-replacement {
@@ -75,7 +75,6 @@
   /* This inline span fragments per line inside the outer flex item. */
   padding-inline: 6px;
   margin-inline: -6px;
-  background: linear-gradient(#bf616d, #bf616d) left 58% / 100% 1.5px no-repeat;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
@@ -91,7 +90,7 @@
   top: 0.2em;
   color: #675b4b;
   font:
-    30px/1 'Times New Roman',
+    700 30px/1 'Times New Roman',
     serif;
 }
 .journal-correction-label {

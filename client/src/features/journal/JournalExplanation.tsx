@@ -3,15 +3,16 @@ import JournalRuby from './JournalRuby';
 import type { JournalSegment } from './types';
 
 function sentenceSpacing(text: string) {
-  // A half-em space separates mixed-language sentences without changing their punctuation.
+  // A breakable half-em space scales with the font and survives inline markup.
+  // Only replace horizontal sentence gaps: preserve paragraphs, URLs and ordinary word spaces.
   return text
     .replace(
-      /((?:[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}々〆ー]|\[[ぁ-ゖァ-ヺー]+\])\*{0,3}\.)[ \t]+(?=\S)/gu,
+      /((?:[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}々〆ー]|\[[ぁ-ゖァ-ヺー]+\])\*{0,3}[.!?]["'’”)]?\*{0,3})[ \t]+(?=\S)/gu,
       '$1\u2002'
     )
     .replace(
-      /\.[ \t]+(?=\*{0,3}[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])/gu,
-      '.\u2002'
+      /([.!?]["'’”)]?\*{0,3})[ \t]+(?=\*{0,3}["'‘“(「『]?[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}])/gu,
+      '$1\u2002'
     );
 }
 

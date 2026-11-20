@@ -18,6 +18,20 @@ const segment: JournalSegment = {
 };
 
 it.each([
+  [
+    'Use とても to describe how tired you were. たくさん expresses quantity.',
+    'Use とても to describe how tired you were.\u2002たくさん expresses quantity.',
+  ],
+  [
+    'Tired? **とても** fits! **疲れた** means tired.',
+    'Tired?\u2002とても fits!\u2002疲れた means tired.',
+  ],
+  ['Try it. “とても” fits.', 'Try it.\u2002“とても” fits.'],
+  ['**日本.** Another sentence.', '日本.\u2002Another sentence.'],
+  ['Use 日本!” Next.', 'Use 日本!”\u2002Next.'],
+  ['English.\u2002日本語.\u2002Next.', 'English.\u2002日本語.\u2002Next.'],
+  ['English.\n日本語', 'English.\n日本語'],
+  ['Use とても here, then 日本語.', 'Use とても here, then 日本語.'],
   ['Use 新しい. 辺り means nearby.', 'Use 新しい.\u2002辺り means nearby.'],
   ['Use 間. ながら normally links actions.', 'Use 間.\u2002ながら normally links actions.'],
   ['Use **新しい**. Another sentence.', 'Use 新しい.\u2002Another sentence.'],
