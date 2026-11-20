@@ -63,3 +63,10 @@ tools/kanban
 
 # Context/plan files
 .context/
+
+# Downloaded input engines and generated benchmark artifacts.
+tools/japanese-input/.engines
+tools/japanese-input/engine/.build
+tools/japanese-input/results.local.json
+tools/japanese-input/comparison.local.json
+tools/japanese-input/neural-comparison.local.json

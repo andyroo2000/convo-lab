@@ -1,0 +1,98 @@
+[
+  {
+    "reading": "きのうえいがをみました",
+    "expected": ["昨日映画を見ました", "昨日映画を観ました"],
+    "category": "journal"
+  },
+  {
+    "reading": "きょうはいいてんきです",
+    "expected": ["今日はいい天気です", "今日は良い天気です"],
+    "category": "journal"
+  },
+  {
+    "reading": "あたらしいほんをかいました",
+    "expected": ["新しい本を買いました"],
+    "category": "journal"
+  },
+  {
+    "reading": "にほんごをべんきょうしています",
+    "expected": ["日本語を勉強しています"],
+    "category": "journal"
+  },
+  {
+    "reading": "そのあとともだちにあいました",
+    "expected": ["その後友達に会いました", "そのあと友達に会いました"],
+    "category": "journal"
+  },
+  { "reading": "あしたはやくおきます", "expected": ["明日早く起きます"], "category": "journal" },
+  { "reading": "きんようびにかえります", "expected": ["金曜日に帰ります"], "category": "journal" },
+  {
+    "reading": "くるまをうんてんしました",
+    "expected": ["車を運転しました"],
+    "category": "journal"
+  },
+  {
+    "reading": "えいごのじまくがありました",
+    "expected": ["英語の字幕がありました"],
+    "category": "journal"
+  },
+  {
+    "reading": "ひこうきがとべなくなりました",
+    "expected": ["飛行機が飛べなくなりました"],
+    "category": "journal"
+  },
+  { "reading": "はしをわたりました", "expected": ["橋を渡りました"], "category": "homophone" },
+  { "reading": "はしでたべました", "expected": ["箸で食べました"], "category": "homophone" },
+  { "reading": "あめがふっています", "expected": ["雨が降っています"], "category": "homophone" },
+  { "reading": "あめをたべました", "expected": ["飴を食べました"], "category": "homophone" },
+  {
+    "reading": "かみをきりました",
+    "expected": ["髪を切りました", "紙を切りました"],
+    "category": "ambiguous"
+  },
+  {
+    "reading": "きしゃがきしゃできしゃにきた",
+    "expected": ["記者が汽車で貴社に来た"],
+    "category": "stress"
+  },
+  {
+    "reading": "とうきょうえきでまちあわせしました",
+    "expected": ["東京駅で待ち合わせしました"],
+    "category": "place"
+  },
+  { "reading": "しんじゅくにいきました", "expected": ["新宿に行きました"], "category": "place" },
+  {
+    "reading": "らーめんをたべました",
+    "expected": ["ラーメンを食べました"],
+    "category": "katakana"
+  },
+  {
+    "reading": "こーひーをのみました",
+    "expected": ["コーヒーを飲みました"],
+    "category": "katakana"
+  },
+  {
+    "reading": "えいがはおもしろかったです。",
+    "expected": ["映画は面白かったです。", "映画はおもしろかったです。"],
+    "category": "punctuation"
+  },
+  {
+    "reading": "わたしはがっこうにいきませんでした",
+    "expected": ["私は学校に行きませんでした"],
+    "category": "conjugation"
+  },
+  {
+    "reading": "たべなければなりません",
+    "expected": ["食べなければなりません"],
+    "category": "conjugation"
+  },
+  {
+    "reading": "きのうともだちとえいがをみてからばんごはんをたべました",
+    "expected": [
+      "昨日友達と映画を見てから晩ご飯を食べました",
+      "昨日友達と映画を観てから晩ご飯を食べました",
+      "昨日友達と映画を見てから晩御飯を食べました"
+    ],
+    "category": "long"
+  }
+]

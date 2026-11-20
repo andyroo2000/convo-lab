@@ -1,0 +1,8 @@
+{
+  "repository": "Miwa-Keita/zenz-v3-small-gguf",
+  "revision": "d48369e21adb9f49903eb7c54be1a1d9723eb805",
+  "filename": "ggml-model-Q5_K_M.gguf",
+  "sha256": "501f605d088f5b988791a00ae19ed46985ed7c48144f364b2f3f1f951c9b2083",
+  "bytes": 72298816,
+  "license": "CC-BY-SA-4.0"
+}

@@ -1,0 +1,18 @@
+load("//:build_defs.bzl", "mozc_cc_binary")
+
+mozc_cc_binary(
+    name = "worker",
+    srcs = ["worker.cc"],
+    deps = [
+        "//base:system_util",
+        "//config:config_handler",
+        "//converter:converter_interface",
+        "//converter:segments",
+        "//data_manager",
+        "//engine",
+        "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
+        "//request:conversion_request",
+        "@com_google_absl//absl/strings",
+    ],
+)
