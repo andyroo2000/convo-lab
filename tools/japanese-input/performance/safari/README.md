@@ -46,7 +46,8 @@ Compared with `../../benchmarks/webgpu-gpu-shared-final.json`:
 Candidate evidence is stored in `../../benchmarks/safari-compat-quality.json.gz`.
 Timings were deliberately removed: the Mac was locked during the run. Do not use
 that run or its batch sweep to compare Safari speed with Chrome. Defaults remain
-512 tokens / 16 sequences pending a valid foreground performance comparison.
+512 tokens / 16 sequences. The subsequent unlocked comparison is recorded in
+`../../benchmarks/SAFARI-UNLOCKED.md`; it supersedes the invalid timing run.
 
 ## Repeat measurements
 

@@ -1,0 +1,66 @@
+[
+  {
+    "name": "safari",
+    "version": "26.6.2",
+    "runs": [
+      {
+        "repeatMs": 29.840000000000146,
+        "freshMs": 3035.1800000000003,
+        "count": 160,
+        "restartMs": 2753.46,
+        "repeatIdentical": true
+      },
+      {
+        "repeatMs": 59.42000000000007,
+        "freshMs": 3076.4799999999996,
+        "count": 160,
+        "restartMs": 855.2200000000012,
+        "repeatIdentical": true
+      },
+      {
+        "repeatMs": 36.49999999999636,
+        "freshMs": 3536.9400000000005,
+        "count": 160,
+        "restartMs": 1334.7999999999993,
+        "repeatIdentical": true
+      }
+    ],
+    "navigationReadyMs": 1303.6533330000002,
+    "page": {
+      "visible": "visible",
+      "focused": true
+    }
+  },
+  {
+    "name": "chrome",
+    "version": "157.0.8103.79",
+    "runs": [
+      {
+        "restartMs": 336.3399999141693,
+        "freshMs": 707.9500000476837,
+        "repeatMs": 21.30999994277954,
+        "count": 160,
+        "repeatIdentical": true
+      },
+      {
+        "restartMs": 313.4249999523163,
+        "freshMs": 693.4300000667572,
+        "repeatMs": 22.509999990463257,
+        "count": 160,
+        "repeatIdentical": true
+      },
+      {
+        "restartMs": 339.81500005722046,
+        "freshMs": 702.335000038147,
+        "repeatMs": 20.84500002861023,
+        "count": 160,
+        "repeatIdentical": true
+      }
+    ],
+    "navigationReadyMs": 1042.689875,
+    "page": {
+      "visible": "visible",
+      "focused": true
+    }
+  }
+]
