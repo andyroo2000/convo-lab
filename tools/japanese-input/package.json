@@ -1,0 +1,29 @@
+{
+  "name": "convolab-japanese-input-playground",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node setup.mjs",
+    "build:engine": "node install-engine-adapter.mjs && cd engine && swift build -c release",
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node --test test/*.browser.mjs",
+    "benchmark": "node benchmark.mjs",
+    "setup:mozc": "node setup-mozc.mjs",
+    "benchmark:compare": "node compare-engines.mjs",
+    "setup:neural": "node setup-neural.mjs",
+    "benchmark:neural": "node compare-engines.mjs --neural",
+    "build:browser": "node browser/build.mjs",
+    "start:browser": "node browser/server.mjs",
+    "test:browser-port": "node --test browser/test/*.test.mjs",
+    "benchmark:browser": "node browser/benchmark.mjs"
+  },
+  "dependencies": {
+    "@bjorn3/browser_wasi_shim": "0.4.2",
+    "@wllama/wllama": "2.3.7",
+    "wanakana": "5.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.57.0"
+  }
+}

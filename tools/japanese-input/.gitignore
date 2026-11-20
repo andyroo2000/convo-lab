@@ -1,0 +1,6 @@
+.engines
+node_modules/
+engine/.build/
+results.local.json
+comparison.local.json
+neural-comparison.local.json
