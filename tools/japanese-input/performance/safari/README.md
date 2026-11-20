@@ -18,12 +18,16 @@ PATH, run from `tools/japanese-input`:
 
 ```sh
 node performance/safari/build.mjs
+SAFARI_JSPI=1 node performance/safari/build.mjs
 PORT=5206 NEURAL_GPU=gpu node browser/server.mjs
 ```
 
 Open `http://127.0.0.1:5206` in Safari. Generated compatibility files live in
-`.engines/webgpu-source/esm/compat/` and remain ignored. The build explicitly
-disables both memory64 and JSPI and enables Asyncify and WebGPU. All model and
+`.engines/webgpu-source/esm/compat/` (Safari 26) and `esm/compat-jspi/`
+(Safari 27) and remain ignored. Both builds disable memory64 and enable WebGPU.
+Safari 26 uses Asyncify; Safari 27 uses JSPI. Build both variants when serving
+both browser versions. The wrapper validates a minimal memory64 module rather
+than trusting the memory constructor, which gives a false positive in Safari 27. All model and
 runtime assets are served locally; conversion stays on the computer.
 
 ## Verified results
@@ -62,3 +66,10 @@ node performance/safari/sweep.mjs
 The sweep checks the macOS lock state before starting and before each conversion.
 It compares three batch configurations without changing the model or dropping
 candidates. If the desktop locks, discard the timings and rerun unlocked.
+
+## Safari 27 follow-up
+
+Safari 27.2 now loads with the wasm32/JSPI runtime. Two complete corpus runs and
+a Chrome control retained the same quality on these fixtures, but fresh section
+adjustments remained slow. See `../../benchmarks/SAFARI27.md` for results and
+the in-page runner used when the updated Safari WebDriver could not connect.

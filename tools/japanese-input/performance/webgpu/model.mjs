@@ -11,11 +11,12 @@ export class NeuralModel extends Base {
       suppressNativeLog: false,
       logger: { debug: console.debug, log: console.log, warn: console.warn, error: console.error },
     });
-    // Keep both runtimes local; wllama selects this 32-bit Asyncify build
-    // only when the browser lacks JSPI or memory64 (including Safari 26).
+    // Safari 27 supports JSPI but still needs a 32-bit runtime. Safari 26
+    // uses Asyncify. Chrome retains the default memory64 runtime.
+    const compatibility = typeof WebAssembly.Suspending === 'function' ? 'compat-jspi' : 'compat';
     this.model.setCompat({
-      worker: '/vendor/gpu/compat/wllama.js',
-      wasm: '/vendor/gpu/compat/wllama.wasm',
+      worker: `/vendor/gpu/${compatibility}/wllama.js`,
+      wasm: `/vendor/gpu/${compatibility}/wllama.wasm`,
     });
     this.model.tokenize = (text, special) => this.call({ op: 'tokenize', text, special });
     this.model.detokenize = async (tokens) => new TextEncoder().encode(await this.call({ op: 'detokenize', tokens }));
