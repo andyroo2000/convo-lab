@@ -1,6 +1,7 @@
 // Preserve original romaji where the edit aligns with a complete kana token.
 // Inside a combined sound (きゃ), keep the remaining visible kana literally.
 function rawPrefix(session, raw, visible) {
+  if (!visible) return '';
   for (let end = raw.length; end >= 0; end--) {
     if (session.kana(raw.slice(0, end)) === visible) return raw.slice(0, end);
   }
@@ -8,6 +9,7 @@ function rawPrefix(session, raw, visible) {
 }
 
 function rawSuffix(session, raw, visible) {
+  if (!visible) return '';
   for (let start = 0; start <= raw.length; start++) {
     if (session.kana(raw.slice(start)) === visible) return raw.slice(start);
   }
