@@ -1,32 +1,34 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import useJournalPopover from './useJournalPopover';
 
 export default function useJournalActionPopover() {
   const popover = useJournalPopover(16);
-  const closeOnClick = useRef(false);
-  const restoringFocus = useRef(false);
-  const { anchor, popup, open, close, show } = popover;
-  const dismiss = () => {
-    close();
-    restoringFocus.current = document.activeElement !== anchor.current;
-    anchor.current?.focus();
-  };
+  const activated = useRef(false);
+  const { anchor, open, close, show, hide } = popover;
+
+  useEffect(() => {
+    if (!open) activated.current = false;
+  }, [open]);
+
   const trigger = {
-    onFocus: () => {
-      if (!restoringFocus.current) show();
-      restoringFocus.current = false;
-    },
-    onPointerDown: () => {
-      closeOnClick.current = open;
-    },
+    onFocus: show,
     onClick: () => {
-      if (closeOnClick.current) close();
-      else {
+      if (activated.current && open) {
+        activated.current = false;
+        close();
+      } else {
+        activated.current = true;
+        anchor.current?.focus({ preventScroll: true });
         show();
-        requestAnimationFrame(() => popup.current?.querySelector('button')?.focus());
       }
-      closeOnClick.current = false;
     },
   };
-  return { ...popover, dismiss, trigger };
+
+  return {
+    ...popover,
+    trigger,
+    hide: () => {
+      if (!activated.current) hide();
+    },
+  };
 }
