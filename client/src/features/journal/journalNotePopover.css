@@ -1,8 +1,8 @@
 .journal-note-popover {
-  --journal-note-header: #f0edf8;
-  --journal-note-divider: #e1dce7;
+  --journal-note-header: #398c43;
+  --journal-note-divider: #398c43;
   --journal-note-surface: #fff;
-  --journal-note-edge: #e8ddd5;
+  --journal-note-edge: #398c43;
   background: var(--journal-note-surface);
   border: 1px solid var(--journal-note-edge);
   box-shadow: 0 5px 18px #183b2926;
@@ -61,15 +61,15 @@
   --journal-pointer-fill: var(--journal-note-surface);
 }
 .dark .journal-note-popover {
-  --journal-note-header: #393443;
-  --journal-note-divider: #585060;
+  --journal-note-header: #398c43;
+  --journal-note-divider: #398c43;
   --journal-note-surface: #2a3338;
   --journal-note-edge: #455055;
 }
 
 /* Portaled notes receive the notebook size through React context. */
 .journal-note-popover .journal-correction {
-  font-size: max(14px, calc(var(--journal-size, 26px) - 2px));
+  font-size: max(19px, calc(var(--journal-size, 26px) - 2px));
 }
 .journal-note-popover .journal-explanation {
   font-size: max(14px, calc(var(--journal-size, 26px) - 4px));
@@ -103,4 +103,19 @@
   transform: translateY(-1em);
   white-space: nowrap;
   line-height: 1;
+}
+
+/* Keep the edit legible on the same green used by the Draft control, in either theme. */
+.journal-note-content > .journal-correction .journal-correction-original {
+  color: #fff7a9;
+}
+.journal-note-content > .journal-correction .journal-correction-replacement,
+.journal-note-content > .journal-correction .journal-correction-arrow,
+.journal-note-content > .journal-correction .journal-correction-label {
+  color: #fffdf2;
+}
+
+.journal-note-content > .journal-correction .journal-correction-label {
+  font-size: 19px;
+  font-weight: 700;
 }
