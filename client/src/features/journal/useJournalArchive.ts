@@ -16,6 +16,7 @@ export default function useJournalArchive(ownerId: string) {
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) => listJournalEntries(pageParam, signal),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
+    networkMode: 'offlineFirst',
     retry: false,
   });
   const refresh = useCallback(() => {

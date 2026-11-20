@@ -83,7 +83,7 @@ const ArchiveContents = ({
         Loading entries…
       </p>
     )}
-    {archive.entries.length === 0 && !archive.query.isLoading && (
+    {archive.entries.length === 0 && archive.query.isSuccess && !archive.error && (
       <p className="py-8 text-center text-sm text-gray-500">No journal entries yet.</p>
     )}
     <ArchivePagination archive={archive} />
