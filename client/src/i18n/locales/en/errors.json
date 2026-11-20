@@ -21,7 +21,7 @@
     "title": "Something went wrong",
     "description": "An unexpected error occurred",
     "tryAgain": "Try Again",
-    "goToStudy": "Go to Study"
+    "goToJournal": "Go to Journal"
   },
   "display": {
     "connection": {
