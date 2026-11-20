@@ -56,6 +56,7 @@ export interface JournalAnalysis {
     text: string;
     reading: string;
     suggestions: { id: string; applied: boolean }[];
+    readingStatus?: 'pending' | 'ready' | 'failed';
   } | null;
   replyRevision?: number;
   currentReply?: JournalReply | null;
