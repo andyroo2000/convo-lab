@@ -140,3 +140,63 @@ it('rejects blank edits and closes unchanged text without regenerating audio', (
   expect(change).not.toHaveBeenCalled();
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 });
+
+it('keeps the saved version playable while furigana updates without remounting audio on completion', () => {
+  const pending: JournalAnalysis = {
+    ...analysis,
+    replyRevision: 4,
+    correctedDocument: {
+      text: '新しい文。',
+      reading: '新しい文。',
+      suggestions: [],
+      readingStatus: 'pending',
+    },
+  };
+  const controls = { busy: false, error: '', reset: vi.fn(), change: vi.fn() };
+  const { rerender } = render(<JournalCorrected {...props} controls={controls} />);
+  const oldAudio = screen.getByTestId('audio');
+  rerender(<JournalCorrected {...props} analysis={pending} controls={controls} />);
+  expect(screen.getByRole('status')).toHaveTextContent('Saved. Updating furigana');
+  const newAudio = screen.getByTestId('audio');
+  expect(newAudio).not.toBe(oldAudio);
+  expect(newAudio).toHaveAttribute('data-revision', '4');
+  rerender(
+    <JournalCorrected
+      {...props}
+      analysis={{
+        ...pending,
+        correctedDocument: {
+          ...pending.correctedDocument!,
+          reading: '新[あたら]しい文[ぶん]。',
+          readingStatus: 'ready',
+        },
+      }}
+      controls={controls}
+    />
+  );
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.getByText('あたら')).toBeInTheDocument();
+  expect(screen.getByTestId('audio')).toBe(newAudio);
+});
+
+it('retries failed furigana using saved text without reopening the editor', async () => {
+  const change = vi.fn().mockResolvedValue(true);
+  render(
+    <JournalCorrected
+      {...props}
+      analysis={{
+        ...analysis,
+        correctedDocument: {
+          ...analysis.correctedDocument!,
+          readingStatus: 'failed',
+        },
+      }}
+      controls={{ busy: false, error: '', reset: vi.fn(), change }}
+    />
+  );
+  expect(screen.getByRole('status')).toHaveTextContent('Your edits are saved.');
+  fireEvent.click(screen.getByRole('button', { name: 'Retry furigana' }));
+  await waitFor(() => expect(change).toHaveBeenCalledWith({ text: '映画を見た。' }));
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  expect(screen.getByTestId('audio')).toHaveAttribute('data-revision', '3');
+});

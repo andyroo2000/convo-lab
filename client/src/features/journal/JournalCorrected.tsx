@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Pencil } from 'lucide-react';
 import JournalDeskContext from './JournalDeskContext';
 import JournalFinalEditor from './JournalFinalEditor';
+import JournalReadingStatus from './JournalReadingStatus';
 import { correctedContent } from './journalVersionText';
 import JournalPaper from './JournalPaper';
 import JournalAudioPlayer from './JournalAudioPlayer';
@@ -77,6 +78,7 @@ const JournalCorrected = ({
           key={`${ownerId}:${entryId}:${analysis.id}:${analysis.replyRevision}`}
         >
           <div className="journal-final-notebook">
+            <JournalReadingStatus analysis={analysis} controls={controls} />
             <JournalAudioPlayer
               key={`${analysis.id}:${analysis.replyRevision}`}
               toolbarTarget={toolbarTarget}

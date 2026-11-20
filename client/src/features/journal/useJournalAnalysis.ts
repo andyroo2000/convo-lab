@@ -14,8 +14,11 @@ interface AnalysisOptions {
 }
 
 function shouldPoll(analysis: JournalAnalysis | null | undefined) {
+  if (!analysis) return false;
   return (
-    analysis?.pendingReplyId || analysis?.status === 'queued' || analysis?.status === 'processing'
+    analysis.pendingReplyId ||
+    ['queued', 'processing'].includes(analysis.status) ||
+    analysis.correctedDocument?.readingStatus === 'pending'
   );
 }
 
