@@ -215,7 +215,7 @@ services:
         max-file: '2'
 
   router:
-    image: nginx:1.27-alpine
+    image: nginx:1.30.7-alpine
     container_name: convolab-server
     restart: unless-stopped
     labels:
