@@ -15,7 +15,7 @@ interface Props {
 
 const JournalVoicePicker = ({ voices, selected, disabled, onChoose, toolbarTarget }: Props) => {
   const dialog = useRef<HTMLDialogElement>(null);
-  useDialogDismissal(dialog);
+  const openDialog = useDialogDismissal(dialog);
   const trigger = (
     <button
       type="button"
@@ -23,7 +23,7 @@ const JournalVoicePicker = ({ voices, selected, disabled, onChoose, toolbarTarge
       title="Change narration voice"
       aria-haspopup="dialog"
       disabled={disabled}
-      onClick={() => dialog.current?.showModal()}
+      onClick={(event) => openDialog(event.currentTarget)}
       className="journal-menu-item"
     >
       <Settings2 size={18} aria-hidden="true" /> Narration voice

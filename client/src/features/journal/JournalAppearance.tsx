@@ -29,7 +29,7 @@ const FontPreview = ({ value }: { value: JournalTypography }) => (
 const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
-  useDialogDismissal(dialog);
+  const openDialog = useDialogDismissal(dialog);
   return (
     <>
       <button
@@ -41,7 +41,7 @@ const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
             ? 'journal-menu-item'
             : 'flex h-11 w-11 p-0 items-center justify-center rounded-[10px] bg-indigo/5 text-indigo hover:bg-indigo/10'
         }
-        onClick={() => dialog.current?.showModal()}
+        onClick={(event) => openDialog(event.currentTarget)}
       >
         <span aria-hidden="true" className="text-lg">
           Aa

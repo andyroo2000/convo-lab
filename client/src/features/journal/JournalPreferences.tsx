@@ -15,7 +15,7 @@ const JournalPreferences = ({
   const dialog = useRef<HTMLDialogElement>(null);
   const [choosing, setChoosing] = useState(false);
   const client = useQueryClient();
-  useDialogDismissal(dialog);
+  const openDialog = useDialogDismissal(dialog);
   const close = () => {
     dialog.current?.close();
     setChoosing(false);
@@ -28,9 +28,9 @@ const JournalPreferences = ({
         type="button"
         className="journal-menu-item"
         aria-haspopup="dialog"
-        onClick={() => {
+        onClick={(event) => {
           setChoosing(true);
-          dialog.current?.showModal();
+          openDialog(event.currentTarget);
         }}
       >
         <UserRound size={18} aria-hidden="true" />

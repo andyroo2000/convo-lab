@@ -33,4 +33,10 @@ export default function useDialogDismissal(ref: RefObject<HTMLDialogElement | nu
       dialog.removeEventListener('click', click);
     };
   }, [ref]);
+
+  return (opener: HTMLElement) => {
+    // Safari does not focus clicked buttons. The native dialog restores focus to this element.
+    opener.focus({ preventScroll: true });
+    ref.current?.showModal();
+  };
 }

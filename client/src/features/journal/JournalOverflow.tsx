@@ -2,22 +2,26 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { Ellipsis } from 'lucide-react';
 import JournalCopyFeedback from './JournalCopyFeedback';
 
+function closeOverflow(element: HTMLDetailsElement, restoreFocus = false) {
+  if (!element.open || document.querySelector('dialog[open]')) return;
+  element.removeAttribute('open');
+  if (restoreFocus) element.querySelector('summary')?.focus();
+}
+
 const JournalOverflow = ({ children }: { children: ReactNode }) => {
   const root = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const element = root.current;
     if (!element) return undefined;
     const outside = (event: PointerEvent) => {
-      if (!element.contains(event.target as Node)) element.removeAttribute('open');
+      if (!element.contains(event.target as Node)) closeOverflow(element);
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !element.open) return;
-      element.removeAttribute('open');
-      element.querySelector('summary')?.focus();
+      if (event.key === 'Escape') closeOverflow(element, true);
     };
     const blur = (event: FocusEvent) => {
       if (event.relatedTarget && !element.contains(event.relatedTarget as Node)) {
-        element.removeAttribute('open');
+        closeOverflow(element);
       }
     };
     element.addEventListener('focusout', blur);

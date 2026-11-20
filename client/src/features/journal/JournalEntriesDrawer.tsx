@@ -26,7 +26,7 @@ const JournalEntriesDrawer = ({
   onOpen?: () => void;
 }) => {
   const dialog = useRef<HTMLDialogElement>(null);
-  useDialogDismissal(dialog);
+  const openDialog = useDialogDismissal(dialog);
   useEffect(() => {
     dialog.current?.close();
   }, [entryId]);
@@ -38,9 +38,9 @@ const JournalEntriesDrawer = ({
         type="button"
         disabled={disabled}
         aria-haspopup="dialog"
-        onClick={() => {
+        onClick={(event) => {
           onOpen?.();
-          dialog.current?.showModal();
+          openDialog(event.currentTarget);
         }}
       >
         <List size={18} aria-hidden="true" />

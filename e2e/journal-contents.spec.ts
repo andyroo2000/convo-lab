@@ -137,6 +137,18 @@ test('Contents, entry actions, and account preferences stay at their proper leve
   await nav.getByRole('button', { name: 'Contents', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Contents' })).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(nav.getByRole('button', { name: 'Contents', exact: true })).toBeFocused();
+  const entryMenu = page.getByLabel('More journal options').first();
+  await entryMenu.click();
+  const voice = page.getByRole('button', { name: 'Narration voice' });
+  await voice.click();
+  await page
+    .getByRole('dialog', { name: 'Choose your narration voice' })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
+  await expect(voice).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(entryMenu).toBeFocused();
   await nav.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
   await page.getByRole('button', { name: 'Sans-serif', exact: true }).click();
