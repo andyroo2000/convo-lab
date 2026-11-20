@@ -106,15 +106,26 @@ export class InlineEditor {
     }
     this.reconcileCaret();
     if (this.handleRomanInput(event)) return;
-    if (event.inputType === 'deleteContentBackward' && this.session.active) {
-      event.preventDefault();
-      this.live.reset();
-      if (this.session.active.preview) this.session.restore();
-      else this.deleteRange();
-      this.live.typed();
-      return;
-    }
+    if (this.deleteBackward(event)) return;
     this.finish(this.field.selectionStart !== this.field.selectionEnd);
+  }
+
+  deleteBackward(event) {
+    if (event.inputType !== 'deleteContentBackward' || !this.session.active) return false;
+    if (this.session.active.preview) restoreCaret(this.session, this.live.sections);
+    this.live.reset();
+    const { selectionStart: start, selectionEnd: end } = this.field;
+    if (start === end && start === this.session.active.start) {
+      this.finish(true);
+      return false; // Let the browser delete the preceding committed character.
+    }
+    event.preventDefault();
+    this.deleteRange();
+    if (!this.session.active.visible) this.finish();
+    // Deletion is synchronous. Keep kana until more typing or explicit conversion,
+    // rather than replacing it again while the user is trying to erase it.
+    this.live.paint();
+    return true;
   }
 
   deleteRange() {

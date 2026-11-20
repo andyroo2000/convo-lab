@@ -51,3 +51,19 @@ test('a caret at a converted section boundary maps back to the correct reading',
   replaceCompositionRange(session, 5, 0, 'totemo');
   assert.equal(session.field.value, '前きょうはとてもいいてんき後');
 });
+
+for (const count of [10, 200]) {
+  test(`deleting the last kana avoids rescanning ${count} preceding tokens`, () => {
+    const session = sessionFor('ka'.repeat(count));
+    const kana = session.kana;
+    let calls = 0;
+    session.kana = (...args) => {
+      calls++;
+      return kana(...args);
+    };
+    replaceCompositionRange(session, session.active.end - 1, 1, '');
+    assert.equal(session.field.value, `前${'か'.repeat(count - 1)}後`);
+    // At most three prefix probes plus replacement and caret conversion; allow one extra.
+    assert.ok(calls <= 6, `Expected bounded conversion calls, received ${calls}`);
+  });
+}

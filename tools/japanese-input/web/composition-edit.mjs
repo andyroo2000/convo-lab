@@ -1,6 +1,7 @@
 // Preserve original romaji where the edit aligns with a complete kana token.
 // Inside a combined sound (きゃ), keep the remaining visible kana literally.
 function rawPrefix(session, raw, visible) {
+  if (!visible) return '';
   for (let end = raw.length; end >= 0; end--) {
     if (session.kana(raw.slice(0, end)) === visible) return raw.slice(0, end);
   }
@@ -8,6 +9,7 @@ function rawPrefix(session, raw, visible) {
 }
 
 function rawSuffix(session, raw, visible) {
+  if (!visible) return '';
   for (let start = 0; start <= raw.length; start++) {
     if (session.kana(raw.slice(start)) === visible) return raw.slice(start);
   }
@@ -57,8 +59,16 @@ export function readingOffset(sections, offset) {
 
 export function restoreCaret(session, sections) {
   const active = session.active;
-  const start = readingOffset(sections, session.field.selectionStart - active.start);
-  const end = readingOffset(sections, session.field.selectionEnd - active.start);
+  // Appending to a preview keeps its converted prefix while a new request runs.
+  // The old section list is cleared, but its prefix still needs a kana mapping.
+  const mapping =
+    sections.length || !active.convertedReading
+      ? sections
+      : (active.convertedSections ?? [
+          { text: active.convertedText, reading: active.convertedReading },
+        ]);
+  const start = readingOffset(mapping, session.field.selectionStart - active.start);
+  const end = readingOffset(mapping, session.field.selectionEnd - active.start);
   session.restore();
   session.select(active.start + start, active.start + end);
 }

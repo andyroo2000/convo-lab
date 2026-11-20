@@ -49,3 +49,139 @@ test('moving the caret and editing an unfinished phrase preserves composition', 
   await expect(page.locator('#candidates')).toBeVisible();
   assert.equal(await field.inputValue(), 'きょうはいいてんき');
 });
+
+async function kanjiPreview(page, field) {
+  await page.route('**/api/v1/convert', (route) => {
+    const { reading } = route.request().postDataJSON();
+    return route.fulfill({
+      json: {
+        candidates: [{ text: reading === 'かんじ' ? '漢字' : reading, reading }],
+        engineMs: 1,
+      },
+    });
+  });
+  await field.pressSequentially('kanji');
+  await expect(field).toHaveValue(/漢字$/);
+}
+
+test('Backspace removes a kana immediately after live kanji conversion', async (t) => {
+  const { page, field } = await open(t);
+  await kanjiPreview(page, field);
+  await field.press('Backspace');
+  assert.equal(await field.inputValue(), 'かん');
+  await field.press('Backspace');
+  assert.equal(await field.inputValue(), 'か');
+  await field.press('Backspace');
+  await expect(field).toHaveValue('');
+  await expect(field).not.toHaveClass(/composing/);
+});
+
+test('Backspace at the composition boundary deletes preceding committed text', async (t) => {
+  const { field } = await open(t);
+  await field.pressSequentially('a');
+  await field.press('Enter');
+  await field.pressSequentially('ka');
+  await field.evaluate((el) => el.setSelectionRange(1, 1));
+  await field.press('Backspace');
+  assert.equal(await field.inputValue(), 'か');
+});
+
+test('deleting a converted prefix with newly typed kana preserves the reading', async (t) => {
+  const { page, field } = await open(t);
+  await kanjiPreview(page, field);
+  await field.pressSequentially('ha');
+  assert.equal(await field.inputValue(), '漢字は');
+  await field.press('Backspace');
+  assert.equal(await field.inputValue(), 'かんじ');
+  await field.pressSequentially('no');
+  await expect(field).toHaveValue('かんじの');
+});
+
+test('deletion stays in kana instead of restarting automatic conversion', async (t) => {
+  const { page, field } = await open(t);
+  await kanjiPreview(page, field);
+  const requests = [];
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/v1/convert')) requests.push(request);
+  });
+  await field.press('Backspace');
+  // Longer than the live conversion debounce, including the old restore/reconvert loop.
+  await page.waitForTimeout(600);
+  assert.equal(await field.inputValue(), 'かん');
+  assert.equal(requests.length, 0);
+  await field.press('Space');
+  await expect(page.locator('#candidates')).toBeVisible();
+});
+
+for (const boundary of [false, true]) {
+  test(`pending conversion cannot undo ${boundary ? 'boundary' : 'in-phrase'} deletion`, async (t) => {
+    const { page, field } = await open(t);
+    await field.fill('前');
+    await field.press('End');
+    let capture;
+    const pending = new Promise((resolve) => {
+      capture = resolve;
+    });
+    await page.route('**/api/v1/convert', (route) => capture(route));
+    await field.pressSequentially('kanji');
+    const route = await pending;
+    if (boundary) await field.evaluate((el) => el.setSelectionRange(1, 1));
+    await field.press('Backspace');
+    const expected = boundary ? 'かんじ' : '前かん';
+    assert.equal(await field.inputValue(), expected);
+    const response = page.waitForResponse('**/api/v1/convert');
+    await route.fulfill({
+      json: {
+        candidates: [{ text: '漢字', reading: 'かんじ' }],
+        engineMs: 900,
+      },
+    });
+    await response;
+    await page.waitForTimeout(300);
+    assert.equal(await field.inputValue(), expected);
+  });
+}
+
+test('Backspace removes a selected conversion and can continue into committed text', async (t) => {
+  const { page, field } = await open(t);
+  await field.fill('前🙂');
+  await field.press('End');
+  await kanjiPreview(page, field);
+  await field.press('Space');
+  await expect(page.locator('#candidates')).toBeVisible();
+  await field.press('Backspace');
+  await expect(field).toHaveValue('前🙂');
+  await expect(field).not.toHaveClass(/composing/);
+  await field.press('Backspace');
+  await expect(field).toHaveValue('前');
+  await field.press('Backspace');
+  await expect(field).toHaveValue('');
+});
+
+test('deleting inside an extended multi-section preview preserves section offsets', async (t) => {
+  const { page, field } = await open(t);
+  await page.route('**/api/v1/convert', (route) =>
+    route.fulfill({
+      json: {
+        candidates: [
+          {
+            text: '今日はいい天気',
+            reading: 'きょうはいいてんき',
+            sections: [
+              { text: '今日は', reading: 'きょうは' },
+              { text: 'いい天気', reading: 'いいてんき' },
+            ],
+          },
+        ],
+        engineMs: 1,
+      },
+    })
+  );
+  await field.pressSequentially('kyouhaiitenki');
+  await expect(field).toHaveValue('今日はいい天気');
+  await field.pressSequentially('de');
+  await field.evaluate((el) => el.setSelectionRange(3, 3));
+  await field.press('Backspace');
+  assert.equal(await field.inputValue(), 'きょういいてんきで');
+  assert.equal(await field.evaluate((el) => el.selectionStart), 3);
+});
