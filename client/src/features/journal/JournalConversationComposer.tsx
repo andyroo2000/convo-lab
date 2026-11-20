@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import JournalTeacher from './JournalTeacher';
 import JournalClarificationDialog from './JournalClarificationDialog';
 import { prepareTutorQuestion } from './journalTutor';
-import { journalTextStyle } from './journalTypography';
+import JournalPaper from './JournalPaper';
+import JournalWritingField from './JournalWritingField';
 import useConversationAnswer from './useConversationAnswer';
 import type { JournalAnalysis } from './types';
 import './journalDraftActions.css';
@@ -34,17 +35,19 @@ const Answer = ({
         reply.submit().catch(() => undefined);
       }}
     >
-      <textarea
-        aria-label="Your answer"
-        lang="ja"
-        style={journalTextStyle}
-        rows={4}
-        maxLength={20000}
-        value={reply.draft.body}
-        readOnly={reply.busy || Boolean(reply.draft.request)}
-        onChange={(event) => reply.change(event.target.value)}
-        className="w-full rounded-xl border border-gray-200 p-4 text-navy focus:border-indigo focus:outline-none"
-      />
+      <JournalPaper>
+        <JournalWritingField
+          aria-label="Your answer"
+          lang="ja"
+          className="journal-writing-field--paper"
+          placeholder="返事を書く…"
+          rows={4}
+          maxLength={20000}
+          value={reply.draft.body}
+          readOnly={reply.busy || Boolean(reply.draft.request)}
+          onChange={(event) => reply.change(event.target.value)}
+        />
+      </JournalPaper>
       {reply.error && (
         <div>
           <p role="alert" className="text-sm text-rose-700">
