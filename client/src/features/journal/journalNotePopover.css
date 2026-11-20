@@ -69,7 +69,7 @@
 
 /* Portaled notes receive the notebook size through React context. */
 .journal-note-popover .journal-correction {
-  font-size: max(14px, calc(var(--journal-size, 26px) - 2px));
+  font-size: max(19px, calc(var(--journal-size, 26px) - 2px));
 }
 .journal-note-popover .journal-explanation {
   font-size: max(14px, calc(var(--journal-size, 26px) - 4px));
@@ -113,4 +113,9 @@
 .journal-note-content > .journal-correction .journal-correction-arrow,
 .journal-note-content > .journal-correction .journal-correction-label {
   color: #fffdf2;
+}
+
+.journal-note-content > .journal-correction .journal-correction-label {
+  font-size: 19px;
+  font-weight: 700;
 }
