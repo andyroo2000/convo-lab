@@ -57,8 +57,14 @@ export function readingOffset(sections, offset) {
 
 export function restoreCaret(session, sections) {
   const active = session.active;
-  const start = readingOffset(sections, session.field.selectionStart - active.start);
-  const end = readingOffset(sections, session.field.selectionEnd - active.start);
+  // Appending to a preview keeps its converted prefix while a new request runs.
+  // The old section list is cleared, but its prefix still needs a kana mapping.
+  const mapping =
+    sections.length || !active.convertedReading
+      ? sections
+      : [{ text: active.convertedText, reading: active.convertedReading }];
+  const start = readingOffset(mapping, session.field.selectionStart - active.start);
+  const end = readingOffset(mapping, session.field.selectionEnd - active.start);
   session.restore();
   session.select(active.start + start, active.start + end);
 }

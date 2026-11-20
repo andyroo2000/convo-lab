@@ -75,6 +75,21 @@ test('conversion in the middle preserves emoji and surrounding text', async () =
   await input.press('Backspace');
   await expect(input).toHaveValue('前🙂はしでたべまし後');
 });
+test('live neural preview deletes immediately and repeated Backspace clears the phrase', async () => {
+  await empty();
+  const input = page.locator('#notebook');
+  await input.pressSequentially('hashidetabemashita');
+  await expect(input).toHaveValue('箸で食べました', { timeout: 15000 });
+  await input.press('Backspace');
+  assert.equal(await input.inputValue(), 'はしでたべまし');
+  await page.waitForTimeout(600);
+  assert.equal(await input.inputValue(), 'はしでたべまし');
+  for (const remaining of ['はしでたべま', 'はしでたべ', 'はしでた', 'はしで', 'はし', 'は', '']) {
+    await input.press('Backspace');
+    assert.equal(await input.inputValue(), remaining);
+  }
+  await expect(input).not.toHaveClass(/composing/);
+});
 test('expanded alternatives and manual boundaries retain whole-phrase neural scores', async () => {
   const result = await page.evaluate(() =>
     browserEngine.convert({ reading: 'はしでたべました', expanded: true, boundaries: [1] })
