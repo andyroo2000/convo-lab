@@ -161,12 +161,14 @@ test('a tutor reply uses notebook paper and restores multiline writing on a phon
   await page.setViewportSize({ width: 320, height: 844 });
   await fixture(page);
   const reply = page
-    .getByRole('article', { name: 'Notebook sheet' })
+    .getByRole('article', { name: 'Reply notebook' })
     .getByRole('textbox', { name: 'Your answer' });
   await expect(reply).toHaveAttribute('placeholder', '返事を書く…');
   const answer = '先生、ありがとうございます。\n次は友達と京都へ行きたいです。'.repeat(5);
   await reply.fill(answer);
-  expect(await reply.evaluate((field) => field.scrollHeight <= field.clientHeight + 1)).toBe(true);
+  await expect
+    .poll(() => reply.evaluate((field) => field.scrollHeight - field.clientHeight))
+    .toBeLessThanOrEqual(1);
   await page.reload();
   await expect(reply).toHaveValue(answer);
 });

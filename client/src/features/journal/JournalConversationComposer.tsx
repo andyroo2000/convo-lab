@@ -35,7 +35,7 @@ const Answer = ({
         reply.submit().catch(() => undefined);
       }}
     >
-      <JournalPaper>
+      <JournalPaper label="Reply notebook">
         <JournalWritingField
           aria-label="Your answer"
           lang="ja"
