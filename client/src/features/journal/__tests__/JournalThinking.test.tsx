@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { useReducedMotion } from 'framer-motion';
 import JournalThinking from '../JournalThinking';
@@ -10,16 +10,17 @@ vi.mock('framer-motion', async (original) => ({
   useReducedMotion: vi.fn(() => true),
 }));
 
-it('keeps English toggle and stable accessible status with reduced motion', () => {
-  render(<JournalThinking />);
+it('always shows both languages without an English toggle and keeps accessible status', () => {
+  const { rerender } = render(<JournalThinking />);
   expect(useReducedMotion).toHaveBeenCalled();
-  const { english } = waitingPhrases.find((phrase) => screen.queryByText(phrase.english))!;
-  expect(english).toBeTruthy();
+  const phrase = waitingPhrases.find((item) => screen.queryByText(item.english))!;
+  expect(screen.getByText(phrase.japanese)).toBeVisible();
+  expect(screen.getByText(phrase.english)).toBeVisible();
   expect(screen.getByRole('status')).toHaveTextContent('Your writing is saved.');
-  fireEvent.click(screen.getByRole('button', { name: 'Hide English' }));
-  expect(screen.queryByText(english)).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Show English' }));
-  expect(screen.getByText(english)).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /English/ })).not.toBeInTheDocument();
+  rerender(<JournalThinking lastAnswer="My saved answer" />);
+  expect(screen.getByText(phrase.english)).toBeVisible();
+  expect(screen.getByText('My saved answer')).toBeVisible();
 });
 
 it('rotates all forty items in disjoint decks and avoids consecutive phrase repeats', () => {
