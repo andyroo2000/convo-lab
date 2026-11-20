@@ -1,11 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import {
-  useLocation,
-  useNavigate,
-  useNavigationType,
-  useParams,
-  useSearchParams,
-} from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import JournalEntriesDrawer from '../features/journal/JournalEntriesDrawer';
 import JournalNavigationSlots from '../features/journal/JournalNavigationSlots';
 import JournalPreferences from '../features/journal/JournalPreferences';
@@ -26,6 +20,22 @@ import JournalEntryContent from '../features/journal/JournalEntryContent';
 import JournalLanding from '../features/journal/JournalLanding';
 import useJournalArchive from '../features/journal/useJournalArchive';
 
+function useBlankNotebook() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = useRef<string>();
+  const requested = from.current !== undefined && location.state?.blankFrom === from.current;
+  useEffect(() => {
+    // A fresh navigation consumes the request. Reloads and history visits resume normally.
+    from.current = undefined;
+  }, [location.key]);
+  const open = () => {
+    from.current = location.key;
+    navigate('/app/journal', { state: { blankFrom: location.key } });
+  };
+  return { requested, open };
+}
+
 const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   const { entryId } = useParams();
   useJournalActivity(ownerId);
@@ -33,7 +43,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   const [appearanceSaved, setAppearanceSaved] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const navigationType = useNavigationType();
+  const blankNotebook = useBlankNotebook();
   const archive = useJournalArchive(ownerId);
   const [editorRevision, setEditorRevision] = useState(0);
   const [editorBusy, setEditorBusy] = useState(false);
@@ -50,7 +60,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
   );
   const close = () => {
     archive.refresh();
-    navigate('/app/journal', { state: { blank: true } });
+    blankNotebook.open();
   };
   const open = (id: string) => navigate(`/app/journal/${id}`);
 
@@ -127,7 +137,7 @@ const JournalWorkspace = ({ ownerId }: { ownerId: string }) => {
               key={location.key}
               ownerId={ownerId}
               archive={archive}
-              blank={navigationType === 'PUSH' && location.state?.blank === true}
+              blank={blankNotebook.requested}
               onActiveDraft={setBlankDraftId}
               onSelectToday={(id) => navigate(`/app/journal/${id}`, { replace: true })}
               onBusyChange={setEditorBusy}
