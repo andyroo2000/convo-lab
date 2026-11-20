@@ -1,6 +1,5 @@
 .journal-note-popover {
   --journal-note-header: #f0edf8;
-  --journal-note-accent: #aaa0ba;
   --journal-note-divider: #e1dce7;
   --journal-note-surface: #fff;
   --journal-note-edge: #e8ddd5;
@@ -38,40 +37,31 @@
 }
 .journal-note-pointer {
   position: absolute;
-  top: -14px;
+  top: -12px;
   width: 24px;
-  height: 12px;
+  height: 14px;
   transform: translateX(-50%);
   pointer-events: none;
-  --journal-pointer-border: var(--journal-note-accent);
   --journal-pointer-fill: var(--journal-note-surface);
 }
 .journal-note-popover:has(.journal-correction) .journal-note-pointer {
   --journal-pointer-fill: var(--journal-note-header);
 }
-.journal-note-pointer::before,
 .journal-note-pointer::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--journal-pointer-border);
-  clip-path: polygon(0 100%, 50% 0, 100% 100%);
-}
-.journal-note-pointer::after {
-  top: 2px;
-  bottom: -2px;
   background: var(--journal-pointer-fill);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
 }
 .journal-note-popover .journal-note-pointer[data-placement='above'] {
   top: auto;
   bottom: -12px;
   transform: translateX(-50%) rotate(180deg);
-  --journal-pointer-border: var(--journal-note-edge);
   --journal-pointer-fill: var(--journal-note-surface);
 }
 .dark .journal-note-popover {
   --journal-note-header: #393443;
-  --journal-note-accent: #9588a5;
   --journal-note-divider: #585060;
   --journal-note-surface: #2a3338;
   --journal-note-edge: #455055;

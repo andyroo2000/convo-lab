@@ -1,7 +1,6 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import JournalAvatar from './JournalAvatar';
-import JournalEnglish from './JournalEnglish';
 import JournalThinkingDelay from './JournalThinkingDelay';
 import JournalThinkingOrnament, { ThinkingDots } from './JournalThinkingOrnament';
 import { nextWaitingPhrase } from './journalThinkingContent';
@@ -15,20 +14,11 @@ interface Props {
 
 const JournalThinking = ({ avatar, lastAnswer, children }: Props) => {
   const [phrase] = useState(nextWaitingPhrase);
-  const [english, setEnglish] = useState(true);
-  const translationId = useId();
   return (
     <section
       aria-label="Your tutor is thinking"
       className="overflow-hidden rounded-2xl border border-[#d8e4f2]"
     >
-      <div className="flex justify-end bg-[#e4effd] px-4 py-2">
-        <JournalEnglish
-          visible={english}
-          translationId={translationId}
-          onToggle={() => setEnglish(!english)}
-        />
-      </div>
       <div className="flex min-h-[390px] flex-col items-center bg-[#fffdf6] px-5 py-10 text-center text-[#542006] sm:py-12">
         <p role="status" className="sr-only">
           Your tutor is preparing your feedback. Your writing is saved.
@@ -46,11 +36,9 @@ const JournalThinking = ({ avatar, lastAnswer, children }: Props) => {
         >
           {phrase.japanese}
         </p>
-        {english && (
-          <p id={translationId} lang="en" className="journal-tutor-translation">
-            {phrase.english}
-          </p>
-        )}
+        <p lang="en" className="journal-tutor-translation">
+          {phrase.english}
+        </p>
         <ThinkingDots />
         <JournalThinkingDelay />
         {lastAnswer && (
