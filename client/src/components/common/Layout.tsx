@@ -260,6 +260,7 @@ function getWorkspaceItems({
 }
 
 const Layout = () => {
+  const [signingOut, setSigningOut] = useState(false);
   const [dismissedOnboardingUser, setDismissedOnboardingUser] = useState<User['id'] | null>(null);
   const { user, loading, logout } = useAuth();
   const { effectiveUser, isImpersonating } = useEffectiveUser();
@@ -282,13 +283,18 @@ const Layout = () => {
 
   useEffect(() => {
     if (shouldRedirectToLogin(loading, user)) {
-      navigate(loginRedirect, { replace: true });
+      navigate(signingOut ? '/login' : loginRedirect, { replace: true });
     }
-  }, [loading, loginRedirect, navigate, user]);
+  }, [loading, loginRedirect, navigate, signingOut, user]);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    setSigningOut(true);
+    try {
+      await logout();
+    } catch (error) {
+      setSigningOut(false);
+      console.warn('Unable to sign out:', error);
+    }
   };
 
   const flashcardsEnabled = isFeatureEnabled('flashcardsEnabled');
