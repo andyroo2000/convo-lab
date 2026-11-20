@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { useAuth } from '../../contexts/AuthContext';
 import './tutorNotFound.css';
 
 const TutorNotFound = () => {
   const { t } = useTranslation('notFound');
+  const { user } = useAuth();
+  const { isFeatureEnabled } = useFeatureFlags();
   return (
     <section className="tutor-not-found" aria-label={t('title')}>
       <h1 className="tutor-not-found-code">404 · {t('title')}</h1>
@@ -29,9 +33,11 @@ const TutorNotFound = () => {
         <Link to="/app/journal" className="tutor-not-found-button">
           {t('buttons.goToJournal')}
         </Link>
-        <Link to="/app/study" className="tutor-not-found-button tutor-not-found-button--paper">
-          {t('buttons.goToStudy')}
-        </Link>
+        {user && isFeatureEnabled('flashcardsEnabled') && (
+          <Link to="/app/study" className="tutor-not-found-button tutor-not-found-button--paper">
+            {t('buttons.goToStudy')}
+          </Link>
+        )}
       </div>
     </section>
   );

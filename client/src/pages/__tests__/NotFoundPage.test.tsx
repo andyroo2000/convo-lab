@@ -1,7 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import NotFoundPage from '../NotFoundPage';
+
+const access = vi.hoisted(() => ({ study: false }));
+vi.mock('../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({ isFeatureEnabled: () => access.study }),
+}));
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 } }) }));
 
 function show() {
   return render(
@@ -27,5 +33,11 @@ it('offers known destinations instead of sending the user back to another missin
     'href',
     '/app/journal'
   );
+  expect(screen.queryByRole('link', { name: 'Go to Study' })).toBeNull();
+});
+
+it('offers Study when the account can open it', () => {
+  access.study = true;
+  show();
   expect(screen.getByRole('link', { name: 'Go to Study' })).toHaveAttribute('href', '/app/study');
 });

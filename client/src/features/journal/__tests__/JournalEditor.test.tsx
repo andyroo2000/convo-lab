@@ -6,6 +6,10 @@ import useJournalEditor from '../useJournalEditor';
 import useJournalAnalysis from '../useJournalAnalysis';
 
 vi.mock('../JournalClarificationDialog', () => ({ default: () => <p>Your tutor is thinking</p> }));
+vi.mock('../../../contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 } }) }));
+vi.mock('../../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({ isFeatureEnabled: () => false }),
+}));
 vi.mock('../useJournalEditor');
 vi.mock('../useJournalAnalysis');
 vi.mock('../JournalEditorForm', () => ({ default: () => null }));
