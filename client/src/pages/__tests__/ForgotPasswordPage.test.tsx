@@ -15,6 +15,16 @@ function renderWithRouter() {
   );
 }
 
+function acceptRequest() {
+  vi.mocked(fetch).mockResolvedValueOnce(new Response('{}'));
+}
+
+function submitEmail(email = 'test@example.com') {
+  renderWithRouter();
+  fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: email } });
+  fireEvent.click(screen.getByRole('button', { name: /Send Reset Link/ }));
+}
+
 describe('ForgotPasswordPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -25,8 +35,8 @@ describe('ForgotPasswordPage', () => {
     it('should render forgot password form', () => {
       renderWithRouter();
 
-      expect(screen.getByRole('heading', { name: /ConvoLab/ })).toBeInTheDocument();
-      expect(screen.getByText(/Reset your password/)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /ConvoLab Journal home/i })).toBeInTheDocument();
+
       expect(screen.getByRole('heading', { name: /Forgot Password/i })).toBeInTheDocument();
     });
 
@@ -65,18 +75,9 @@ describe('ForgotPasswordPage', () => {
 
   describe('Form Submission', () => {
     it('should submit email and show success message', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Reset email sent' }),
-      });
+      acceptRequest();
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Check Your Email/i })).toBeInTheDocument();
@@ -88,18 +89,9 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should call API with correct email', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Reset email sent' }),
-      });
+      acceptRequest();
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
@@ -122,13 +114,7 @@ describe('ForgotPasswordPage', () => {
           })
       );
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       expect(screen.getByRole('button', { name: /Sending.../ })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Sending.../ })).toBeDisabled();
@@ -140,13 +126,7 @@ describe('ForgotPasswordPage', () => {
         json: async () => ({ error: 'Server error' }),
       });
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       await waitFor(() => {
         expect(screen.getByText('Server error')).toBeInTheDocument();
@@ -156,13 +136,7 @@ describe('ForgotPasswordPage', () => {
     it('should handle network errors gracefully', async () => {
       (global.fetch as Mock).mockRejectedValueOnce(new Error('Network error'));
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       await waitFor(() => {
         expect(screen.getByText('Network error')).toBeInTheDocument();
@@ -172,13 +146,7 @@ describe('ForgotPasswordPage', () => {
     it('should handle generic errors with fallback message', async () => {
       (global.fetch as Mock).mockRejectedValueOnce('Unknown error');
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       await waitFor(() => {
         expect(screen.getByText('An error occurred')).toBeInTheDocument();
@@ -188,18 +156,9 @@ describe('ForgotPasswordPage', () => {
 
   describe('Success State', () => {
     it('should show mail icon on success', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Reset email sent' }),
-      });
+      acceptRequest();
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Check Your Email/i })).toBeInTheDocument();
@@ -210,18 +169,9 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should show back to login button in success state', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Reset email sent' }),
-      });
+      acceptRequest();
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       await waitFor(() => {
         expect(screen.getByRole('link', { name: /Back to Login/ })).toBeInTheDocument();
@@ -229,19 +179,10 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should display submitted email in success message', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Reset email sent' }),
-      });
-
-      renderWithRouter();
+      acceptRequest();
 
       const testEmail = 'user@example.com';
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: testEmail } });
-      fireEvent.click(submitButton);
+      submitEmail(testEmail);
 
       await waitFor(() => {
         expect(screen.getByText(new RegExp(testEmail.replace('.', '\\.')))).toBeInTheDocument();
@@ -249,18 +190,9 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should show expiration reminder in success state', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Reset email sent' }),
-      });
+      acceptRequest();
 
-      renderWithRouter();
-
-      const emailInput = screen.getByLabelText(/Email/i);
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.click(submitButton);
+      submitEmail();
 
       await waitFor(() => {
         expect(screen.getByText(/The link will expire in 1 hour/)).toBeInTheDocument();
@@ -295,7 +227,7 @@ describe('ForgotPasswordPage', () => {
     it('should render logo', () => {
       renderWithRouter();
 
-      expect(screen.getByRole('heading', { name: /ConvoLab/ })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /ConvoLab Journal home/i })).toBeInTheDocument();
     });
 
     it('should render company footer', () => {

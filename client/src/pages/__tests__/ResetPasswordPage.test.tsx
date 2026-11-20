@@ -186,7 +186,7 @@ describe('ResetPasswordPage', () => {
   it('keeps the ConvoLab identity and login navigation visible', () => {
     renderPage();
 
-    expect(screen.getByRole('heading', { name: /ConvoLab/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /ConvoLab Journal home/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Back to Login/i })).toHaveAttribute('href', '/login');
   });
 });

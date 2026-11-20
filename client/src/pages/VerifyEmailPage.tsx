@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import Logo from '../components/common/Logo';
+import JournalAuthShell from '../components/common/JournalAuthShell';
 import { authApi } from '../lib/authApi';
 
 type VerificationState = {
@@ -154,146 +154,126 @@ const VerifyEmailPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cream flex items-start sm:items-center justify-center px-4 py-8">
-      <div className="max-w-md w-full">
-        <div className="mb-6">
-          <Link
-            to={user ? '/app/journal' : '/login'}
-            className="inline-flex items-center gap-2 text-medium-brown hover:text-dark-brown transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {user ? t('auth:verifyEmail.backToStudy') : t('auth:forgotPassword.backToLogin')}
-          </Link>
-        </div>
+    <JournalAuthShell>
+      <div className="mb-6">
+        <Link
+          to={user ? '/app/journal' : '/login'}
+          className="journal-auth-link inline-flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          {user ? t('auth:verifyEmail.backToStudy') : t('auth:forgotPassword.backToLogin')}
+        </Link>
+      </div>
 
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <h1 className="text-4xl font-bold text-dark-brown">ConvoLab</h1>
-            <Logo size="large" />
+      <div>
+        {status === 'verifying' && (
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 text-periwinkle animate-spin mx-auto mb-4" />
+            <h1>{t('auth:verifyEmail.verifying')}</h1>
+            <p className="text-medium-brown">{t('auth:verifyEmail.verifyingDescription')}</p>
           </div>
-          <p className="text-medium-brown">{t('auth:verifyEmail.pageTitle')}</p>
-        </div>
+        )}
 
-        <div className="card">
-          {status === 'verifying' && (
-            <div className="text-center py-8">
-              <Loader2 className="w-12 h-12 text-periwinkle animate-spin mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-dark-brown mb-2">
-                {t('auth:verifyEmail.verifying')}
-              </h2>
-              <p className="text-medium-brown">{t('auth:verifyEmail.verifyingDescription')}</p>
-            </div>
-          )}
+        {status === 'success' && (
+          <div className="text-center">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h1>{t('auth:verifyEmail.success')}</h1>
+            <p className="text-medium-brown mb-4">{t('auth:verifyEmail.successDescription')}</p>
+            <p className="text-sm text-gray-500">{t('auth:verifyEmail.redirecting')}</p>
+          </div>
+        )}
 
-          {status === 'success' && (
-            <div className="text-center py-8">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                {t('auth:verifyEmail.success')}
-              </h2>
-              <p className="text-medium-brown mb-4">{t('auth:verifyEmail.successDescription')}</p>
-              <p className="text-sm text-gray-500">{t('auth:verifyEmail.redirecting')}</p>
-            </div>
-          )}
+        {status === 'error' && (
+          <div className="text-center">
+            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h1>{t('auth:verifyEmail.failed')}</h1>
+            <p className="text-red-600 mb-4">{error}</p>
 
-          {status === 'error' && (
-            <div className="text-center py-8">
-              <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                {t('auth:verifyEmail.failed')}
-              </h2>
-              <p className="text-red-600 mb-4">{error}</p>
+            {user && !user.emailVerified && (
+              <div className="mt-6">
+                <p className="text-medium-brown mb-4">{t('auth:verifyEmail.needNewLink')}</p>
+                <button
+                  type="button"
+                  onClick={handleResendEmail}
+                  disabled={resending}
+                  className="journal-auth-submit disabled:opacity-50"
+                >
+                  {resending ? t('auth:verifyEmail.sending') : t('auth:verifyEmail.resendButton')}
+                </button>
 
-              {user && !user.emailVerified && (
-                <div className="mt-6">
-                  <p className="text-medium-brown mb-4">{t('auth:verifyEmail.needNewLink')}</p>
-                  <button
-                    type="button"
-                    onClick={handleResendEmail}
-                    disabled={resending}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {resending ? t('auth:verifyEmail.sending') : t('auth:verifyEmail.resendButton')}
-                  </button>
+                {resendSuccess && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+                    {t('auth:verifyEmail.resendSuccess')}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
-                  {resendSuccess && (
-                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
-                      {t('auth:verifyEmail.resendSuccess')}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+        {status === 'already-verified' && (
+          <div className="text-center">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h1>{t('auth:verifyEmail.alreadyVerified')}</h1>
+            <p className="text-medium-brown mb-6">
+              {t('auth:verifyEmail.alreadyVerifiedDescription')}
+            </p>
+            <Link to="/app/journal" className="journal-auth-link inline-block">
+              {t('auth:verifyEmail.goToStudy')}
+            </Link>
+          </div>
+        )}
 
-          {status === 'already-verified' && (
-            <div className="text-center py-8">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                {t('auth:verifyEmail.alreadyVerified')}
-              </h2>
-              <p className="text-medium-brown mb-6">
-                {t('auth:verifyEmail.alreadyVerifiedDescription')}
-              </p>
-              <Link to="/app/journal" className="btn-primary inline-block">
-                {t('auth:verifyEmail.goToStudy')}
+        {status === 'idle' && !user?.emailVerified && user && (
+          <div className="text-center">
+            <Mail className="w-16 h-16 text-periwinkle mx-auto mb-4" />
+            <h1>{t('auth:verifyEmail.title')}</h1>
+            <p className="text-medium-brown mb-6">
+              {t('auth:verifyEmail.sentTo', { email: user.email })}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleResendEmail}
+              disabled={resending}
+              className="journal-auth-submit disabled:opacity-50"
+            >
+              {resending ? t('auth:verifyEmail.sending') : t('auth:verifyEmail.resendButton')}
+            </button>
+
+            {resendSuccess && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+                {t('auth:verifyEmail.resendSuccess')}
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {status === 'idle' && !user && (
+          <div className="text-center">
+            <Mail className="w-16 h-16 text-periwinkle mx-auto mb-4" />
+            <h1>Verify your email</h1>
+            <p className="text-medium-brown mb-6">
+              Sign in to view your verification status or request a new verification email.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link to="/login" className="journal-auth-link inline-block">
+                Go to Login
+              </Link>
+              <Link to="/" className="journal-auth-link inline-block">
+                Back Home
               </Link>
             </div>
-          )}
-
-          {status === 'idle' && !user?.emailVerified && user && (
-            <div className="text-center py-8">
-              <Mail className="w-16 h-16 text-periwinkle mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                {t('auth:verifyEmail.title')}
-              </h2>
-              <p className="text-medium-brown mb-6">
-                {t('auth:verifyEmail.sentTo', { email: user.email })}
-              </p>
-
-              <button
-                type="button"
-                onClick={handleResendEmail}
-                disabled={resending}
-                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {resending ? t('auth:verifyEmail.sending') : t('auth:verifyEmail.resendButton')}
-              </button>
-
-              {resendSuccess && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
-                  {t('auth:verifyEmail.resendSuccess')}
-                </div>
-              )}
-
-              {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {error}
-                </div>
-              )}
-            </div>
-          )}
-
-          {status === 'idle' && !user && (
-            <div className="text-center py-8">
-              <Mail className="w-16 h-16 text-periwinkle mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-dark-brown mb-2">Verify your email</h2>
-              <p className="text-medium-brown mb-6">
-                Sign in to view your verification status or request a new verification email.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link to="/login" className="btn-primary inline-block">
-                  Go to Login
-                </Link>
-                <Link to="/" className="btn-outline inline-block">
-                  Back Home
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </div>
+    </JournalAuthShell>
   );
 };
 

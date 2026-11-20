@@ -499,8 +499,7 @@ describe('VerifyEmailPage', () => {
     it('should render logo and title', () => {
       renderWithRouter('/verify-email');
 
-      expect(screen.getByRole('heading', { name: /ConvoLab/ })).toBeInTheDocument();
-      expect(screen.getByText('Email Verification')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /ConvoLab Journal home/i })).toBeInTheDocument();
     });
 
     it('should render back to study link', () => {
