@@ -11,6 +11,11 @@ function positionPopover(anchor: HTMLElement | null, popup: HTMLElement | null, 
   );
 }
 
+function hasPopoverFocus(anchor: HTMLElement | null, popup: HTMLElement | null) {
+  const focused = document.activeElement;
+  return focused === anchor || popup?.contains(focused);
+}
+
 function dismissPopover(
   { anchor, popup }: { anchor: RefObject<HTMLElement>; popup: RefObject<HTMLElement> },
   close: () => void
@@ -37,6 +42,17 @@ function dismissPopover(
   };
 }
 
+function observePopoverSize(popup: HTMLElement | null, reposition: () => void) {
+  reposition();
+  const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reposition);
+  if (popup) observer?.observe(popup);
+  window.addEventListener('resize', reposition);
+  return () => {
+    observer?.disconnect();
+    window.removeEventListener('resize', reposition);
+  };
+}
+
 export default function useJournalPopover(gap = 6) {
   const anchor = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
@@ -54,7 +70,10 @@ export default function useJournalPopover(gap = 6) {
     setOpen(true);
   };
   const hide = () => {
-    timeout.current = setTimeout(() => setOpen(false), 120);
+    clearTimeout(timeout.current);
+    timeout.current = setTimeout(() => {
+      if (!hasPopoverFocus(anchor.current, popup.current)) setOpen(false);
+    }, 120);
   };
 
   useEffect(() => () => clearTimeout(timeout.current), []);
@@ -65,14 +84,7 @@ export default function useJournalPopover(gap = 6) {
       const placement = positionPopover(anchor.current, popup.current, gap);
       if (placement) setPosition(placement);
     };
-    reposition();
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(reposition);
-    if (popup.current) observer?.observe(popup.current);
-    window.addEventListener('resize', reposition);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', reposition);
-    };
+    return observePopoverSize(popup.current, reposition);
   }, [open, gap]);
 
   useEffect(() => {
