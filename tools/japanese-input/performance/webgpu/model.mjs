@@ -11,7 +11,12 @@ export class NeuralModel extends Base {
       suppressNativeLog: false,
       logger: { debug: console.debug, log: console.log, warn: console.warn, error: console.error },
     });
-    this.model.setCompat(null);
+    // Keep both runtimes local; wllama selects this 32-bit Asyncify build
+    // only when the browser lacks JSPI or memory64 (including Safari 26).
+    this.model.setCompat({
+      worker: '/vendor/gpu/compat/wllama.js',
+      wasm: '/vendor/gpu/compat/wllama.wasm',
+    });
     this.model.tokenize = (text, special) => this.call({ op: 'tokenize', text, special });
     this.model.detokenize = async (tokens) => new TextEncoder().encode(await this.call({ op: 'detokenize', tokens }));
   }
@@ -19,7 +24,7 @@ export class NeuralModel extends Base {
     const response = await cachedAsset('/assets/model.gguf?adapter=2');
     await this.model.loadModel([await response.blob()], {
       n_ctx: 1024, n_batch: 1024, n_ubatch: 512, n_parallel: 1,
-      n_threads: 4, n_gpu_layers: gpu ? 99999 : 0,
+      n_threads: this.threadCount, n_gpu_layers: gpu ? 99999 : 0,
       warmup: false, flash_attn: false,
     });
     if (this.model.getEOS() !== 3 || this.model.getBOS() !== 2) throw Error('Unexpected token metadata');
