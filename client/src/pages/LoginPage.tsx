@@ -125,6 +125,14 @@ const CredentialsFields = ({
   const { t } = useTranslation(['auth']);
   const mode = isLogin ? 'login' : 'signup';
 
+  const passwordAttributes = isLogin
+    ? { autoComplete: 'current-password', placeholder: t('auth:login.passwordPlaceholder') }
+    : {
+        autoComplete: 'new-password',
+        pattern: '.{8,}',
+        'aria-describedby': 'signup-password-help',
+      };
+
   return (
     <>
       <div>
@@ -157,14 +165,18 @@ const CredentialsFields = ({
         <input
           id="password"
           type="password"
-          autoComplete={isLogin ? 'current-password' : 'new-password'}
+          {...passwordAttributes}
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
           className="journal-auth-input"
-          placeholder={t(`auth:${mode}.passwordPlaceholder`)}
           required
           data-testid="auth-input-password"
         />
+        {!isLogin && (
+          <p id="signup-password-help" className="mt-1 text-sm text-gray-600">
+            {t('auth:resetPassword.newPasswordPlaceholder')}
+          </p>
+        )}
       </div>
     </>
   );

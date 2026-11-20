@@ -172,6 +172,19 @@ describe('LoginPage', () => {
   });
 
   describe('Signup Flow', () => {
+    it('validates eight Unicode characters at signup and keeps sign-in available', () => {
+      renderWithRouter();
+      const field = screen.getByTestId('auth-input-password');
+      fireEvent.change(field, { target: { value: '日😀本' } });
+      expect(field).toBeValid();
+      fillSignupDetails('Reader', 'INVITE');
+      expect(field).toHaveAccessibleDescription('At least 8 characters');
+      fireEvent.change(field, { target: { value: '123456😀' } });
+      expect(field).toBeInvalid();
+      fireEvent.change(field, { target: { value: '1234567😀' } });
+      expect(field).toBeValid();
+    });
+
     it('should call signup with all required fields', async () => {
       renderWithRouter();
 
