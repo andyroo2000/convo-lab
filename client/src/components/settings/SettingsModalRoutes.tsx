@@ -21,7 +21,7 @@ const SettingsModalRoutes = ({ children }: { children: ReactNode }) => {
 
   return (
     <>
-      <Routes location={background ?? location}>{children}</Routes>
+      <Routes location={background}>{children}</Routes>
       {background && (
         <Suspense fallback={null}>
           <Routes>
