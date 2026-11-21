@@ -1,0 +1,113 @@
+.journal-delete-dialog {
+  width: min(460px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  overflow-y: auto;
+  padding: 28px;
+  border: 1px solid #d5dccb;
+  border-top: 4px solid #398b47;
+  border-radius: 20px;
+  background: #fffdf7;
+  color: #4b1800;
+  font:
+    400 20px/1.4 'Crimson Pro',
+    Georgia,
+    serif;
+  box-shadow: 0 16px 50px #35291630;
+}
+.journal-delete-dialog::backdrop {
+  background: #173d3266;
+  backdrop-filter: blur(4px);
+}
+.journal-delete-heading {
+  margin: 0;
+  font:
+    500 32px/1.15 'Crimson Pro',
+    Georgia,
+    serif;
+  letter-spacing: -0.4px;
+}
+.journal-delete-description {
+  margin-top: 12px;
+  color: #62584f;
+}
+.journal-delete-preview {
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid #d0dfef;
+  border-radius: 12px;
+  background: #fffef9;
+}
+.journal-delete-title,
+.journal-delete-body {
+  font-family: var(--journal-font, 'Klee One'), 'Yu Mincho', serif;
+  font-weight: var(--journal-weight, 600);
+  overflow-wrap: anywhere;
+}
+.journal-delete-title {
+  font-size: 23px;
+  line-height: 1.5;
+}
+.journal-delete-date {
+  margin-top: 4px;
+  color: #69765f;
+  font-size: 17px;
+}
+.journal-delete-body {
+  margin-top: 14px;
+  white-space: pre-wrap;
+  font-size: 18px;
+  line-height: 2;
+  background: repeating-linear-gradient(transparent 0 calc(2em - 1px), #dbe3e7 calc(2em - 1px) 2em);
+}
+.journal-delete-error {
+  margin-top: 16px;
+  color: #9e443d;
+}
+.journal-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 26px;
+}
+.journal-delete-actions button {
+  min-height: 46px;
+  white-space: nowrap;
+  padding: 10px 20px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font:
+    500 20px/1.2 'Crimson Pro',
+    Georgia,
+    serif;
+}
+.journal-delete-actions .journal-delete-keep {
+  border-color: #a8bda4;
+  background: #fffdf7;
+  color: #47664c;
+}
+.journal-delete-confirm {
+  background: #9e443d;
+  color: #fffdf7;
+}
+.journal-delete-actions button:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+.journal-delete-actions button:disabled {
+  opacity: 0.5;
+}
+.journal-delete-dialog :focus-visible {
+  outline: 3px solid #6d8c55;
+  outline-offset: 3px;
+}
+@media (max-width: 480px) {
+  .journal-delete-dialog {
+    padding: 24px 20px;
+  }
+  .journal-delete-actions button {
+    flex: 1 1 100%;
+    padding-inline: 12px;
+  }
+}
