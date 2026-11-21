@@ -347,6 +347,7 @@ test('entry actions and confirmation stay clickable above Contents', async ({ pa
     await expect(actions).toBeFocused();
     await actions.click();
     await menu.getByRole('menuitem', { name: 'Rename' }).click();
+    await page.screenshot({ path: info.outputPath(`rename-confirmation-${width}.png`) });
     await page
       .getByRole('dialog', { name: 'Rename entry' })
       .getByRole('button', { name: 'Cancel' })
