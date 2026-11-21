@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import useJournalModal from './useJournalModal';
+import './journalDeleteDialog.css';
 import type useJournalArchive from './useJournalArchive';
 
 type Archive = ReturnType<typeof useJournalArchive>;
@@ -54,41 +55,29 @@ const JournalDeleteDialog = ({ entry, remove, onCancel, onDeleted }: Props) => {
         event.preventDefault();
         if (!pending.current) onCancel();
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-[22px] border border-gray-200 bg-white p-7 shadow-xl backdrop:bg-midnight/30"
+      className="journal-delete-dialog"
     >
-      <h2 id={labelId} className="text-2xl font-semibold text-navy">
+      <h2 id={labelId} className="journal-delete-heading">
         Delete this {kind}?
       </h2>
-      <p id={descriptionId} className="mt-3 text-sm text-gray-600">
+      <p id={descriptionId} className="journal-delete-description">
         This {kind} will be permanently deleted. You can’t undo this action.
       </p>
-      <div className="mt-5 rounded-xl border border-indigo/20 bg-indigo/5 p-4">
-        <p className="break-words font-medium text-navy">{entry.title || 'Untitled entry'}</p>
-        <p className="mt-1 text-xs text-gray-500">{entry.entryDate}</p>
-        <p className="mt-3 line-clamp-3 whitespace-pre-wrap break-words text-sm text-midnight">
-          {entry.body || 'Empty draft'}
-        </p>
+      <div className="journal-delete-preview">
+        <p className="journal-delete-title">{entry.title || 'Untitled entry'}</p>
+        <p className="journal-delete-date">{entry.entryDate}</p>
+        <p className="journal-delete-body line-clamp-3">{entry.body || 'Empty draft'}</p>
       </div>
       {error && (
-        <p role="alert" className="mt-4 text-sm text-rose-700">
+        <p role="alert" className="journal-delete-error">
           {error}
         </p>
       )}
-      <div className="mt-7 flex flex-wrap justify-end gap-3">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onCancel}
-          className="rounded-[10px] border border-gray-200 px-4 py-3 text-sm font-medium text-midnight disabled:opacity-50"
-        >
+      <div className="journal-delete-actions">
+        <button type="button" disabled={busy} onClick={onCancel} className="journal-delete-keep">
           Keep {kind}
         </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={confirm}
-          className="rounded-[10px] bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-        >
+        <button type="button" disabled={busy} onClick={confirm} className="journal-delete-confirm">
           {busy ? 'Deleting…' : `Delete ${kind}`}
         </button>
       </div>
