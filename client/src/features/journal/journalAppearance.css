@@ -95,6 +95,16 @@
   cursor: pointer;
   accent-color: #407c35;
 }
+/* Keep keyboard focus on the knob rather than outlining the entire slider. */
+.journal-entry-dialog .journal-font-size-slider:focus-visible {
+  outline: none;
+}
+.journal-font-size-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px #4b1800;
+}
+.journal-font-size-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 2px #4b1800;
+}
 .journal-font-size-slider::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 999px;
