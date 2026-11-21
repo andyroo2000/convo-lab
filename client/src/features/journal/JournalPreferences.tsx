@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { UserRound } from 'lucide-react';
 import useDialogDismissal from '../../hooks/useDialogDismissal';
 import JournalTutorPicker from './JournalTutorPicker';
+import JournalKeyboardSetting from './JournalKeyboardSetting';
 import './journalEntryDialogs.css';
 import './journalChoicePicker.css';
 
@@ -26,6 +27,7 @@ const JournalPreferences = ({
     <section aria-label="Journal settings" className="journal-account-preferences">
       <h2>Journal</h2>
       {appearance}
+      <JournalKeyboardSetting />
       <button
         type="button"
         className="journal-menu-item"

@@ -1,0 +1,174 @@
+.journal-keyboard-dialog {
+  width: min(510px, calc(100vw - 32px));
+  font:
+    400 20px/1.4 'Crimson Pro',
+    Georgia,
+    serif;
+}
+.journal-keyboard-dialog h2 {
+  font:
+    500 30px/1.2 'Crimson Pro',
+    Georgia,
+    serif;
+}
+.journal-keyboard-options {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+.journal-keyboard-option {
+  display: grid;
+  grid-template-columns: 36px 1fr 18px;
+  align-items: start;
+  gap: 12px;
+  text-align: left;
+  padding: 16px 13px;
+  border: 1px solid #dadbcf;
+  border-radius: 9px;
+  background: #fffefa;
+  color: #47684b;
+}
+.journal-keyboard-option[aria-pressed='true'] {
+  background: #edf3e8;
+  border-color: #83a77d;
+}
+.journal-keyboard-option strong {
+  display: block;
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.15;
+  margin-bottom: 7px;
+}
+.journal-keyboard-option small {
+  display: block;
+  color: #75695f;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.journal-keyboard-symbol {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 39px;
+  border: 1px solid #d1dbc9;
+  border-radius: 7px;
+  background: #fffefa;
+  font-size: 24px;
+}
+.journal-keyboard-done {
+  width: 100%;
+  margin-top: 26px;
+}
+.journal-keyboard-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font:
+    18px/1.4 'Crimson Pro',
+    Georgia,
+    serif;
+  color: #62584f;
+}
+.journal-keyboard-status button {
+  color: #315f9a;
+  text-decoration: underline;
+}
+.journal-writing-field {
+  position: relative;
+}
+.journal-writing-field .composition-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: inherit;
+}
+.journal-writing-field textarea.composing {
+  color: transparent;
+  caret-color: #315f9a;
+}
+.journal-writing-field textarea.composing::selection {
+  background: transparent;
+}
+.journal-writing-field .composition-section {
+  text-decoration: underline;
+  text-decoration-color: #658ff1;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 1px;
+}
+.journal-writing-field .composition-section.current {
+  text-decoration-thickness: 2px;
+}
+.journal-kanji-candidates {
+  position: fixed;
+  z-index: 1000;
+  width: 266px;
+  max-width: calc(100vw - 24px);
+  max-height: 270px;
+  padding: 10px 8px 10px 12px;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid #b9b8ae;
+  border-radius: 20px;
+  background: #f6f5f1;
+  color: #292b28;
+  box-shadow:
+    0 9px 25px #302d2329,
+    0 2px 4px #302d2312;
+}
+.journal-kanji-candidates button {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px;
+  text-align: left;
+  border-bottom: 1px solid #e2e1dc;
+  font:
+    500 24px/1.5 'Noto Sans JP',
+    sans-serif;
+  white-space: nowrap;
+}
+.journal-kanji-candidates button:hover,
+.journal-kanji-candidates button[aria-pressed='true'] {
+  background: #e8e8e3;
+}
+.journal-kanji-candidates::-webkit-scrollbar {
+  width: 12px;
+}
+.journal-kanji-candidates::-webkit-scrollbar-track {
+  background: #e9e8e3;
+  border-radius: 10px;
+}
+.journal-kanji-candidates::-webkit-scrollbar-thumb {
+  background: #92938d;
+  border: 2px solid #e9e8e3;
+  border-radius: 10px;
+}
+@media (max-width: 450px) {
+  .journal-keyboard-option {
+    grid-template-columns: 28px 1fr 18px;
+    gap: 8px;
+    padding: 15px 10px;
+  }
+  .journal-keyboard-symbol {
+    width: 28px;
+  }
+  .journal-keyboard-option strong {
+    font-size: 21px;
+  }
+}
+.journal-entry-dialog.journal-keyboard-dialog {
+  width: min(510px, calc(100vw - 32px));
+}
+.journal-keyboard-dialog .journal-keyboard-done {
+  background: #edf3e8;
+  color: #47664b;
+  border-color: #9eb69b;
+  border-radius: 7px;
+}
+.journal-kanji-candidates button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

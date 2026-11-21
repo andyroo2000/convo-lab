@@ -86,6 +86,7 @@ export const AudioPreviewProvider = ({ children }: { children: ReactNode }) => {
       {children}
       {/* Single shared audio element for all voice previews */}
       <audio
+        crossOrigin="anonymous"
         ref={audioRef}
         preload="none"
         onEnded={handleEnded}

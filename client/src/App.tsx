@@ -5,6 +5,7 @@ import LocaleProvider from './contexts/LocaleContext';
 import { AudioPreviewProvider } from './contexts/AudioPreviewContext';
 import { KnownKanjiProvider } from './contexts/KnownKanjiContext';
 import SettingsModalRoutes from './components/settings/SettingsModalRoutes';
+import JournalDocumentBoundary from './features/journal/JournalDocumentBoundary';
 import Layout from './components/common/Layout';
 import SectionFeatureBoundary from './components/common/SectionFeatureBoundary';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
@@ -324,20 +325,22 @@ const App = () => (
     <BrowserRouter>
       <GoogleAnalyticsTracker />
       <RouteSeoController />
-      <AuthProvider>
-        <LocaleProvider>
-          <AudioPreviewProvider>
-            <PWAInstallPrompt />
-            <Suspense fallback={<PageLoader />}>
-              <SettingsModalRoutes>
-                {renderPublicRoutes()}
-                {renderProtectedRoutes()}
-                <Route path="*" element={<NotFoundPage />} />
-              </SettingsModalRoutes>
-            </Suspense>
-          </AudioPreviewProvider>
-        </LocaleProvider>
-      </AuthProvider>
+      <JournalDocumentBoundary>
+        <AuthProvider>
+          <LocaleProvider>
+            <AudioPreviewProvider>
+              <PWAInstallPrompt />
+              <Suspense fallback={<PageLoader />}>
+                <SettingsModalRoutes>
+                  {renderPublicRoutes()}
+                  {renderProtectedRoutes()}
+                  <Route path="*" element={<NotFoundPage />} />
+                </SettingsModalRoutes>
+              </Suspense>
+            </AudioPreviewProvider>
+          </LocaleProvider>
+        </AuthProvider>
+      </JournalDocumentBoundary>
     </BrowserRouter>
   </ErrorBoundary>
 );
