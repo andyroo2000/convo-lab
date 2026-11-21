@@ -420,3 +420,50 @@ test('correction furigana spans the kanji at each notebook size', async ({ page 
     await page.screenshot({ path: info.outputPath(`aligned-correction-${size}.png`) });
   }
 });
+
+test('Journal font settings fit phones and preserve live typography changes', async ({
+  page,
+}, info) => {
+  await fixture(page);
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+    const appearance = page.getByRole('button', { name: 'Appearance', exact: true });
+    await appearance.click();
+    const dialog = page.getByRole('dialog', { name: 'Journal appearance' });
+    await dialog.getByRole('button', { name: 'Serif', exact: true }).click();
+    await expect(dialog.getByRole('button', { name: 'Serif', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    const slider = dialog.getByRole('slider');
+    const nextSize = Number(await slider.inputValue()) + 1;
+    await slider.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(slider).toHaveValue(String(nextSize));
+    await expect(dialog.getByLabel('Font preview')).toHaveCSS('font-size', `${nextSize}px`);
+    await expect(dialog.getByLabel('Font preview')).toHaveText('今日はいい一日でした。');
+    expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+      true
+    );
+    await page.screenshot({ path: info.outputPath(`font-settings-${width}.png`) });
+    await dialog.getByRole('button', { name: 'Close appearance' }).click();
+    await expect(appearance).toBeFocused();
+    await page.keyboard.press('Escape');
+  }
+  await page.reload();
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+  await page.getByRole('button', { name: 'Appearance', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Journal appearance' });
+  await expect(dialog.getByRole('button', { name: 'Serif', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect(dialog.getByRole('slider')).toHaveValue('29');
+  await dialog.getByRole('slider').focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(dialog.getByRole('slider')).toHaveValue('28');
+  await dialog.getByRole('button', { name: 'Close appearance' }).click();
+  await expect(dialog).not.toBeVisible();
+});
