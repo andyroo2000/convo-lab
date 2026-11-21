@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import useJournalModal from './useJournalModal';
+import './journalEntryDialogs.css';
 import type useJournalArchive from './useJournalArchive';
 
 type Archive = ReturnType<typeof useJournalArchive>;
@@ -48,7 +49,7 @@ const JournalRenameDialog = ({ entry, rename, onCancel, onRenamed }: Props) => {
         event.preventDefault();
         if (!state.pending.current) onCancel();
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-[22px] border border-gray-200 bg-white p-7 shadow-xl backdrop:bg-[var(--retro-ink)]/30"
+      className="journal-entry-dialog"
     >
       <form
         onSubmit={(event) => {
@@ -56,7 +57,7 @@ const JournalRenameDialog = ({ entry, rename, onCancel, onRenamed }: Props) => {
           state.save().catch(() => undefined);
         }}
       >
-        <h2 id={headingId} className="text-2xl font-semibold text-navy">
+        <h2 id={headingId} className="journal-entry-dialog-heading">
           Rename entry
         </h2>
         <input
@@ -66,29 +67,29 @@ const JournalRenameDialog = ({ entry, rename, onCancel, onRenamed }: Props) => {
           disabled={state.busy}
           onFocus={(event) => event.target.select()}
           onChange={(event) => state.setTitle(event.target.value)}
-          className="mt-6 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-navy focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/20"
+          className="journal-entry-dialog-input"
         />
         {state.error && (
-          <p role="alert" className="mt-4 text-sm text-rose-700">
+          <p role="alert" className="journal-entry-dialog-error">
             {state.error}
           </p>
         )}
         {[...state.title.trim()].length > 255 && (
-          <p className="mt-3 text-sm text-rose-700">Use 255 characters or fewer.</p>
+          <p className="journal-entry-dialog-error">Use 255 characters or fewer.</p>
         )}
-        <div className="mt-7 flex justify-end gap-3">
+        <div className="journal-entry-dialog-actions">
           <button
             type="button"
             disabled={state.busy}
             onClick={onCancel}
-            className="rounded-[10px] border border-gray-200 px-5 py-3 text-sm font-medium text-[var(--retro-ink)] disabled:opacity-50"
+            className="journal-entry-dialog-cancel"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={state.busy || !state.valid}
-            className="rounded-[10px] bg-[var(--retro-ink)] px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="journal-entry-dialog-save"
           >
             {state.busy ? 'Saving…' : 'Save'}
           </button>

@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import useJournalModal from './useJournalModal';
-import './journalDeleteDialog.css';
+import './journalEntryDialogs.css';
 import type useJournalArchive from './useJournalArchive';
 
 type Archive = ReturnType<typeof useJournalArchive>;
@@ -55,9 +55,9 @@ const JournalDeleteDialog = ({ entry, remove, onCancel, onDeleted }: Props) => {
         event.preventDefault();
         if (!pending.current) onCancel();
       }}
-      className="journal-delete-dialog"
+      className="journal-entry-dialog"
     >
-      <h2 id={labelId} className="journal-delete-heading">
+      <h2 id={labelId} className="journal-entry-dialog-heading">
         Delete this {kind}?
       </h2>
       <p id={descriptionId} className="journal-delete-description">
@@ -69,12 +69,17 @@ const JournalDeleteDialog = ({ entry, remove, onCancel, onDeleted }: Props) => {
         <p className="journal-delete-body line-clamp-3">{entry.body || 'Empty draft'}</p>
       </div>
       {error && (
-        <p role="alert" className="journal-delete-error">
+        <p role="alert" className="journal-entry-dialog-error">
           {error}
         </p>
       )}
-      <div className="journal-delete-actions">
-        <button type="button" disabled={busy} onClick={onCancel} className="journal-delete-keep">
+      <div className="journal-entry-dialog-actions">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onCancel}
+          className="journal-entry-dialog-cancel"
+        >
           Keep {kind}
         </button>
         <button type="button" disabled={busy} onClick={confirm} className="journal-delete-confirm">

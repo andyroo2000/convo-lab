@@ -1,4 +1,4 @@
-.journal-delete-dialog {
+.journal-entry-dialog {
   width: min(460px, calc(100vw - 32px));
   max-width: none;
   max-height: calc(100dvh - 48px);
@@ -16,11 +16,11 @@
     serif;
   box-shadow: 0 16px 50px #35291630;
 }
-.journal-delete-dialog::backdrop {
+.journal-entry-dialog::backdrop {
   background: #173d3266;
   backdrop-filter: blur(4px);
 }
-.journal-delete-heading {
+.journal-entry-dialog-heading {
   margin: 0;
   font:
     500 32px/1.15 'Crimson Pro',
@@ -61,18 +61,18 @@
   line-height: 2;
   background: repeating-linear-gradient(transparent 0 calc(2em - 1px), #dbe3e7 calc(2em - 1px) 2em);
 }
-.journal-delete-error {
+.journal-entry-dialog-error {
   margin-top: 16px;
   color: #9e443d;
 }
-.journal-delete-actions {
+.journal-entry-dialog-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
   margin-top: 26px;
 }
-.journal-delete-actions button {
+.journal-entry-dialog-actions button {
   min-height: 46px;
   white-space: nowrap;
   padding: 10px 20px;
@@ -83,7 +83,7 @@
     Georgia,
     serif;
 }
-.journal-delete-actions .journal-delete-keep {
+.journal-entry-dialog-actions .journal-entry-dialog-cancel {
   border-color: #a8bda4;
   background: #fffdf7;
   color: #47664c;
@@ -92,22 +92,48 @@
   background: #9e443d;
   color: #fffdf7;
 }
-.journal-delete-actions button:hover:not(:disabled) {
+.journal-entry-dialog-actions button:hover:not(:disabled) {
   filter: brightness(0.96);
 }
-.journal-delete-actions button:disabled {
+.journal-entry-dialog-actions button:disabled {
   opacity: 0.5;
 }
-.journal-delete-dialog :focus-visible {
+.journal-entry-dialog :focus-visible {
   outline: 3px solid #6d8c55;
   outline-offset: 3px;
 }
 @media (max-width: 480px) {
-  .journal-delete-dialog {
+  .journal-entry-dialog {
     padding: 24px 20px;
   }
-  .journal-delete-actions button {
+  .journal-entry-dialog-actions button {
     flex: 1 1 100%;
     padding-inline: 12px;
   }
+}
+
+.journal-entry-dialog-input {
+  width: 100%;
+  min-width: 0;
+  margin-top: 24px;
+  padding: 12px 16px;
+  border: 1px solid #d0dfef;
+  border-radius: 12px;
+  background: #fffef9;
+  color: #4b1800;
+  font-family: var(--journal-font, 'Klee One'), 'Yu Mincho', serif;
+  font-weight: var(--journal-weight, 600);
+  font-size: 23px;
+  line-height: 1.5;
+}
+.journal-entry-dialog-input::placeholder {
+  color: #69765f;
+  opacity: 1;
+}
+.journal-entry-dialog-input:disabled {
+  opacity: 0.5;
+}
+.journal-entry-dialog-actions .journal-entry-dialog-save {
+  background: #407c35;
+  color: #fffdf7;
 }
