@@ -57,7 +57,6 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
             className="journal-choice-option"
           >
             <JournalAvatar src={tutorAvatar(tutor)} alt="" className="journal-choice-avatar" />
-            <span className="journal-choice-name">{tutor.name}</span>
             {preferences.data.data.selectedId === tutor.id && (
               <Check size={16} className="journal-choice-check" aria-hidden="true" />
             )}

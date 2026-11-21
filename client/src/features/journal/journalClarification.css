@@ -42,7 +42,11 @@
 .journal-clarification fieldset:disabled {
   opacity: 0.5;
 }
+.journal-clarification-answer-field {
+  padding-top: 16px;
+}
 .journal-clarification-answer {
+  display: block;
   width: 100%;
   padding: 12px;
   border: 1px solid #a8bda4;

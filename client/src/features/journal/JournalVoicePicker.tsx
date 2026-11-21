@@ -67,7 +67,6 @@ const JournalVoicePicker = ({ voices, selected, disabled, onChoose, toolbarTarge
                 className="journal-choice-option"
               >
                 <JournalAvatar src={voice.avatarUrl} className="journal-choice-avatar" />
-                <span className="journal-choice-name">{voice.name}</span>
                 {selected === voice.id && (
                   <Check size={16} className="journal-choice-check" aria-hidden="true" />
                 )}

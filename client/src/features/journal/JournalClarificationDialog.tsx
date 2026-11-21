@@ -60,14 +60,16 @@ const Question = ({
           Something else
         </label>
         {choice === 'other' && (
-          <textarea
-            aria-label="Your answer"
-            value={custom}
-            onChange={(event) => setCustom(event.target.value)}
-            maxLength={2000}
-            rows={3}
-            className="journal-clarification-answer"
-          />
+          <div className="journal-clarification-answer-field">
+            <textarea
+              aria-label="Your answer"
+              value={custom}
+              onChange={(event) => setCustom(event.target.value)}
+              maxLength={2000}
+              rows={3}
+              className="journal-clarification-answer"
+            />
+          </div>
         )}
       </fieldset>
       <button

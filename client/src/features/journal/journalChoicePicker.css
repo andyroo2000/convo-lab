@@ -44,9 +44,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
   min-width: 0;
-  padding: 18px 12px 14px;
+  padding: 20px 12px;
   border: 1px solid #d5dccb;
   border-radius: 14px;
   background: #fffef9;
@@ -62,19 +61,13 @@
   box-shadow: inset 0 0 0 1px #407c35;
 }
 .journal-choice-avatar {
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
   max-width: 100%;
+  padding: 8px;
   border-radius: 50%;
-  object-fit: cover;
-}
-.journal-choice-name {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  font:
-    500 21px/1.2 'Crimson Pro',
-    Georgia,
-    serif;
+  background: #fff;
+  object-fit: contain;
 }
 .journal-choice-check {
   position: absolute;
