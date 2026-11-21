@@ -12,7 +12,8 @@ Run `node tools/japanese-input/journal/package.mjs` before building the frontend
 The helper downloads the `journal-keyboard-runtime-v1` GitHub release with `gh`, verifies
 its SHA-256, and assembles current tracked adapters into
 `client/public/japanese-input/v1` (generated, ignored by Git). CI uses `GH_TOKEN` with
-read access to this repository. An already downloaded archive can be supplied through
+read access to this repository. Forks must have access to that release or supply the
+verified archive explicitly; a fork token alone cannot read the upstream private release. An already downloaded archive can be supplied through
 `JOURNAL_KEYBOARD_ARCHIVE` for local/offline builds; the same checksum is enforced.
 
 The binary bundle contains the existing AzooKey Swift/WASM dictionary engine,

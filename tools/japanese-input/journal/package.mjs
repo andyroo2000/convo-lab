@@ -1,19 +1,43 @@
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  verifyArchive,
+  scopeRuntimeSource,
+  verifyRewriteCoverage,
+  replaceExpected,
+} from './packaging.mjs';
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 const destination = resolve(root, '../../client/public/japanese-input/v1');
+// Publish a new binary release, then bump the tag, digest and URL prefix together.
 const digest = 'd49b370cd0fc780395e8fa29c71121fab0896a2470d15a94284a050192329e82';
 const prefix = '/japanese-input/v1';
+const rewritten = new Set();
 
 async function binaries(directory) {
   const archive =
     process.env.JOURNAL_KEYBOARD_ARCHIVE ?? join(directory, 'journal-keyboard-v1.tar.gz');
-  if (!process.env.JOURNAL_KEYBOARD_ARCHIVE)
+  if (!process.env.JOURNAL_KEYBOARD_ARCHIVE) download(directory);
+  await verifyArchive(archive, digest);
+  // Clear only after verification; a bad download must not replace working assets.
+  await rm(destination, { recursive: true, force: true });
+  await mkdir(destination, { recursive: true });
+  execFileSync('tar', [
+    '-xzf',
+    archive,
+    '--no-same-owner',
+    '--no-same-permissions',
+    '-C',
+    destination,
+  ]);
+}
+
+function download(directory) {
+  try {
     execFileSync('gh', [
       'release',
       'download',
@@ -25,12 +49,12 @@ async function binaries(directory) {
       '--dir',
       directory,
     ]);
-  const hash = createHash('sha256')
-    .update(await readFile(archive))
-    .digest('hex');
-  if (hash !== digest) throw Error('Journal keyboard asset checksum does not match');
-  await mkdir(destination, { recursive: true });
-  execFileSync('tar', ['-xzf', archive, '-C', destination]);
+  } catch (cause) {
+    throw new Error(
+      'Could not download the Journal keyboard runtime. Install gh and authenticate with repository read access (GH_TOKEN in CI), or set JOURNAL_KEYBOARD_ARCHIVE to a verified local archive.',
+      { cause }
+    );
+  }
 }
 
 async function sources(source, target, only = null) {
@@ -40,10 +64,7 @@ async function sources(source, target, only = null) {
     if (only && !only.includes(item.name)) continue;
     const text = await readFile(join(source, item.name), 'utf8');
     // Scope the playground's absolute module/worker/asset URLs to the versioned runtime.
-    const scoped = text
-      .replace(/(['"`])\/(browser|vendor|assets|gpu)\//g, `$1${prefix}/$2/`)
-      .replace(/(['"])\/contract\.mjs/g, `$1${prefix}/contract.mjs`)
-      .replace(/(['"])\/engine-transport\.mjs/g, `$1${prefix}/web/engine-transport.mjs`);
+    const scoped = scopeRuntimeSource(text, prefix, rewritten);
     await writeFile(join(target, item.name), scoped);
   }
 }
@@ -60,7 +81,12 @@ async function assemble() {
   await stripDeclarations(join(destination, 'vendor'));
   await sources(join(root, 'web'), join(destination, 'web'));
   await sources(join(root, 'browser/web'), join(destination, 'browser'));
-  await sources(join(root, 'journal'), join(destination, 'journal'));
+  await sources(join(root, 'journal'), join(destination, 'journal'), [
+    'entry.mjs',
+    'transport.mjs',
+    'session.mjs',
+    'suggestions.mjs',
+  ]);
   await rm(join(destination, 'gpu'), { recursive: true, force: true });
   await sources(join(root, 'performance/webgpu'), join(destination, 'gpu'), ['model.mjs']);
   await cp(join(root, 'contract.mjs'), join(destination, 'contract.mjs'));
@@ -76,7 +102,8 @@ async function assemble() {
   const transport = join(destination, 'journal/transport.mjs');
   await writeFile(
     transport,
-    (await readFile(transport, 'utf8')).replace(
+    replaceExpected(
+      await readFile(transport, 'utf8'),
       '../browser/web/runtime.mjs',
       '../browser/runtime.mjs'
     )
@@ -85,6 +112,7 @@ async function assemble() {
     join(destination, 'gpu/config.mjs'),
     `export const gpu = Boolean(navigator.gpu);\nexport const incremental = false, batchTokens = 512, sequenceCapacity = 16, sharePrompt = gpu, profiling = false;\n`
   );
+  verifyRewriteCoverage(rewritten);
   // Build helpers and isolated playground entry points are not shipped to users.
   for (const path of [
     'journal/package.mjs',
