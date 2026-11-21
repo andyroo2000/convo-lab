@@ -153,7 +153,7 @@ const JournalRowActions = ({ entry, disabled, snapshot, ...actions }: Props) => 
               Delete
             </button>
           </div>,
-          document.body
+          popover.anchor.current?.closest('dialog') ?? document.body
         )}
       <RowDialog dialog={dialog} {...actions} onCancel={() => setDialog(null)} />
     </div>

@@ -323,3 +323,99 @@ test('adjacent long readings keep their own space inside the correction', async 
     await page.screenshot({ path: info.outputPath(`adjacent-readings-${width}.png`) });
   }
 });
+
+test('entry actions and confirmation stay clickable above Contents', async ({ page }, info) => {
+  await fixture(page);
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.getByRole('button', { name: 'Contents', exact: true }).click();
+    const contents = page.getByRole('dialog', { name: 'Contents', exact: true });
+    const actions = contents.getByRole('button', { name: `Actions for ${entry.title}` });
+    await actions.click();
+    const menu = page.getByRole('menu', { name: 'Entry actions' });
+    await expect(menu.getByRole('menuitem', { name: 'Rename' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(contents).toBeVisible();
+    await expect(actions).toBeFocused();
+    await actions.click();
+    await menu.getByRole('menuitem', { name: 'Delete' }).click();
+    const confirmation = page.getByRole('dialog', { name: 'Delete this entry?' });
+    await expect(confirmation).toBeVisible();
+    await page.screenshot({ path: info.outputPath(`delete-confirmation-${width}.png`) });
+    await confirmation.getByRole('button', { name: 'Keep entry' }).click();
+    await expect(actions).toBeFocused();
+    await actions.click();
+    await menu.getByRole('menuitem', { name: 'Rename' }).click();
+    await page
+      .getByRole('dialog', { name: 'Rename entry' })
+      .getByRole('button', { name: 'Cancel' })
+      .click();
+    await expect(actions).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(contents).not.toBeVisible();
+  }
+});
+
+test('correction furigana spans the kanji at each notebook size', async ({ page }, info) => {
+  await fixture(page);
+  await page.route(`**/api/journal/entries/${entry.id}/analysis`, (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          ...analysis,
+          result: {
+            ...analysis.result,
+            segments: [
+              {
+                text: 'もう日本語を',
+                reading: 'もう日本語[にほんご]を',
+                kind: 'correction',
+                replacement: '日本語も',
+                replacementReading: '日本語[にほんご]も',
+                explanation: 'Put も after 日本語 to express also.',
+              },
+            ],
+          },
+        },
+        entry,
+      },
+    })
+  );
+  for (const size of [16, 26, 30]) {
+    await page.setViewportSize({ width: size === 26 ? 1440 : 390, height: 900 });
+    await page.evaluate(
+      (size) =>
+        localStorage.setItem(
+          'convolab:journal:typography:v1',
+          JSON.stringify({ font: 'klee', size })
+        ),
+      size
+    );
+    await page.reload();
+    await page.getByRole('button', { name: 'Draft', exact: true }).click();
+    await page.getByRole('button', { name: /^Correction: Replace/ }).click();
+    const popup = page.getByRole('dialog', { name: 'Correction', exact: true });
+    await expect(popup).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const offsets = await popup.locator('.journal-correction ruby').evaluateAll((words) =>
+      words.map((word) => {
+        const base = word.querySelector('span')!;
+        const reading = word.querySelector('rt')!;
+        const firstKana = document.createRange();
+        firstKana.setStart(reading.firstChild!, 0);
+        firstKana.setEnd(reading.firstChild!, 1);
+        // Range widths include justification space; full-width kana ink occupies one em.
+        const kanaCenter =
+          firstKana.getBoundingClientRect().left +
+          parseFloat(getComputedStyle(reading).fontSize) / 2;
+        const kanjiCenter =
+          base.getBoundingClientRect().left + parseFloat(getComputedStyle(base).fontSize) / 2;
+        return Math.abs(kanaCenter - kanjiCenter);
+      })
+    );
+    expect(offsets).toHaveLength(2);
+    expect(offsets.every((offset) => offset < 1)).toBe(true);
+    await page.screenshot({ path: info.outputPath(`aligned-correction-${size}.png`) });
+  }
+});

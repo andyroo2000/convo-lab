@@ -119,3 +119,10 @@
   font-size: 19px;
   font-weight: 700;
 }
+
+/* Spread short readings across their word, with half a kana of edge space. */
+.journal-note-popover .journal-correction rt {
+  text-align-last: justify;
+  text-justify: inter-character;
+  padding-inline: 0.5em;
+}
