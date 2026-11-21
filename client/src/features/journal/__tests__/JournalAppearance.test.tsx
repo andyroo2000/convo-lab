@@ -60,7 +60,7 @@ describe('Journal device typography', () => {
     render(<JournalAppearance value={{ font: 'sans', size: 22 }} onChange={change} saved />);
     fireEvent.click(screen.getByRole('button', { name: 'Journal appearance' }));
     expect(screen.getByLabelText('Font preview')).toHaveStyle({ fontSize: '22px' });
-    expect(screen.getByLabelText('Font preview')).toHaveTextContent('Today was a good day.');
+    expect(screen.getByLabelText('Font preview')).toHaveTextContent(/^今日はいい一日でした。$/);
     expect(screen.getAllByRole('button', { pressed: false })[0]).toHaveTextContent('Klee One');
     fireEvent.click(screen.getByRole('button', { name: 'Klee One' }));
     expect(change).toHaveBeenLastCalledWith({ font: 'klee', size: 22 });

@@ -21,8 +21,6 @@ const FontPreview = ({ value }: { value: JournalTypography }) => (
     }}
   >
     <span lang="ja">今日はいい一日でした。</span>
-    <br />
-    <span lang="en">Today was a good day.</span>
   </p>
 );
 
