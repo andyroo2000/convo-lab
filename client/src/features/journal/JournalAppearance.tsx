@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Check, X } from 'lucide-react';
 import useDialogDismissal from '../../hooks/useDialogDismissal';
 import { journalFonts, type JournalTypography } from './journalTypography';
+import './journalEntryDialogs.css';
+import './journalAppearance.css';
 
 interface Props {
   value: JournalTypography;
@@ -13,7 +15,7 @@ interface Props {
 const FontPreview = ({ value }: { value: JournalTypography }) => (
   <p
     aria-label="Font preview"
-    className="mb-5 rounded-xl bg-gray-50 p-4 leading-relaxed"
+    className="journal-font-preview"
     style={{
       fontFamily: journalFonts[value.font],
       fontSize: value.size,
@@ -50,17 +52,17 @@ const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
         <dialog
           ref={dialog}
           aria-labelledby={`${id}-title`}
-          className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-2xl border border-gray-200 bg-white p-5 text-navy shadow-xl backdrop:bg-black/20 md:inset-0 md:m-auto md:w-80 md:rounded-2xl"
+          className="journal-entry-dialog journal-appearance-dialog"
         >
-          <div className="mb-2 flex items-center justify-end">
-            <h2 id={`${id}-title`} className="sr-only">
+          <div className="journal-appearance-header">
+            <h2 id={`${id}-title`} className="journal-entry-dialog-heading">
               Journal appearance
             </h2>
             <button
               type="button"
               aria-label="Close appearance"
               onClick={() => dialog.current?.close()}
-              className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-gray-100"
+              className="journal-appearance-close"
             >
               <X size={18} />
             </button>
@@ -68,14 +70,14 @@ const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
           <FontPreview value={value} />
           <fieldset>
             <legend className="sr-only">Font</legend>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="journal-font-options">
               {(['klee', 'sans', 'serif'] as const).map((font) => (
                 <button
                   key={font}
                   type="button"
                   aria-pressed={value.font === font}
                   onClick={() => onChange({ ...value, font })}
-                  className={`relative flex min-h-24 flex-col items-start gap-3 rounded-xl border p-4 text-left focus-visible:outline-indigo ${value.font === font ? 'border-indigo bg-indigo/5' : 'border-gray-200 hover:border-indigo'}`}
+                  className="journal-font-option"
                 >
                   <span
                     aria-hidden="true"
@@ -83,25 +85,21 @@ const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
                       fontFamily: journalFonts[font],
                       fontWeight: font === 'klee' ? 600 : 400,
                     }}
-                    className="text-3xl"
+                    className="journal-font-specimen"
                   >
                     Aa あ
                   </span>
-                  <span className="text-sm">
+                  <span className="journal-font-name">
                     {{ klee: 'Klee One', sans: 'Sans-serif', serif: 'Serif' }[font]}
                   </span>
                   {value.font === font && (
-                    <Check
-                      size={16}
-                      aria-hidden="true"
-                      className="absolute right-2 top-2 text-indigo"
-                    />
+                    <Check size={16} aria-hidden="true" className="journal-font-check" />
                   )}
                 </button>
               ))}
             </div>
           </fieldset>
-          <label htmlFor={`${id}-size`} className="mt-6 flex justify-between text-sm">
+          <label htmlFor={`${id}-size`} className="journal-font-size-label">
             Font size <span>{value.size} px</span>
           </label>
           <input
@@ -112,11 +110,11 @@ const JournalAppearance = ({ value, onChange, saved, menu = false }: Props) => {
             step={1}
             value={value.size}
             aria-valuetext={`${value.size} pixels`}
-            className="mt-2 h-11 w-full accent-indigo"
+            className="journal-font-size-slider"
             onChange={(event) => onChange({ ...value, size: Number(event.target.value) })}
           />
           {!saved && (
-            <p className="mt-3 text-xs text-gray-500" role="status">
+            <p className="journal-font-save-status" role="status">
               Changed for now. This browser could not save your preference.
             </p>
           )}
