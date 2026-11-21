@@ -27,12 +27,21 @@ function inputAssistance(builtIn: boolean, props: ComponentPropsWithoutRef<'text
   };
 }
 
-function forwardInput(onChange: Props['onChange'], onInput: Props['onInput']): Props['onInput'] {
-  return (event) => {
+function useWritingEvents(onChange: Props['onChange'], onInput: Props['onInput']) {
+  const handled = useRef(new WeakSet<Event>());
+  const change: NonNullable<Props['onChange']> = (event) => {
+    if (handled.current.has(event.nativeEvent)) return;
+    handled.current.add(event.nativeEvent);
+    onChange?.(event);
+  };
+  const input: Props['onInput'] = (event) => {
+    // Runtime value assignments can bypass React's change tracking. Forward them,
+    // but share the native-event guard with onChange to avoid duplicate saves.
     if (!(event.nativeEvent instanceof InputEvent))
-      onChange?.(event as ChangeEvent<HTMLTextAreaElement>);
+      change(event as ChangeEvent<HTMLTextAreaElement>);
     onInput?.(event);
   };
+  return { change, input };
 }
 
 function useFirstKeyboardChoice(ask: boolean, onFocus: Props['onFocus']) {
@@ -61,6 +70,7 @@ const JournalWritingField = ({
   const field = useRef<HTMLTextAreaElement | null>(null);
   const list = useRef<HTMLDivElement | null>(null);
   useImperativeHandle(fieldRef, () => field.current as HTMLTextAreaElement);
+  const events = useWritingEvents(onChange, onInput);
   const keyboard = useJournalKeyboard(field, list, disabled || readOnly);
   const onboarding = useFirstKeyboardChoice(!keyboard.mode && !readOnly, onFocus);
   const preparing = keyboard.mode === 'built-in' && keyboard.state !== 'ready';
@@ -78,8 +88,8 @@ const JournalWritingField = ({
           disabled={disabled}
           readOnly={readOnly || preparing}
           {...inputAssistance(keyboard.mode === 'built-in', props)}
-          onChange={onChange}
-          onInput={forwardInput(onChange, onInput)}
+          onChange={events.change}
+          onInput={events.input}
           onFocus={onboarding.focus}
         />
       </div>

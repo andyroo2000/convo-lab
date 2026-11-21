@@ -7,6 +7,7 @@ import { loadKeyboard } from '../journalKeyboardRuntime';
 
 vi.mock('../journalKeyboardRuntime', () => ({ loadKeyboard: vi.fn() }));
 const dispose = vi.fn();
+const changed = vi.fn();
 const attach = vi.fn(() => ({ dispose }));
 const readiness = vi.fn(() => ({ state: 'ready' }));
 const retry = vi.fn(async () => {
@@ -20,7 +21,10 @@ const Editor = () => {
       <JournalWritingField
         aria-label="Writing"
         value={text}
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => {
+          changed(event.target.value);
+          setText(event.target.value);
+        }}
       />
     </>
   );
@@ -45,10 +49,19 @@ it('keeps converted DOM edits in React state and releases the editor when switch
   field.setRangeText('雨', 1, 1, 'end');
   fireEvent(field, new Event('input', { bubbles: true }));
   expect(field).toHaveValue('前雨後');
+  expect(changed).toHaveBeenCalledExactlyOnceWith('前雨後');
   expect(screen.getByLabelText('Saved writing')).toHaveTextContent('前雨後');
   saveKeyboardMode('device');
   await waitFor(() => expect(dispose).toHaveBeenCalledTimes(1));
   expect(field).toHaveValue('前雨後');
+});
+it('forwards runtime value assignments exactly once when React has already tracked the value', () => {
+  render(<Editor />);
+  const field = screen.getByRole('textbox') as HTMLTextAreaElement;
+  field.value = '直接';
+  fireEvent(field, new Event('input', { bubbles: true }));
+  expect(changed).toHaveBeenCalledExactlyOnceWith('直接');
+  expect(screen.getByLabelText('Saved writing')).toHaveTextContent('直接');
 });
 it('preserves writing and offers retry or the device keyboard when preparation fails', async () => {
   saveKeyboardMode('built-in');
