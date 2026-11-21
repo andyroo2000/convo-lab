@@ -62,3 +62,6 @@ scripts/output/
 
 # Local development secrets
 LOCAL_SETUP.md
+
+# Generated, verified keyboard runtime
+client/public/japanese-input/

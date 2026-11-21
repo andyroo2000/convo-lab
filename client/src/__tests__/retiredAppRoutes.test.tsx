@@ -4,6 +4,11 @@ import { Outlet } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 
+// Document-policy navigation is exercised against the static server in Playwright.
+vi.mock('../features/journal/JournalDocumentBoundary', () => ({
+  default: ({ children }: { children: ReactNode }) => children,
+}));
+
 const auth = vi.hoisted(() => ({ signedOut: false }));
 
 vi.mock('../contexts/AuthContext', () => ({
