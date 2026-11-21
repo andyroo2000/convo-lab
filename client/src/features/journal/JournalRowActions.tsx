@@ -5,6 +5,7 @@ import useJournalPopover from './useJournalPopover';
 import JournalDeleteDialog from './JournalDeleteDialog';
 import JournalRenameDialog from './JournalRenameDialog';
 import type useJournalArchive from './useJournalArchive';
+import './journalRowActions.css';
 
 type Archive = ReturnType<typeof useJournalArchive>;
 interface Props {
@@ -132,13 +133,13 @@ const JournalRowActions = ({ entry, disabled, snapshot, ...actions }: Props) => 
             aria-label="Entry actions"
             style={popover.position}
             onKeyDown={(event) => menuKey(event, dismiss)}
-            className="fixed z-50 w-40 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg"
+            className="journal-row-menu"
           >
             <button
               role="menuitem"
               type="button"
               onClick={() => choose('rename')}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-navy hover:bg-indigo/5 focus:bg-indigo/5"
+              className="journal-row-menu-item"
             >
               <Pencil size={16} aria-hidden="true" />
               Rename
@@ -147,7 +148,7 @@ const JournalRowActions = ({ entry, disabled, snapshot, ...actions }: Props) => 
               role="menuitem"
               type="button"
               onClick={() => choose('delete')}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-rose-700 hover:bg-rose-50 focus:bg-rose-50"
+              className="journal-row-menu-item journal-row-menu-delete"
             >
               <Trash2 size={16} aria-hidden="true" />
               Delete
