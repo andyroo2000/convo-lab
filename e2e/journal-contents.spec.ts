@@ -10,8 +10,20 @@ const entry = {
   updatedAt: '2026-11-17T10:00:00Z',
 };
 const tutors = [
-  { id: 'hana', name: 'Hana', gender: 'F', avatar: 'hana-v1', avatarUrl: '/fixture-hana.webp' },
-  { id: 'ren', name: 'Ren', gender: 'M', avatar: 'ren-v1', avatarUrl: '/fixture-ren.webp' },
+  {
+    id: 'hana',
+    name: 'Hana',
+    gender: 'F',
+    avatar: 'hana-v1',
+    avatarUrl: '/fixture-professor-female-v2.png',
+  },
+  {
+    id: 'ren',
+    name: 'Ren',
+    gender: 'M',
+    avatar: 'ren-v1',
+    avatarUrl: '/fixture-professor-male-v2.png',
+  },
 ];
 const analysis = {
   id: '01arz3ndektsv4rrffq69g5faw',
@@ -44,11 +56,11 @@ const analysis = {
 async function fixture(page: Page, correction = false) {
   let selectedId = 'hana';
   await page.route('**/sanctum/csrf-cookie', (route) => route.fulfill({ status: 204 }));
-  await page.route('**/fixture-*.webp', async (route) => {
+  await page.route('**/fixture-*.png', async (route) => {
     const source = process.env.JOURNAL_AVATAR_DIRECTORY;
     if (source)
       await route.fulfill({
-        path: `${source}/${route.request().url().includes('hana') ? 'professor-female' : 'male-02'}-preview.webp`,
+        path: `${source}/${new URL(route.request().url()).pathname.split('/fixture-')[1]}`,
       });
     else await route.fulfill({ status: 404 });
   });
@@ -106,8 +118,14 @@ async function fixture(page: Page, correction = false) {
           tutor: tutors[0],
         },
       },
-      [`/api/journal/entries/${entry.id}/audio`]: { data: { voiceId: 'ren', hasAudio: false } },
-      '/api/journal/voices': { data: [{ id: 'ren', name: 'Ren', avatarUrl: '/fixture-ren.webp' }] },
+      [`/api/journal/entries/${entry.id}/audio`]: { data: { voiceId: 'haru', hasAudio: false } },
+      '/api/journal/voices': {
+        data: ['Haru', 'Kaito', 'Daichi', 'Aiko', 'Yua', 'Hina'].map((name, index) => ({
+          id: name.toLowerCase(),
+          name,
+          avatarUrl: `/fixture-${['male-01', 'male-02', 'male-03', 'female-03', 'female-02', 'female-01'][index]}-v2.png`,
+        })),
+      },
       '/api/journal/tutor': { data: { selectedId, tutors } },
     };
     await route.fulfill({ json: responses[path] ?? { data: [] } });
@@ -466,4 +484,142 @@ test('Journal font settings fit phones and preserve live typography changes', as
   await expect(dialog.getByRole('slider')).toHaveValue('28');
   await dialog.getByRole('button', { name: 'Close appearance' }).click();
   await expect(dialog).not.toBeVisible();
+});
+
+test('voice and tutor choosers share Journal styling and preserve selection', async ({
+  page,
+}, info) => {
+  await fixture(page);
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    const options = page.getByLabel('More journal options').first();
+    await options.click();
+    const voice = page.getByRole('button', { name: 'Narration voice' });
+    await voice.click();
+    const chooser = page.getByRole('dialog', { name: 'Choose your narration voice' });
+    await expect(chooser.getByRole('heading')).toHaveCSS('font-family', /Crimson Pro/);
+    await chooser.getByRole('button', { name: 'Aiko', exact: true }).click();
+    await expect(chooser).not.toBeVisible();
+    await expect(voice).toBeFocused();
+    await voice.click();
+    await expect(chooser.getByRole('button', { name: 'Aiko', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(await chooser.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+      true
+    );
+    await chooser.locator('img').evaluateAll(async (images) => {
+      await Promise.all(
+        images.map((image) => (image as HTMLImageElement).decode().catch(() => {}))
+      );
+    });
+    await page.screenshot({ path: info.outputPath(`voices-${width}.png`) });
+    await chooser.screenshot({ path: info.outputPath(`voices-detail-${width}.png`) });
+    await chooser.getByRole('button', { name: 'Cancel' }).click();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+    const tutor = page.getByRole('button', { name: 'Choose your tutor', exact: true });
+    await tutor.click();
+    const tutors = page.getByRole('dialog', { name: 'Choose your tutor' });
+    await expect(tutors.getByRole('button', { name: 'Close tutor picker' })).toHaveCount(1);
+    await tutors.locator('img').evaluateAll(async (images) => {
+      await Promise.all(
+        images.map((image) => (image as HTMLImageElement).decode().catch(() => {}))
+      );
+    });
+    await page.screenshot({ path: info.outputPath(`tutors-${width}.png`) });
+    await tutors.screenshot({ path: info.outputPath(`tutors-detail-${width}.png`) });
+    await tutors.getByRole('button', { name: 'Ren (M)' }).click();
+    await expect(tutors).not.toBeVisible();
+    await expect(tutor).toBeFocused();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Contents', exact: true }).click();
+    await page.getByRole('button', { name: `Actions for ${entry.title}` }).click();
+    const menu = page.getByRole('menu', { name: 'Entry actions' });
+    await expect(menu).toHaveCSS('font-family', /Crimson Pro/);
+    await page.screenshot({ path: info.outputPath(`entry-menu-${width}.png`) });
+    await menu.screenshot({ path: info.outputPath(`entry-menu-detail-${width}.png`) });
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+  }
+});
+
+async function clarificationFixture(page: Page) {
+  let savedEntry = { ...entry };
+  await page.route('**/api/journal/entries/*', async (route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    const draft = route.request().postDataJSON();
+    const id = new URL(route.request().url()).pathname.split('/').at(-1)!;
+    savedEntry = { ...entry, ...draft, id, version: 1 };
+    await route.fulfill({ json: { data: savedEntry } });
+  });
+  await page.route('**/api/journal/entries/*/analysis', (route) =>
+    route.fulfill({ json: { data: null, entry: savedEntry } })
+  );
+  await page.route('**/api/journal/entries/*/clarification', (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          id: 'meaning',
+          sourceVersion: 1,
+          revision: 0,
+          status: 'waiting',
+          error: null,
+          updatedAt: entry.updatedAt,
+          question: {
+            id: 'drive',
+            prompt: 'Who was driving?',
+            choices: ['I was driving', 'Molly was driving'],
+          },
+        },
+      },
+    })
+  );
+  await page.route('**/api/journal/entries/*/clarification/*/answer', (route) =>
+    route.fulfill({ status: 503, json: { message: 'Please try again.' } })
+  );
+}
+
+test('draft dismissal and clarification keep Journal styling and writing intact', async ({
+  page,
+}, info) => {
+  await fixture(page);
+  await clarificationFixture(page);
+  await page.getByRole('button', { name: 'Contents', exact: true }).click();
+  await page.getByRole('button', { name: 'New entry', exact: true }).click();
+  const writing = page.getByRole('textbox', { name: 'Journal entry in Japanese' });
+  await writing.fill('今日は友達と車で出かけた。');
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.screenshot({ path: info.outputPath(`draft-actions-${width}.png`) });
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Keep this draft?' });
+    await expect(dialog.getByRole('heading')).toHaveCSS('font-family', /Crimson Pro/);
+    expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+      true
+    );
+    const bounds = (await dialog.boundingBox())!;
+    expect(Math.abs(bounds.y + bounds.height / 2 - 450)).toBeLessThan(2);
+    await page.screenshot({ path: info.outputPath(`keep-draft-${width}.png`) });
+    await dialog.screenshot({ path: info.outputPath(`keep-draft-detail-${width}.png`) });
+    await dialog.getByRole('button', { name: 'Continue writing' }).click();
+    await expect(writing).toHaveValue('今日は友達と車で出かけた。');
+  }
+  await page.getByRole('button', { name: 'Submit', exact: true }).click();
+  const clarification = page.getByRole('region', { name: 'Clarify your meaning' });
+  await clarification.getByRole('radio', { name: 'Something else' }).check();
+  await clarification.getByRole('textbox', { name: 'Your answer' }).fill('My friend was driving.');
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true
+    );
+    await page.screenshot({ path: info.outputPath(`clarification-${width}.png`) });
+    await clarification.screenshot({ path: info.outputPath(`clarification-detail-${width}.png`) });
+  }
+  await clarification.getByRole('button', { name: 'Answer', exact: true }).click();
+  await expect(clarification.getByRole('alert')).toBeVisible();
+  await clarification.getByRole('button', { name: 'Back to draft' }).click();
+  await expect(writing).toHaveValue('今日は友達と車で出かけた。');
 });

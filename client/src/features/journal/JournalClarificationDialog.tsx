@@ -1,4 +1,6 @@
 import './journalTutorText.css';
+import './journalDraftActions.css';
+import './journalClarification.css';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import JournalAvatar from './JournalAvatar';
@@ -36,11 +38,7 @@ const Question = ({
           </p>
         </legend>
         {question.choices.map((label, index) => (
-          <label
-            key={label}
-            htmlFor={`${group}-${index}`}
-            className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#cddcec] bg-white p-3 text-navy"
-          >
+          <label key={label} htmlFor={`${group}-${index}`} className="journal-clarification-choice">
             <input
               type="radio"
               id={`${group}-${index}`}
@@ -51,10 +49,7 @@ const Question = ({
             {label}
           </label>
         ))}
-        <label
-          htmlFor={`${group}-other`}
-          className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#cddcec] bg-white p-3 text-navy"
-        >
+        <label htmlFor={`${group}-other`} className="journal-clarification-choice">
           <input
             type="radio"
             id={`${group}-other`}
@@ -71,14 +66,14 @@ const Question = ({
             onChange={(event) => setCustom(event.target.value)}
             maxLength={2000}
             rows={3}
-            className="w-full rounded-xl border border-[#cddcec] bg-white p-3 text-navy"
+            className="journal-clarification-answer"
           />
         )}
       </fieldset>
       <button
         type="submit"
         disabled={workflow.busy || !answer.trim()}
-        className="rounded-xl bg-indigo px-5 py-3 text-white disabled:opacity-40"
+        className="journal-draft-button journal-draft-button--sage"
       >
         Answer
       </button>
@@ -104,7 +99,7 @@ const ClarificationError = ({ workflow }: { workflow: Workflow }) => {
   if (!workflow.error) return null;
   return (
     <div className="space-y-3">
-      <p role="alert" className="text-sm text-rose-700">
+      <p role="alert" className="journal-clarification-error">
         {workflow.error}
       </p>
       <button
@@ -113,7 +108,7 @@ const ClarificationError = ({ workflow }: { workflow: Workflow }) => {
         onClick={() => {
           workflow.retry().catch(() => undefined);
         }}
-        className="rounded-xl bg-indigo px-5 py-3 text-white disabled:opacity-40"
+        className="journal-draft-button journal-draft-button--sage"
       >
         Retry
       </button>
@@ -140,20 +135,16 @@ const JournalClarificationDialog = ({
       />
     );
   return (
-    <section aria-label="Clarify your meaning" lang="en" className="flex items-start gap-3">
+    <section aria-label="Clarify your meaning" lang="en" className="journal-clarification">
       <JournalAvatar
         src={tutor ? tutorAvatar(tutor) : undefined}
         alt="Your tutor"
         className="h-12 w-12 shrink-0 rounded-full object-cover"
       />
-      <div className="min-w-0 flex-1 space-y-4 rounded-2xl bg-[#edf5ff] p-5">
+      <div className="journal-clarification-panel space-y-4">
         {question && <Question key={question.id} question={question} workflow={workflow} />}
         <ClarificationError workflow={workflow} />
-        <button
-          type="button"
-          onClick={workflow.cancel}
-          className="min-h-11 text-sm text-slate-600 underline"
-        >
+        <button type="button" onClick={workflow.cancel} className="journal-clarification-back">
           Back to draft
         </button>
       </div>

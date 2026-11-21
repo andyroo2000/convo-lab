@@ -1,0 +1,40 @@
+.journal-row-menu {
+  position: fixed;
+  z-index: 50;
+  width: 180px;
+  padding: 6px;
+  border: 1px solid #d5dccb;
+  border-radius: 12px;
+  background: #fffdf7;
+  color: #4b1800;
+  box-shadow: 0 8px 24px #35291626;
+  font:
+    400 20px/1.2 'Crimson Pro',
+    Georgia,
+    serif;
+}
+.journal-row-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-align: left;
+}
+.journal-row-menu-item:hover,
+.journal-row-menu-item:focus {
+  background: #edf3e6;
+}
+.journal-row-menu-item:focus-visible {
+  outline: 2px solid #6d8c55;
+  outline-offset: -2px;
+}
+.journal-row-menu-delete {
+  color: #9e443d;
+}
+.journal-row-menu-delete:hover,
+.journal-row-menu-delete:focus {
+  background: #faeae5;
+}

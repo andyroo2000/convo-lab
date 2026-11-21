@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import JournalAvatar from './JournalAvatar';
 import { getTutorPreferences, saveTutorPreference, tutorAvatar } from './journalTutor';
+import './journalChoicePicker.css';
 
 interface Props {
   ownerId: string;
@@ -29,24 +30,22 @@ function useTutorChoice(ownerId: string, onSelected: () => void) {
 const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
   const { preferences, save, retry } = useTutorChoice(ownerId, onSelected);
   return (
-    <section
-      aria-label="Choose your tutor"
-      className="rounded-2xl border border-gray-200 bg-white p-4"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-navy">Choose your tutor</h3>
+    <section aria-label="Choose your tutor" className="journal-tutor-picker">
+      <div className="journal-choice-header">
+        <h3 className="journal-choice-heading">Choose your tutor</h3>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-indigo"
+            className="journal-choice-close"
+            aria-label="Close tutor picker"
             disabled={save.isPending}
           >
-            Cancel
+            <X size={20} aria-hidden="true" />
           </button>
         )}
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="journal-choice-options">
         {preferences.data?.data.tutors.map((tutor) => (
           <button
             key={tutor.id}
@@ -55,31 +54,28 @@ const JournalTutorPicker = ({ ownerId, onSelected, onClose }: Props) => {
             onClick={() => save.mutate(tutor.id)}
             aria-label={`${tutor.name} (${tutor.gender})`}
             aria-pressed={preferences.data.data.selectedId === tutor.id}
-            className="relative flex flex-col items-center gap-2 rounded-xl border border-gray-200 p-3 text-navy hover:border-indigo hover:bg-indigo/5 focus-visible:outline-indigo disabled:opacity-50"
+            className="journal-choice-option"
           >
-            <JournalAvatar
-              src={tutorAvatar(tutor)}
-              alt=""
-              className="h-20 w-20 rounded-full object-cover"
-            />
+            <JournalAvatar src={tutorAvatar(tutor)} alt="" className="journal-choice-avatar" />
+            <span className="journal-choice-name">{tutor.name}</span>
             {preferences.data.data.selectedId === tutor.id && (
-              <Check size={16} className="absolute right-2 top-2 text-indigo" aria-hidden="true" />
+              <Check size={16} className="journal-choice-check" aria-hidden="true" />
             )}
           </button>
         ))}
       </div>
       {preferences.isPending && (
-        <p role="status" className="mt-2 text-sm text-gray-600">
+        <p role="status" className="journal-choice-status">
           Loading tutors…
         </p>
       )}
       {save.isPending && (
-        <p role="status" className="mt-2 text-sm text-gray-600">
+        <p role="status" className="journal-choice-status">
           Saving tutor…
         </p>
       )}
       {(preferences.error || save.error) && (
-        <p role="alert" className="mt-2 text-sm text-rose-700">
+        <p role="alert" className="journal-choice-error">
           Your tutor could not be saved or loaded.{' '}
           <button type="button" className="underline" onClick={retry}>
             Try again

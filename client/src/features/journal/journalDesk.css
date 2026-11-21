@@ -136,19 +136,6 @@
   max-height: calc(100dvh - 240px);
   overscroll-behavior: contain;
 }
-.journal-voice-dialog {
-  width: min(520px, calc(100vw - 24px));
-  max-height: 85dvh;
-  overflow: auto;
-  padding: 24px;
-  border: 1px solid #d0dfef;
-  border-radius: 16px;
-  color: #4b1800;
-  background: white;
-}
-.journal-voice-dialog::backdrop {
-  background: #0004;
-}
 .journal-audio-header {
   position: relative;
   display: flex;

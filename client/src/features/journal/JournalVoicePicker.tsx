@@ -1,9 +1,11 @@
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Settings2 } from 'lucide-react';
+import { Check, Settings2, X } from 'lucide-react';
 import useDialogDismissal from '../../hooks/useDialogDismissal';
 import JournalAvatar from './JournalAvatar';
 import type { JournalVoice } from './journalAudio';
+import './journalEntryDialogs.css';
+import './journalChoicePicker.css';
 
 interface Props {
   toolbarTarget?: HTMLElement | null;
@@ -36,20 +38,21 @@ const JournalVoicePicker = ({ voices, selected, disabled, onChoose, toolbarTarge
         <dialog
           ref={dialog}
           aria-label="Choose your narration voice"
-          className="journal-voice-dialog"
+          className="journal-entry-dialog journal-choice-dialog"
         >
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold text-navy">Choose your narration voice</h3>
+          <div className="journal-choice-header">
+            <h3 className="journal-entry-dialog-heading">Narration voice</h3>
             <button
               type="button"
-              className="text-sm text-indigo"
+              className="journal-choice-close"
+              aria-label="Cancel"
               onClick={() => dialog.current?.close()}
             >
-              Cancel
+              <X size={20} aria-hidden="true" />
             </button>
           </div>
-          <p className="mt-1 text-sm text-gray-600">Used when you play the corrected version.</p>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <p className="journal-choice-description">Used when you play the corrected version.</p>
+          <div className="journal-choice-options">
             {voices.map((voice) => (
               <button
                 key={voice.id}
@@ -61,18 +64,12 @@ const JournalVoicePicker = ({ voices, selected, disabled, onChoose, toolbarTarge
                   onChoose(voice.id);
                   dialog.current?.close();
                 }}
-                className="relative flex flex-col items-center gap-2 rounded-xl border border-gray-200 p-3 text-navy hover:border-indigo hover:bg-indigo/5 focus-visible:outline-indigo disabled:opacity-50"
+                className="journal-choice-option"
               >
-                <JournalAvatar
-                  src={voice.avatarUrl}
-                  className="h-20 w-20 rounded-full object-cover"
-                />
+                <JournalAvatar src={voice.avatarUrl} className="journal-choice-avatar" />
+                <span className="journal-choice-name">{voice.name}</span>
                 {selected === voice.id && (
-                  <Check
-                    size={16}
-                    className="absolute right-2 top-2 text-indigo"
-                    aria-hidden="true"
-                  />
+                  <Check size={16} className="journal-choice-check" aria-hidden="true" />
                 )}
               </button>
             ))}

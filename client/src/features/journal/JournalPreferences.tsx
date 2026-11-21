@@ -1,9 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { UserRound, X } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 import useDialogDismissal from '../../hooks/useDialogDismissal';
 import JournalTutorPicker from './JournalTutorPicker';
+import './journalEntryDialogs.css';
+import './journalChoicePicker.css';
 
 const JournalPreferences = ({
   ownerId,
@@ -39,18 +41,10 @@ const JournalPreferences = ({
       {createPortal(
         <dialog
           ref={dialog}
-          className="journal-voice-dialog"
+          className="journal-entry-dialog journal-choice-dialog"
           aria-label="Choose your tutor"
           onClose={() => setChoosing(false)}
         >
-          <button
-            type="button"
-            aria-label="Close tutor picker"
-            className="ml-auto flex h-11 w-11 items-center justify-center"
-            onClick={close}
-          >
-            <X size={20} />
-          </button>
           {choosing && (
             <JournalTutorPicker
               ownerId={ownerId}

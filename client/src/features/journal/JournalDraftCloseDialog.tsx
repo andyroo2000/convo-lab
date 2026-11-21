@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import JournalAvatar from './JournalAvatar';
@@ -6,6 +7,7 @@ import { getTutorPreferences, tutorAvatar } from './journalTutor';
 import useJournalModal from './useJournalModal';
 import useJournalDraftClose from './useJournalDraftClose';
 import type useJournalEditor from './useJournalEditor';
+import './journalEntryDialogs.css';
 import './journalDraftActions.css';
 
 interface Props {
@@ -33,10 +35,10 @@ const JournalDraftCloseDialog = ({ ownerId, editor, onDismiss, onClose }: Props)
   const { action, error, pending, finish } = useJournalDraftClose(ownerId, editor, onClose);
   const busy = Boolean(action);
   const message = error || editor.error;
-  return (
+  return createPortal(
     <dialog
       ref={dialog}
-      className="journal-draft-close"
+      className="journal-entry-dialog journal-draft-close"
       aria-labelledby={labelId}
       aria-describedby={descriptionId}
       aria-busy={busy}
@@ -56,7 +58,9 @@ const JournalDraftCloseDialog = ({ ownerId, editor, onDismiss, onClose }: Props)
       </button>
       <div className="journal-draft-close-heading">
         <DraftTutor ownerId={ownerId} />
-        <h2 id={labelId}>Keep this draft?</h2>
+        <h2 id={labelId} className="journal-entry-dialog-heading">
+          Keep this draft?
+        </h2>
       </div>
       <p id={descriptionId} className="journal-draft-close-copy">
         Your writing is saved automatically. You can come back and finish it later.
@@ -88,7 +92,8 @@ const JournalDraftCloseDialog = ({ ownerId, editor, onDismiss, onClose }: Props)
           {action === 'keep' ? 'Saving…' : 'Keep draft & close'}
         </button>
       </div>
-    </dialog>
+    </dialog>,
+    document.body
   );
 };
 

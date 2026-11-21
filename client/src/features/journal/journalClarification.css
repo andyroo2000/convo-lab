@@ -1,0 +1,75 @@
+.journal-clarification {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #4b1800;
+  font:
+    400 20px/1.4 'Crimson Pro',
+    'Noto Serif JP',
+    serif;
+}
+.journal-clarification-panel {
+  min-width: 0;
+  flex: 1;
+  padding: 22px;
+  border: 1px solid #d5dccb;
+  border-top: 4px solid #398b47;
+  border-radius: 18px;
+  background: #fffdf7;
+}
+.journal-clarification-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px;
+  border: 1px solid #d5dccb;
+  border-radius: 12px;
+  background: #fffef9;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.journal-clarification-choice:has(:checked) {
+  border-color: #407c35;
+  background: #edf3e6;
+}
+.journal-clarification-choice input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: #407c35;
+}
+.journal-clarification fieldset:disabled {
+  opacity: 0.5;
+}
+.journal-clarification-answer {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #a8bda4;
+  border-radius: 12px;
+  background: #fffef9;
+  color: inherit;
+  font: inherit;
+}
+.journal-clarification-back {
+  min-height: 44px;
+  color: #47664c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.journal-clarification-error {
+  color: #9e443d;
+}
+.journal-clarification :is(input, textarea, button):focus-visible {
+  outline: 3px solid #6d8c55;
+  outline-offset: 3px;
+}
+@media (max-width: 480px) {
+  .journal-clarification {
+    flex-direction: column;
+  }
+  .journal-clarification-panel {
+    width: 100%;
+    padding: 18px;
+  }
+}
