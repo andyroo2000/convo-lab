@@ -18,6 +18,7 @@ export default defineConfig({
       filename: 'sw.ts',
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globIgnores: ['japanese-input/**'],
         minify: false,
         sourcemap: false,
       },
@@ -37,6 +38,10 @@ export default defineConfig({
     },
   },
   server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
     port: 5173,
     proxy: {
       '/sanctum/csrf-cookie': {

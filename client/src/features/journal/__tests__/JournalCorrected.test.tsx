@@ -3,6 +3,7 @@ import { expect, it, vi } from 'vitest';
 import JournalFeedback from '../JournalFeedback';
 import JournalCorrected from '../JournalCorrected';
 import type { JournalAnalysis } from '../types';
+import './dialogMock';
 
 vi.mock('../JournalAudioPlayer', () => ({
   default: ({ expectedReplyRevision }: { expectedReplyRevision: number }) => (

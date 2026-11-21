@@ -44,6 +44,12 @@ const redirectConfig = Object.entries(LEGACY_REDIRECTS)
 const noindexPrefixPattern = NOINDEX_PREFIXES.map((prefix) =>
   prefix.slice(1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 ).join('|');
+const journalRouteConfig = `location ~ ^/app/(?:journal|settings)(?:/|$) {
+  try_files /__spa/noindex.html =404;
+  add_header Cross-Origin-Opener-Policy "same-origin" always;
+  add_header Cross-Origin-Embedder-Policy "require-corp" always;
+  add_header Cache-Control "no-cache, no-store, must-revalidate";
+}`;
 const noindexRouteConfig = `location ~ ^/(?:${noindexPrefixPattern})(?:/|$) {
   try_files /__spa/noindex.html =404;
   add_header Cache-Control "no-cache, no-store, must-revalidate";
@@ -68,5 +74,5 @@ const indexableRouteConfig = Object.keys(INDEXABLE_ROUTE_CONFIG)
 
 await writeFile(
   path.join(outputDirectory, '__spa', 'generated-routes.conf'),
-  `${redirectConfig}\n\n${noindexRouteConfig}\n\n${indexableRouteConfig}\n`
+  `${redirectConfig}\n\n${journalRouteConfig}\n\n${noindexRouteConfig}\n\n${indexableRouteConfig}\n`
 );

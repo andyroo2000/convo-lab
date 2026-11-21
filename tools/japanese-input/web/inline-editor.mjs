@@ -9,29 +9,41 @@ export class InlineEditor {
   internal = false;
   japanese = true;
   ready = false;
+  lifetime = new AbortController();
 
   constructor(elements, toHiragana) {
     this.elements = elements;
     this.field = elements.input;
-    this.session = new InlineSession(this.field, kanaComposer(toHiragana), () => this.changed());
+    const Session = elements.session ?? InlineSession;
+    this.session = new Session(this.field, kanaComposer(toHiragana), () => this.changed());
     this.history = new NotebookHistory(this.field, () => this.changed());
-    this.live = new LiveComposition(this.session, elements);
+    const Composition = elements.composition ?? LiveComposition;
+    this.live = new Composition(this.session, elements);
     this.listen();
   }
 
   listen() {
-    this.field.addEventListener('beforeinput', (event) => this.beforeInput(event));
-    this.field.addEventListener('input', () => this.externalInput());
-    this.field.addEventListener('keydown', (event) => this.keydown(event));
-    this.field.addEventListener('blur', () => this.finish());
-    this.field.addEventListener('compositionstart', () => {
+    const listen = (name, handler) =>
+      this.field.addEventListener(name, handler, { signal: this.lifetime.signal });
+    listen('beforeinput', (event) => this.beforeInput(event));
+    listen('input', () => this.externalInput());
+    listen('keydown', (event) => this.keydown(event));
+    listen('blur', () => this.finish());
+    listen('compositionstart', () => {
       this.finish();
       this.native = true;
     });
-    this.field.addEventListener('compositionend', () => {
+    listen('compositionend', () => {
       this.native = false;
       this.history.remember();
     });
+  }
+
+  dispose() {
+    this.finish();
+    this.lifetime.abort();
+    this.live.picker.dispose();
+    this.live.view.layer.remove();
   }
 
   changed() {
