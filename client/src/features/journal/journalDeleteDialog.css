@@ -107,7 +107,7 @@
     padding: 24px 20px;
   }
   .journal-delete-actions button {
-    flex: 1;
+    flex: 1 1 100%;
     padding-inline: 12px;
   }
 }
