@@ -290,6 +290,7 @@ describe('DailyAudioPracticePage', () => {
     expect(screen.getByText("Generating today's 30-minute edition")).toBeInTheDocument();
     expect(screen.getByText('45%')).toBeInTheDocument();
     expect(screen.getByText(/Drills: Ready/)).toBeInTheDocument();
+    expect(screen.queryByText(/Dialogues:|Story:/)).not.toBeInTheDocument();
   });
 
   it("keeps polling today's generation while an earlier day is selected", () => {
@@ -359,7 +360,7 @@ describe('DailyAudioPracticePage', () => {
     renderPage();
 
     expect(screen.getByText('Generation is taking longer than expected')).toBeInTheDocument();
-    expect(screen.getAllByTestId('script-track-player')).toHaveLength(3);
+    expect(screen.getAllByTestId('script-track-player')).toHaveLength(1);
   });
 
   it('enables retry when an unchanged generation crosses the stale threshold', () => {
@@ -389,7 +390,7 @@ describe('DailyAudioPracticePage', () => {
     vi.useRealTimers();
   });
 
-  it('renders source summary and all three ready tracks', () => {
+  it('renders source summary and only the drill track', () => {
     mockUseRecentDailyAudioPractice.mockReturnValue({ data: [readyPractice], isLoading: false });
     mockUseDailyAudioPractice.mockReturnValue({ data: readyPractice, isLoading: false });
 
@@ -397,10 +398,22 @@ describe('DailyAudioPracticePage', () => {
 
     expect(screen.getByText('2026-05-05')).toBeInTheDocument();
     expect(screen.getByText('Cards')).toBeInTheDocument();
-    expect(screen.getAllByTestId('script-track-player')).toHaveLength(3);
+    expect(screen.getAllByTestId('script-track-player')).toHaveLength(1);
     expect(screen.getByText('Drills')).toBeInTheDocument();
-    expect(screen.getByText('Dialogues')).toBeInTheDocument();
-    expect(screen.getByText('Story')).toBeInTheDocument();
+    expect(screen.queryByText('Dialogues')).not.toBeInTheDocument();
+    expect(screen.queryByText('Story')).not.toBeInTheDocument();
+  });
+
+  it('explains when a legacy day has no drill', () => {
+    const practice = {
+      ...readyPractice,
+      tracks: readyPractice.tracks.filter((track) => track.mode !== 'drill'),
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [practice], isLoading: false });
+    mockUseDailyAudioPractice.mockReturnValue({ data: practice, isLoading: false });
+    renderPage();
+    expect(screen.getByText(/No drill is available for this day/)).toBeInTheDocument();
+    expect(screen.queryByTestId('script-track-player')).not.toBeInTheDocument();
   });
 
   it('shows a generation error', () => {
