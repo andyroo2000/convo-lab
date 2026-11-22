@@ -16,6 +16,7 @@ const {
   saveMutateMock,
   saveResetMock,
   studyActivityStatusMock,
+  startMock,
   stopMock,
 } = vi.hoisted(() => ({
   analyticsAnchorMock: vi.fn(),
@@ -29,6 +30,7 @@ const {
   saveResetMock: vi.fn(),
   studyActivityStatusMock: vi.fn(),
   stopMock: vi.fn(),
+  startMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useStudyCapabilities', () => ({
@@ -37,7 +39,7 @@ vi.mock('../../hooks/useStudyCapabilities', () => ({
 
 vi.mock('../../contexts/StudyActivityContext', () => ({
   useStudyActivityActions: () => ({
-    start: vi.fn(),
+    start: startMock,
     stopAndWait: stopMock,
     logCompleted: logCompletedMock,
     logCompletedAndWait: logCompletedMock,
@@ -221,6 +223,7 @@ describe('StudyTimePage', () => {
     saveResetMock.mockReset();
     fetchNextPageMock.mockReset();
     stopMock.mockReset();
+    startMock.mockReset();
     studyActivityStatusMock.mockReset();
     studyActivityStatusMock.mockReturnValue({ active: null });
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
@@ -257,21 +260,31 @@ describe('StudyTimePage', () => {
   });
 
   it('keeps the timer and form values available across tabs and form toggles', () => {
-    studyActivityStatusMock.mockReturnValue({ active: { name: 'Reading', activity: 'reading' } });
+    startMock.mockImplementation((session) =>
+      studyActivityStatusMock.mockReturnValue({ active: session })
+    );
     render(<StudyTimePage />);
     expect(screen.queryByRole('button', { name: 'Start session' })).toBeNull();
     openLog();
     const nameField = { name: 'Source, show, or project' };
     fireEvent.change(screen.getByRole('textbox', nameField), { target: { value: 'Chapter 3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
+    expect(startMock).toHaveBeenCalledWith({
+      name: 'Chapter 3',
+      activity: 'card_creation',
+      source: 'manual',
+    });
     openTab('Recap');
     openTab('Entries');
-    expect(screen.getByRole('button', { name: 'Stop Reading' })).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Close form' }));
+    expect(screen.getByRole('button', { name: 'Stop Chapter 3' })).toBeVisible();
+    const closeForm = screen.getByRole('button', { name: 'Close form', expanded: true });
+    fireEvent.click(closeForm);
+    expect(screen.getByRole('button', { name: 'Log time', expanded: false })).toBeVisible();
     expect(screen.queryByRole('textbox', nameField)).toBeNull();
     expect(stopMock).not.toHaveBeenCalled();
     openLog();
     expect(screen.getByRole('textbox', nameField)).toHaveValue('Chapter 3');
-    fireEvent.click(screen.getByRole('button', { name: 'Stop Reading' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Chapter 3' }));
     expect(stopMock).toHaveBeenCalledOnce();
   });
 
