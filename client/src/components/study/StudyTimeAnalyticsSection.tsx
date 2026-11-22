@@ -221,7 +221,7 @@ const RhythmBucket = ({
     >
       <button
         type="button"
-        className={`touch-manipulation flex min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-sm border-0 p-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
+        className={`touch-manipulation flex min-h-[2px] empty:min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-sm border-0 p-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
           onDrillDown ? 'cursor-pointer' : 'cursor-default'
         }`}
         style={{ height: `${(totalMs / maximumBucketMs) * 100}%` }}
@@ -340,11 +340,7 @@ const CategoryFilter = ({
   return (
     <button
       type="button"
-      className={`touch-manipulation flex min-h-11 items-center justify-between gap-2 rounded-full border-2 px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
-        included
-          ? `${category.borderColor} bg-white/75 text-gray-700`
-          : 'border-navy/10 bg-navy/5 text-gray-400 opacity-60'
-      } disabled:cursor-not-allowed`}
+      className="touch-manipulation flex min-h-11 items-center justify-between text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral disabled:cursor-not-allowed"
       aria-pressed={included}
       aria-label={`${labels.categoryNames[category.key]}: ${formatDuration(categoryTotalMs)}. ${labels.toggleCategory}`}
       disabled={isOnlyIncludedCategory}
@@ -354,13 +350,11 @@ const CategoryFilter = ({
       }
       onKeyDown={handleKeyDown}
     >
-      <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
+      <span className="flex items-center gap-2">
         <span className={`h-2.5 w-2.5 rounded-full ${category.barColor}`} />
         {labels.categoryNames[category.key]}
       </span>
-      <span className={`font-mono text-sm font-black ${category.color}`}>
-        {formatDuration(categoryTotalMs)}
-      </span>
+      <span>{formatDuration(categoryTotalMs)}</span>
     </button>
   );
 };

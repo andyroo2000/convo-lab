@@ -10,7 +10,11 @@ import './studyTimeRecord.css';
 const tabs = ['rhythm', 'recap', 'mastery', 'entries'] as const;
 type Tab = (typeof tabs)[number];
 
-function navigateTabs(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+function navigateTabs(
+  event: KeyboardEvent<HTMLButtonElement>,
+  index: number,
+  select: (tab: Tab) => void
+) {
   const destination: Record<string, number> = {
     ArrowRight: (index + 1) % tabs.length,
     ArrowLeft: (index + tabs.length - 1) % tabs.length,
@@ -20,9 +24,9 @@ function navigateTabs(event: KeyboardEvent<HTMLButtonElement>, index: number) {
   const next = destination[event.key];
   if (next === undefined) return;
   event.preventDefault();
-  const button = event.currentTarget.parentElement?.querySelectorAll('button')[next];
-  button?.focus();
-  button?.click();
+  const name = tabs[next];
+  document.getElementById(`time-tab-${name}`)?.focus();
+  select(name);
 }
 
 const StudyTimePage = () => {
@@ -35,9 +39,10 @@ const StudyTimePage = () => {
     setTab(next);
     if (next === 'entries') setVisitedEntries(true);
   };
+  const logFormVisible = tab === 'entries' && logging;
   const logTime = () => {
     select('entries');
-    setLogging(true);
+    setLogging(!logFormVisible);
   };
 
   const record = (controls: ReactNode, rhythm: ReactNode) => {
@@ -62,7 +67,7 @@ const StudyTimePage = () => {
                 aria-selected={tab === name}
                 tabIndex={tab === name ? 0 : -1}
                 onClick={() => select(name)}
-                onKeyDown={(event) => navigateTabs(event, index)}
+                onKeyDown={(event) => navigateTabs(event, index, select)}
               >
                 {t(`time.tabs.${name}`)}
               </button>
@@ -75,7 +80,7 @@ const StudyTimePage = () => {
               id={`time-panel-${name}`}
               aria-labelledby={`time-tab-${name}`}
               hidden={tab !== name}
-              tabIndex={0}
+              tabIndex={tab === name ? 0 : -1}
             >
               {(tab === name || (name === 'entries' && visitedEntries)) && panels[name]}
             </div>
@@ -89,9 +94,15 @@ const StudyTimePage = () => {
     <div className="time-record">
       <header className="time-title">
         <h1>{t('time.title')}</h1>
-        <button type="button" className="time-log" onClick={logTime}>
-          <span aria-hidden="true">＋ </span>
-          {t('time.logTime')}
+        <button
+          type="button"
+          className="time-log"
+          aria-expanded={logFormVisible}
+          aria-controls="time-panel-entries"
+          onClick={logTime}
+        >
+          <span aria-hidden="true">{logFormVisible ? '− ' : '＋ '}</span>
+          {t(logFormVisible ? 'time.closeLog' : 'time.logTime')}
         </button>
       </header>
       <StudyTimeAnalyticsSection showRhythm={() => select('rhythm')}>
@@ -100,4 +111,5 @@ const StudyTimePage = () => {
     </div>
   );
 };
+
 export default StudyTimePage;

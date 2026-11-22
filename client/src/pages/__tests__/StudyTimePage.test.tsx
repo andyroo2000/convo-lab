@@ -256,6 +256,41 @@ describe('StudyTimePage', () => {
     );
   });
 
+  it('keeps the timer and form values available across tabs and form toggles', () => {
+    studyActivityStatusMock.mockReturnValue({ active: { name: 'Reading', activity: 'reading' } });
+    render(<StudyTimePage />);
+    expect(screen.queryByRole('button', { name: 'Start session' })).toBeNull();
+    openLog();
+    const nameField = { name: 'Source, show, or project' };
+    fireEvent.change(screen.getByRole('textbox', nameField), { target: { value: 'Chapter 3' } });
+    openTab('Recap');
+    openTab('Entries');
+    expect(screen.getByRole('button', { name: 'Stop Reading' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Close form' }));
+    expect(screen.queryByRole('textbox', nameField)).toBeNull();
+    expect(stopMock).not.toHaveBeenCalled();
+    openLog();
+    expect(screen.getByRole('textbox', nameField)).toHaveValue('Chapter 3');
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Reading' }));
+    expect(stopMock).toHaveBeenCalledOnce();
+  });
+
+  it('moves tab focus and selection with arrow, Home and End keys', () => {
+    render(<StudyTimePage />);
+    const steps = [
+      ['Rhythm', 'ArrowLeft', 'Entries'],
+      ['Entries', 'ArrowRight', 'Rhythm'],
+      ['Rhythm', 'End', 'Entries'],
+      ['Entries', 'Home', 'Rhythm'],
+    ];
+    steps.forEach(([current, key, target]) => {
+      fireEvent.keyDown(screen.getByRole('tab', { name: current }), { key });
+      const selected = screen.getByRole('tab', { name: target, selected: true });
+      expect(selected).toHaveFocus();
+      expect(screen.getByRole('tabpanel')).toHaveAccessibleName(target);
+    });
+  });
+
   it('shows a retryable capability error and disables new optimistic timers', () => {
     capabilitiesQueryMock.mockReturnValue({
       data: undefined,
@@ -307,10 +342,12 @@ describe('StudyTimePage', () => {
   it('navigates to an earlier period and prevents future navigation', () => {
     render(<StudyTimePage />);
 
+    openTab('Mastery');
     const initialAnchor = analyticsAnchorMock.mock.calls[0][0] as string;
     const next = screen.getByRole('button', { name: 'Next period' });
     expect(next).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Previous period' }));
+    expect(screen.getByRole('tab', { name: 'Rhythm', selected: true })).toBeVisible();
     expect(analyticsAnchorMock).toHaveBeenLastCalledWith(
       shiftStudyTimeAnchor(initialAnchor, 'week', -1)
     );
