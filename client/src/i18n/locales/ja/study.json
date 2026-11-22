@@ -1,4 +1,18 @@
 {
+  "notebook": {
+    "preferences": "学習設定",
+    "title": "学習",
+    "review": "復習",
+    "learn": "新規学習",
+    "due_one": "枚の復習カード",
+    "due_other": "枚の復習カード",
+    "newCards_one": "枚の新しいカード",
+    "newCards_other": "枚の新しいカード",
+    "startReview": "復習を始める",
+    "startLesson": "レッスンを始める",
+    "browse": "カードを見る",
+    "choosePile": "パイルを選ぶ"
+  },
   "title": "学習",
   "disabled": "この環境では学習機能が無効になっています。",
   "featureAvailability": {

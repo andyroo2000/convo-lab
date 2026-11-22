@@ -13,7 +13,7 @@ async function expectMobileLearningNavigation(page: Page) {
   await expect(learningDock).toBeVisible();
   await expect(learningDock.getByRole('link', { name: 'Study' })).toBeVisible();
   await expect(learningDock.getByRole('link', { name: 'Cards' })).toBeVisible();
-  await expect(learningDock.getByRole('link', { name: 'Daily Audio' })).toBeVisible();
+  await expect(learningDock.getByRole('link', { name: 'Daily Audio' })).toHaveCount(0);
   await expect(learningDock.getByRole('link', { name: 'Time' })).toBeVisible();
   await expect(learningDock.getByRole('link', { name: 'Settings' })).toBeVisible();
 }
@@ -52,12 +52,12 @@ test.describe('Study mobile experience', () => {
     await loginAsUser(page);
 
     await page.goto('/app/study');
-    await expect(page.getByRole('button', { name: 'Begin Study' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Start review' })).toBeVisible();
     await expectTopbarControlsDoNotOverlap(page);
     await expectMobileLearningNavigation(page);
     await expectNoHorizontalOverflow(page);
 
-    await page.getByRole('button', { name: 'Begin Study' }).click();
+    await page.getByRole('button', { name: 'Start review' }).click();
     await expect(page.getByTestId('study-focus-shell')).toBeVisible();
     await expect(page.getByTestId('mobile-learning-dock')).not.toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -154,11 +154,11 @@ test.describe('Study mobile narrow overflow checks', () => {
     await page.setViewportSize({ width: 320, height: 844 });
 
     await page.goto('/app/study');
-    await expect(page.getByRole('button', { name: 'Begin Study' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Start review' })).toBeVisible();
     await expectTopbarControlsDoNotOverlap(page);
     await expectMobileLearningNavigation(page);
     await expectNoHorizontalOverflow(page);
-    await page.getByRole('button', { name: 'Begin Study' }).click();
+    await page.getByRole('button', { name: 'Start review' }).click();
     await page.getByRole('button', { name: 'Reveal answer' }).click();
     await expect(page.getByTestId('study-grade-tray')).toBeVisible();
     await expectNoHorizontalOverflow(page);

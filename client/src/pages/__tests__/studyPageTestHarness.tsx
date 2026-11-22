@@ -9,6 +9,10 @@ import { KnownKanjiContextProvider } from '../../contexts/KnownKanjiContext';
 import StudyPage from '../StudyPage';
 import studyCapabilitiesFixture from '../../test/studyCapabilitiesFixture';
 
+vi.mock('../DailyAudioPracticePage', () => ({
+  default: () => <section aria-label="Daily Audio" />,
+}));
+
 vi.mock('../../hooks/useStudyCapabilities', () => ({
   useStudyCapabilities: () => ({
     data: studyCapabilitiesFixture,

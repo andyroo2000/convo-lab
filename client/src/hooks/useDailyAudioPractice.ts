@@ -50,10 +50,22 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+interface PracticePage {
+  items: unknown[];
+  latestPlayableDrill?: unknown;
+}
+
 async function fetchRecentDailyAudioPractice() {
-  const payload = await apiRequest<unknown>(DAILY_AUDIO_API_BASE);
-  if (!Array.isArray(payload)) throw new Error('Daily Audio practice list must be an array.');
-  return payload.map(decodeDailyAudioPractice);
+  const page = await apiRequest<PracticePage | unknown[]>(
+    `${DAILY_AUDIO_API_BASE}?paginated=1&cursor=0&limit=14`
+  );
+  if (Array.isArray(page)) return page.map(decodeDailyAudioPractice);
+  const practices = page.items.map(decodeDailyAudioPractice);
+  if (page.latestPlayableDrill) {
+    const older = decodeDailyAudioPractice(page.latestPlayableDrill);
+    if (!practices.some((practice) => practice.id === older.id)) practices.push(older);
+  }
+  return practices;
 }
 
 async function fetchDailyAudioPractice(id: string) {

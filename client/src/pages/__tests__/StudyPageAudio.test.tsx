@@ -83,7 +83,7 @@ const createAnswerAudioCard = () => ({
 
 const startReviewSession = async () => {
   renderStudyPage();
-  await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
   await waitFor(() => expect(startStudySessionMock).toHaveBeenCalledTimes(1));
 };
 
@@ -273,7 +273,7 @@ describe('StudyPage audio and motion', () => {
     configureReturningFailedCardSession();
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
 
     await waitFor(() => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);

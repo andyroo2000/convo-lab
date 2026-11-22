@@ -1,4 +1,18 @@
 {
+  "notebook": {
+    "preferences": "Study preferences",
+    "title": "Study",
+    "review": "Review",
+    "learn": "Learn",
+    "due_one": "card due",
+    "due_other": "cards due",
+    "newCards_one": "new card",
+    "newCards_other": "new cards",
+    "startReview": "Start review",
+    "startLesson": "Start lesson",
+    "browse": "Browse cards",
+    "choosePile": "Choose a pile"
+  },
   "title": "Study",
   "disabled": "Study is currently disabled for this environment.",
   "featureAvailability": {

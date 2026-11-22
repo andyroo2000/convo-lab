@@ -1,4 +1,4 @@
-import { BookOpen, Clock3, Files, Headphones, Settings } from 'lucide-react';
+import { BookOpen, Clock3, Files, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
@@ -21,7 +21,7 @@ const MobileLearningDock = () => {
       label: t('nav.study'),
       path: '/app/study',
       icon: BookOpen,
-      active: pathname === '/app/study',
+      active: ['/app/study', '/app/study/daily-audio'].includes(pathname),
     },
     {
       id: 'cards',
@@ -29,13 +29,6 @@ const MobileLearningDock = () => {
       path: '/app/study/cards',
       icon: Files,
       active: isCardsActive,
-    },
-    {
-      id: 'audio',
-      label: t('nav.dailyAudio'),
-      path: '/app/study/daily-audio',
-      icon: Headphones,
-      active: pathname.startsWith('/app/study/daily-audio'),
     },
     {
       id: 'time',

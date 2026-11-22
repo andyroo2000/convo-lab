@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import estimateReviewMinutes, { calendarDayLabel } from '../../../utils/studyTodayPresentation';
 import StudyOverviewDashboard from '../StudyOverviewDashboard';
@@ -9,15 +9,8 @@ vi.mock('../../../hooks/useStudyPiles', () => ({
   useStudyPiles: () => ({ data: { piles: [] }, isLoading: false, isError: false }),
 }));
 
-const useKnownKanji = vi.fn();
-const useGoogleCalendarConnection = vi.fn();
-
-vi.mock('../../../hooks/useKnownKanji', () => ({
-  useKnownKanji: () => useKnownKanji(),
-}));
-
-vi.mock('../../../hooks/useGoogleCalendarConnection', () => ({
-  useGoogleCalendarConnection: () => useGoogleCalendarConnection(),
+vi.mock('../../../pages/DailyAudioPracticePage', () => ({
+  default: () => <section aria-label="Daily Audio" />,
 }));
 
 const overview = {
@@ -54,28 +47,6 @@ const overview = {
 };
 
 describe('StudyOverviewDashboard', () => {
-  beforeEach(() => {
-    useKnownKanji.mockReturnValue({
-      data: {
-        wanikani: {
-          connected: true,
-          lastSyncedAt: '2026-08-24T12:00:00Z',
-          reviewCount: 32,
-          reviewCountUpdatedAt: '2026-08-24T12:00:00Z',
-        },
-      },
-    });
-    useGoogleCalendarConnection.mockReturnValue({
-      data: {
-        nextLesson: {
-          title: 'iTalki',
-          startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          endsAt: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
-        },
-      },
-    });
-  });
-
   it('estimates a whole-number review duration', () => {
     expect(estimateReviewMinutes(14)).toBe(6);
     expect(estimateReviewMinutes(74)).toBe(29);
@@ -108,55 +79,16 @@ describe('StudyOverviewDashboard', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('14 reviews')).toBeInTheDocument();
-    expect(screen.getByText('About 6 min')).toBeInTheDocument();
-    expect(screen.getByText('5 new cards')).toBeInTheDocument();
-    expect(screen.getByText('32 reviews')).toBeInTheDocument();
-    expect(screen.getByText('iTalki')).toBeInTheDocument();
-    expect(screen.getByText('6,851 cards total')).toBeInTheDocument();
-    expect(screen.getByText('Ready to learn')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Recent recall is 91% against a 90% target. 12 Apprentice cards need reinforcement, with 83 reviews projected over seven days.'
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Learning readiness')).not.toBeInTheDocument();
-    expect(screen.getByText('Item spread')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: "Today's practice" })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /WaniKani/ })).toHaveAttribute(
-      'href',
-      'https://www.wanikani.com/subjects/review'
-    );
-
-    const reviewsButton = screen.getByRole('button', { name: 'Reviews' });
-    const lessonsButton = screen.getByRole('button', { name: 'My usual mix' });
-    expect(reviewsButton).toHaveAccessibleDescription('14 reviews About 6 min');
-    expect(lessonsButton).toHaveAccessibleDescription('5 new cards');
+    expect(screen.getByRole('region', { name: 'Daily Audio' })).toBeVisible();
+    expect(screen.getByText('About 6 min')).toBeVisible();
+    expect(screen.queryByRole('link', { name: /WaniKani/ })).toBeNull();
+    expect(screen.queryByText('Item spread')).toBeNull();
+    const reviewsButton = screen.getByRole('button', { name: 'Start review' });
+    const lessonsButton = screen.getByRole('button', { name: 'Start lesson' });
+    expect(reviewsButton).toHaveAccessibleDescription('14 cards due About 6 min');
     fireEvent.click(reviewsButton);
     fireEvent.click(lessonsButton);
     expect(onBeginReview).toHaveBeenCalledOnce();
     expect(onBeginLesson).toHaveBeenCalledOnce();
-  });
-
-  it('degrades cleanly while integration summaries are unavailable', () => {
-    useKnownKanji.mockReturnValue({ data: { wanikani: { connected: false } } });
-    useGoogleCalendarConnection.mockReturnValue({ data: { nextLesson: null } });
-
-    render(
-      <MemoryRouter>
-        <StudyOverviewDashboard
-          overview={overview}
-          reviewAvailableCount={14}
-          loading={false}
-          error={null}
-          onBeginReview={vi.fn()}
-          onBeginLesson={vi.fn()}
-          isStartingSession={false}
-        />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText('Open reviews')).toBeInTheDocument();
-    expect(screen.queryByText('Next lesson')).not.toBeInTheDocument();
   });
 });

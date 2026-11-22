@@ -23,6 +23,7 @@ const {
 vi.mock('../../hooks/useDailyAudioPractice', () => ({
   dailyAudioPracticeKeys: {
     list: () => ['daily-audio-practice', 'list'],
+    status: (id: string) => ['daily-audio-practice', 'status', id],
     detail: (id: string) => ['daily-audio-practice', 'detail', id],
   },
   useRecentDailyAudioPractice: mockUseRecentDailyAudioPractice,
@@ -130,8 +131,18 @@ function todayPracticeDate() {
 
 describe('DailyAudioPracticePage', () => {
   beforeEach(() => {
+    HTMLDialogElement.prototype.showModal = function showModal() {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close = function close() {
+      this.removeAttribute('open');
+    };
     vi.clearAllMocks();
-    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [], isLoading: false });
+    mockUseRecentDailyAudioPractice.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isSuccess: true,
+    });
     mockUseDailyAudioPractice.mockReturnValue({ data: undefined, isLoading: false });
     mockUseDailyAudioPracticeStatus.mockReturnValue({ data: undefined });
     mockUseCreateDailyAudioPractice.mockReturnValue({
@@ -142,314 +153,113 @@ describe('DailyAudioPracticePage', () => {
     });
   });
 
-  it("shows an empty state and creates today's practice set", async () => {
-    mockCreateMutateAsync.mockResolvedValue(readyPractice);
-
-    renderPage();
-
-    expect(screen.getByText('Ready when you are')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
-
-    await waitFor(() => {
-      expect(mockCreateMutateAsync).toHaveBeenCalledWith(30);
-    });
-  });
-
-  it.each([15, 30, 45, 60])('creates the selected %i-minute edition', async (duration) => {
+  function openCreator() {
+    fireEvent.click(screen.getByRole('button', { name: 'New audio drill' }));
+  }
+  it('opens the duration picker and generates only on explicit confirmation', async () => {
     mockCreateMutateAsync.mockResolvedValue(readyPractice);
     renderPage();
-
-    fireEvent.click(screen.getByRole('button', { name: `${duration} min` }));
-    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
-
-    await waitFor(() => {
-      expect(mockCreateMutateAsync).toHaveBeenCalledWith(duration);
-    });
+    expect(screen.getByText('Create your first audio drill to start listening.')).toBeVisible();
+    openCreator();
+    fireEvent.click(screen.getByRole('button', { name: '45 min' }));
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate 45-min drill' }));
+    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith(45));
   });
-
-  it("confirms before overwriting today's existing audio", async () => {
-    const todayPractice = { ...readyPractice, practiceDate: todayPracticeDate() };
+  it('cancels without creating a drill', () => {
+    renderPage();
+    openCreator();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+  });
+  it('loads the newest playable long drill, skips legacy short tracks and supports older recordings', () => {
+    const earlier = { ...readyPractice, id: 'older', practiceDate: '2026-04-03' };
+    const shortOnly = {
+      ...readyPractice,
+      id: 'short',
+      practiceDate: '2026-06-06',
+      tracks: readyPractice.tracks.slice(1),
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [earlier, shortOnly, readyPractice] });
+    renderPage();
+    expect(screen.getAllByTestId('script-track-player')).toHaveLength(1);
+    expect(mockUseDailyAudioPractice).toHaveBeenCalledWith(readyPractice.id);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Recording date' }), {
+      target: { value: 'older' },
+    });
+    expect(mockUseDailyAudioPractice).toHaveBeenLastCalledWith('older');
+  });
+  it('explicitly confirms before replacing a same-day recording', async () => {
     mockUseRecentDailyAudioPractice.mockReturnValue({
-      data: [todayPractice],
-      isLoading: false,
+      data: [{ ...readyPractice, practiceDate: todayPracticeDate() }],
     });
-    mockUseDailyAudioPractice.mockReturnValue({ data: todayPractice, isLoading: false });
-    mockCreateMutateAsync.mockResolvedValue(todayPractice);
-
-    renderPage();
-
-    expect(
-      screen.getByText(
-        'Generate audio drills based on words and grammar structures you are currently working on.'
-      )
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /regenerate today's audio/i }));
-
-    expect(screen.getByText('Regenerate today’s audio?')).toBeInTheDocument();
-    expect(
-      screen.getByText(/overwrite today’s existing audio with a 30-minute edition/i)
-    ).toBeInTheDocument();
-    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Keep Existing Audio' }));
-    expect(screen.queryByText('Regenerate today’s audio?')).not.toBeInTheDocument();
-    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: /regenerate today's audio/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Regenerate Audio' }));
-
-    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1));
-  });
-
-  it('retries a failed practice without showing an overwrite warning', async () => {
-    const failedPractice = {
-      ...readyPractice,
-      practiceDate: todayPracticeDate(),
-      status: 'error' as const,
-    };
-    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [failedPractice], isLoading: false });
-    mockUseDailyAudioPractice.mockReturnValue({ data: failedPractice, isLoading: false });
     mockCreateMutateAsync.mockResolvedValue(readyPractice);
-
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
-
-    expect(screen.queryByText('Regenerate today’s audio?')).not.toBeInTheDocument();
+    openCreator();
+    fireEvent.click(screen.getByRole('button', { name: /Generate .*min drill/ }));
+    expect(mockCreateMutateAsync).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Replace recording' }));
     await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1));
   });
-
-  it('swipes between earlier and later days without moving beyond the latest day', () => {
-    const earlierPractice = {
+  it('keeps the last recording available and polls an active generation', () => {
+    const pending = {
       ...readyPractice,
-      id: 'practice-earlier',
-      practiceDate: '2026-05-04',
-    };
-    // The UI enforces newest-first navigation even if the API response order changes.
-    const practices = [earlierPractice, readyPractice];
-    mockUseRecentDailyAudioPractice.mockReturnValue({ data: practices, isLoading: false });
-    mockUseDailyAudioPractice.mockImplementation((id: string | undefined) => ({
-      data: practices.find((item) => item.id === id),
-      isLoading: false,
-    }));
-
-    renderPage();
-    const swipeRegion = screen.getByTestId('daily-audio-day');
-    const pauseSpy = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
-    swipeRegion.append(document.createElement('audio'));
-
-    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100, clientY: 20 }] });
-    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180, clientY: 20 }] });
-    expect(screen.getByText('2026-05-04')).toBeInTheDocument();
-    expect(pauseSpy).toHaveBeenCalled();
-
-    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 100, clientY: 20 }] });
-    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 180, clientY: 20 }] });
-    expect(screen.getByText('2026-05-04')).toBeInTheDocument();
-
-    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
-    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 20 }] });
-    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
-
-    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
-    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 120 }] });
-    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
-
-    fireEvent.touchStart(swipeRegion, { touches: [{ clientX: 180, clientY: 20 }] });
-    fireEvent.touchEnd(swipeRegion, { changedTouches: [{ clientX: 100, clientY: 20 }] });
-    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Earlier day' }));
-    expect(screen.getByText('2026-05-04')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Later day' }));
-    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
-
-    pauseSpy.mockRestore();
-  });
-
-  it('shows generation progress and track statuses', () => {
-    const todayGeneratingPractice = {
-      ...readyPractice,
+      id: 'pending',
       practiceDate: todayPracticeDate(),
-      status: 'generating' as const,
       updatedAt: new Date().toISOString(),
+      status: 'generating',
+      tracks: [],
     };
-    mockUseRecentDailyAudioPractice.mockReturnValue({
-      data: [todayGeneratingPractice],
-      isLoading: false,
-    });
-    mockUseDailyAudioPractice.mockReturnValue({
-      data: todayGeneratingPractice,
-      isLoading: false,
-    });
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [pending, readyPractice] });
     mockUseDailyAudioPracticeStatus.mockReturnValue({
-      data: { id: 'practice-1', status: 'generating', progress: 45, tracks: [] },
+      data: { status: 'generating', progress: 24 },
     });
-
     renderPage();
-
-    expect(screen.getByText("Generating today's 30-minute edition")).toBeInTheDocument();
-    expect(screen.getByText('45%')).toBeInTheDocument();
-    expect(screen.getByText(/Drills: Ready/)).toBeInTheDocument();
-    expect(screen.queryByText(/Dialogues:|Story:/)).not.toBeInTheDocument();
+    expect(mockUseDailyAudioPracticeStatus).toHaveBeenCalledWith('pending', true);
+    expect(screen.getByRole('button', { name: 'New audio drill' })).toBeDisabled();
+    expect(screen.getByText(/24%/)).toBeVisible();
+    expect(screen.getByTestId('script-track-player')).toBeVisible();
   });
-
-  it("keeps polling today's generation while an earlier day is selected", () => {
-    const todayGeneratingPractice = {
-      ...readyPractice,
-      id: 'practice-today',
-      practiceDate: todayPracticeDate(),
-      status: 'generating' as const,
-      updatedAt: new Date().toISOString(),
-    };
-    const earlierPractice = {
-      ...readyPractice,
-      id: 'practice-earlier',
-      practiceDate: '2020-01-01',
-    };
-    const practices = [todayGeneratingPractice, earlierPractice];
-    mockUseRecentDailyAudioPractice.mockReturnValue({ data: practices, isLoading: false });
-    mockUseDailyAudioPractice.mockImplementation((id: string | undefined) => ({
-      data: practices.find((item) => item.id === id),
-      isLoading: false,
-    }));
-
-    renderPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Earlier day' }));
-
-    expect(screen.getByText('2020-01-01')).toBeInTheDocument();
-    expect(mockUseDailyAudioPracticeStatus).toHaveBeenLastCalledWith('practice-today', true);
-  });
-
-  it("enables retry when today's generation is stale", async () => {
-    const stalePractice = {
-      ...readyPractice,
-      practiceDate: todayPracticeDate(),
-      status: 'generating' as const,
-      updatedAt: new Date(Date.now() - 91 * 60 * 1000).toISOString(),
-    };
-    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [stalePractice], isLoading: false });
-    mockUseDailyAudioPractice.mockReturnValue({ data: stalePractice, isLoading: false });
-    mockCreateMutateAsync.mockResolvedValue(stalePractice);
-
-    renderPage();
-
-    expect(screen.getByText('Generation is taking longer than expected')).toBeInTheDocument();
-    expect(screen.queryByText(/Generating today's 30-minute edition/i)).not.toBeInTheDocument();
-    expect(mockUseDailyAudioPracticeStatus).toHaveBeenLastCalledWith('practice-1', false);
-    const retryButton = screen.getByRole('button', { name: /retry today's audio/i });
-    expect(retryButton).toBeEnabled();
-    fireEvent.click(retryButton);
-
-    await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledWith(30));
-  });
-
-  it('shows ready audio while the practice list still reports a stale generation', () => {
-    const staleListPractice = {
-      ...readyPractice,
-      practiceDate: todayPracticeDate(),
-      status: 'generating' as const,
-      updatedAt: new Date(Date.now() - 91 * 60 * 1000).toISOString(),
-    };
-    const refreshedDetail = { ...staleListPractice, status: 'ready' as const };
-    mockUseRecentDailyAudioPractice.mockReturnValue({
-      data: [staleListPractice],
-      isLoading: false,
-    });
-    mockUseDailyAudioPractice.mockReturnValue({ data: refreshedDetail, isLoading: false });
-
-    renderPage();
-
-    expect(screen.getByText('Generation is taking longer than expected')).toBeInTheDocument();
-    expect(screen.getAllByTestId('script-track-player')).toHaveLength(1);
-  });
-
-  it('enables retry when an unchanged generation crosses the stale threshold', () => {
+  it('enables retry once the current generation crosses its stale threshold', () => {
     vi.useFakeTimers();
-    const now = new Date('2026-08-27T12:00:00.000Z');
-    vi.setSystemTime(now);
-    const nearlyStalePractice = {
-      ...readyPractice,
-      practiceDate: todayPracticeDate(),
-      status: 'generating' as const,
-      updatedAt: new Date(now.getTime() - 89 * 60 * 1000).toISOString(),
-    };
+    try {
+      const pending = {
+        ...readyPractice,
+        id: 'pending',
+        practiceDate: todayPracticeDate(),
+        updatedAt: new Date(Date.now() - 90 * 60000 + 5000).toISOString(),
+        status: 'generating',
+        tracks: [],
+      };
+      mockUseRecentDailyAudioPractice.mockReturnValue({ data: [pending] });
+      renderPage();
+      expect(screen.getByRole('button', { name: 'New audio drill' })).toBeDisabled();
+      act(() => vi.advanceTimersByTime(6000));
+      expect(screen.getByRole('button', { name: 'New audio drill' })).toBeEnabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('surfaces generation and create errors with a path to retry', () => {
     mockUseRecentDailyAudioPractice.mockReturnValue({
-      data: [nearlyStalePractice],
-      isLoading: false,
+      data: [
+        {
+          ...readyPractice,
+          practiceDate: todayPracticeDate(),
+          status: 'error',
+          errorMessage: 'No eligible cards',
+          tracks: [],
+        },
+      ],
     });
-    mockUseDailyAudioPractice.mockReturnValue({ data: nearlyStalePractice, isLoading: false });
-
-    renderPage();
-    expect(screen.getByRole('button', { name: /generate today's audio/i })).toBeDisabled();
-
-    act(() => {
-      vi.advanceTimersByTime(61 * 1000);
-    });
-
-    expect(screen.getByRole('button', { name: /retry today's audio/i })).toBeEnabled();
-    vi.useRealTimers();
-  });
-
-  it('renders source summary and only the drill track', () => {
-    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [readyPractice], isLoading: false });
-    mockUseDailyAudioPractice.mockReturnValue({ data: readyPractice, isLoading: false });
-
-    renderPage();
-
-    expect(screen.getByText('2026-05-05')).toBeInTheDocument();
-    expect(screen.getByText('Cards')).toBeInTheDocument();
-    expect(screen.getAllByTestId('script-track-player')).toHaveLength(1);
-    expect(screen.getByText('Drills')).toBeInTheDocument();
-    expect(screen.queryByText('Dialogues')).not.toBeInTheDocument();
-    expect(screen.queryByText('Story')).not.toBeInTheDocument();
-  });
-
-  it('explains when a legacy day has no drill', () => {
-    const practice = {
-      ...readyPractice,
-      tracks: readyPractice.tracks.filter((track) => track.mode !== 'drill'),
-    };
-    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [practice], isLoading: false });
-    mockUseDailyAudioPractice.mockReturnValue({ data: practice, isLoading: false });
-    renderPage();
-    expect(screen.getByText(/No drill is available for this day/)).toBeInTheDocument();
-    expect(screen.queryByTestId('script-track-player')).not.toBeInTheDocument();
-  });
-
-  it('shows a generation error', () => {
-    const errorPractice = {
-      ...readyPractice,
-      status: 'error' as const,
-      errorMessage: 'No eligible study cards found for daily audio practice.',
-    };
-    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [errorPractice], isLoading: false });
-    mockUseDailyAudioPractice.mockReturnValue({ data: errorPractice, isLoading: false });
-
-    renderPage();
-
-    expect(screen.getByText('Generation failed')).toBeInTheDocument();
-    expect(
-      screen.getByText('No eligible study cards found for daily audio practice.')
-    ).toBeInTheDocument();
-  });
-
-  it('surfaces create errors without throwing from the click handler', async () => {
     mockUseCreateDailyAudioPractice.mockReturnValue({
-      mutateAsync: mockCreateMutateAsync,
-      isPending: false,
       isError: true,
-      error: new Error('No eligible cards.'),
+      error: new Error('Try again later'),
     });
-    mockCreateMutateAsync.mockRejectedValue(new Error('No eligible cards.'));
-
     renderPage();
-
-    fireEvent.click(screen.getByRole('button', { name: /generate today's audio/i }));
-
-    await waitFor(() => {
-      expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1);
-    });
-    expect(screen.getByText('Could not start practice')).toBeInTheDocument();
-    expect(screen.getByText('No eligible cards.')).toBeInTheDocument();
+    expect(screen.getByText('No eligible cards')).toBeVisible();
+    expect(screen.getByText('Try again later')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'New audio drill' })).toBeEnabled();
   });
 });
