@@ -43,6 +43,10 @@ function localPracticeDate() {
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function drillTracks(practice: DailyAudioPractice) {
+  return practice.tracks.filter((track) => track.mode === 'drill');
+}
+
 function formatStatus(status: string) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
@@ -237,8 +241,7 @@ const GenerationProgress = ({
           Generating today&apos;s {practice.targetDurationMinutes}-minute edition
         </h2>
         <p className="text-[rgba(20,50,86,0.68)]">
-          {practice.tracks
-            .filter((track) => track.mode === 'drill')
+          {drillTracks(practice)
             .map((track) => `${track.title}: ${formatStatus(track.status)}`)
             .join(' - ')}
         </p>
@@ -285,21 +288,22 @@ const ReadyPractice = ({ practice }: { practice: DailyAudioPractice }) => {
         </div>
       </section>
       <div className="space-y-4">
-        {practice.tracks
-          .filter((track) => track.mode === 'drill')
-          .map((track) => (
-            <ScriptTrackPlayer
-              key={track.id}
-              title={track.title}
-              status={track.status}
-              audioUrl={track.audioUrl}
-              scriptUnits={track.scriptUnitsJson}
-              timingData={track.timingData}
-              approxDurationSeconds={track.approxDurationSeconds}
-              updatedAt={track.updatedAt}
-              targetLanguage={practice.targetLanguage}
-            />
-          ))}
+        {drillTracks(practice).length === 0 ? (
+          <p>No drill is available for this day. Generate today’s audio to start a new drill.</p>
+        ) : null}
+        {drillTracks(practice).map((track) => (
+          <ScriptTrackPlayer
+            key={track.id}
+            title={track.title}
+            status={track.status}
+            audioUrl={track.audioUrl}
+            scriptUnits={track.scriptUnitsJson}
+            timingData={track.timingData}
+            approxDurationSeconds={track.approxDurationSeconds}
+            updatedAt={track.updatedAt}
+            targetLanguage={practice.targetLanguage}
+          />
+        ))}
       </div>
     </>
   );
