@@ -527,6 +527,12 @@
     "back": "学習に戻る"
   },
   "time": {
+    "tabs": { "rhythm": "リズム", "recap": "振り返り", "mastery": "習熟度", "entries": "記録" },
+    "weekTotal": "週の合計",
+    "bestDay": "最も学習した日",
+    "logTime": "時間を記録",
+    "closeLog": "フォームを閉じる",
+    "chartTitle": "学習リズム",
     "title": "学習時間",
     "description": "カード復習、リスニング、カード作成、イマージョン、会話、WaniKaniなど、日本語学習の時間配分を確認できます。",
     "totals": {
@@ -548,7 +554,7 @@
       "chartLabel": "期間・カテゴリ別の学習時間",
       "categoryFilters": "学習カテゴリのフィルター",
       "drillDown": "ダブルクリックまたはダブルタップでこの期間を開きます。",
-      "interactionHint": "枠線付きのカテゴリをダブルクリックまたはダブルタップすると絞り込めます。週・月・年表示では、棒グラフを同じように操作すると詳細を表示できます。",
+      "interactionHint": "カテゴリをダブルクリックまたはダブルタップすると絞り込めます。週・月・年表示では、棒グラフを同じように操作すると詳細を表示できます。",
       "toggleCategory": "ダブルクリックまたはダブルタップでこのカテゴリの表示を切り替えます。",
       "previousPeriod": "前の期間",
       "nextPeriod": "次の期間",
@@ -563,7 +569,6 @@
       }
     },
     "jlptMastery": {
-      "eyebrow": "おおよそのカバー率",
       "title": "JLPT 習得度",
       "description": "ConvoLab の現在の JLPT カタログのうち、カードと WaniKani から見てどの程度習得しているかの目安です。",
       "levelEyebrow": "JLPT レベル",
@@ -761,8 +766,6 @@
       "error": "学習時間を読み込めませんでした。もう一度お試しください。"
     },
     "manual": {
-      "sectionTitle": "手動で学習時間を記録",
-      "sectionDescription": "タイマーの開始、カレンダー記録の追加、自分で記録した項目の編集ができます。",
       "eyebrow": "編集可能",
       "title": "手動の記録",
       "empty": "タイマーや自分で追加した学習時間がここに表示されます。",

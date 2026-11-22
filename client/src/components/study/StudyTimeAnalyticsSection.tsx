@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -121,7 +121,7 @@ const StudyRhythmSummary = ({
     : '—';
   const bestBucketTotal = projection.bestBucket?.totalMs ?? 0;
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="time-metrics">
       <div
         className="rounded-xl border border-navy/10 bg-white/70 p-4"
         data-testid="study-time-total"
@@ -137,9 +137,8 @@ const StudyRhythmSummary = ({
       </div>
       <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
         <p className="retro-caps text-gray-500">{labels.bestRhythm}</p>
-        <p className="mt-1 text-xl font-black text-navy">{bestBucketLabel}</p>
-        <p className="text-sm font-bold text-gray-500">
-          {labels.bucketTotal(formatDuration(bestBucketTotal))}
+        <p className="mt-1 text-xl font-black text-navy">
+          {bestBucketLabel} · {formatDuration(bestBucketTotal)}
         </p>
       </div>
     </div>
@@ -222,10 +221,10 @@ const RhythmBucket = ({
     >
       <button
         type="button"
-        className={`touch-manipulation flex min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-sm border-0 p-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
+        className={`touch-manipulation flex min-h-[2px] empty:min-h-0 w-full flex-col-reverse overflow-hidden rounded-t-sm border-0 p-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
           onDrillDown ? 'cursor-pointer' : 'cursor-default'
         }`}
-        style={{ height: `${Math.max(2, (totalMs / maximumBucketMs) * 88)}%` }}
+        style={{ height: `${(totalMs / maximumBucketMs) * 100}%` }}
         title={`${label}: ${totalLabel}`}
         aria-label={`${label}: ${formatDuration(totalMs)}${
           onDrillDown ? `. ${labels.drillDown}` : ''
@@ -270,37 +269,46 @@ const StudyRhythmBars = ({
   onDrillDown?: (bucket: StudyTimeAnalyticsBucket) => void;
   projection: StudyTimeProjection;
   timeZone: string;
-}) => (
-  <div
-    className="mt-6 min-w-0 overflow-hidden pb-2"
-    data-testid={`study-rhythm-chart-container-${analytics.key}`}
-  >
+}) => {
+  const step = projection.maximumBucketMs <= 3_600_000 ? 600_000 : 3_600_000;
+  const ceiling = Math.max(step, Math.ceil(projection.maximumBucketMs / step) * step);
+  return (
     <div
-      className="grid h-64 w-full min-w-0 items-end gap-0.5 border-b-2 border-navy/20 px-0.5"
-      style={{ gridTemplateColumns: `repeat(${Math.max(analytics.buckets.length, 1)}, 1fr)` }}
-      aria-label={labels.chart}
-      data-testid={`study-rhythm-chart-${analytics.key}`}
+      className="time-chart min-w-0 overflow-hidden pb-2"
+      data-testid={`study-rhythm-chart-container-${analytics.key}`}
     >
-      {projection.buckets.map(({ bucket, categoryTotals, totalMs }) => (
-        <RhythmBucket
-          key={bucket.startsAt}
-          analytics={analytics}
-          bucket={bucket}
-          categoryTotals={categoryTotals}
-          handleMouseDoubleClick={handleMouseDoubleClick}
-          handleTouchActivation={handleTouchActivation}
-          includedCategories={includedCategories}
-          labels={labels}
-          locale={locale}
-          maximumBucketMs={projection.maximumBucketMs}
-          onDrillDown={onDrillDown}
-          timeZone={timeZone}
-          totalMs={totalMs}
-        />
-      ))}
+      <div className="time-axis" aria-hidden="true">
+        <span>{formatDuration(ceiling)}</span>
+        <span>{formatDuration(ceiling / 2)}</span>
+        <span>0</span>
+      </div>
+      <div
+        className="grid h-64 w-full min-w-0 items-end gap-0.5 border-b-2 border-navy/20 px-0.5"
+        style={{ gridTemplateColumns: `repeat(${Math.max(analytics.buckets.length, 1)}, 1fr)` }}
+        aria-label={labels.chart}
+        data-testid={`study-rhythm-chart-${analytics.key}`}
+      >
+        {projection.buckets.map(({ bucket, categoryTotals, totalMs }) => (
+          <RhythmBucket
+            key={bucket.startsAt}
+            analytics={analytics}
+            bucket={bucket}
+            categoryTotals={categoryTotals}
+            handleMouseDoubleClick={handleMouseDoubleClick}
+            handleTouchActivation={handleTouchActivation}
+            includedCategories={includedCategories}
+            labels={labels}
+            locale={locale}
+            maximumBucketMs={ceiling}
+            onDrillDown={onDrillDown}
+            timeZone={timeZone}
+            totalMs={totalMs}
+          />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const CategoryFilter = ({
   category,
@@ -332,11 +340,7 @@ const CategoryFilter = ({
   return (
     <button
       type="button"
-      className={`touch-manipulation flex min-h-11 items-center justify-between gap-2 rounded-full border-2 px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral ${
-        included
-          ? `${category.borderColor} bg-white/75 text-gray-700`
-          : 'border-navy/10 bg-navy/5 text-gray-400 opacity-60'
-      } disabled:cursor-not-allowed`}
+      className="touch-manipulation flex min-h-11 items-center justify-between text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral disabled:cursor-not-allowed"
       aria-pressed={included}
       aria-label={`${labels.categoryNames[category.key]}: ${formatDuration(categoryTotalMs)}. ${labels.toggleCategory}`}
       disabled={isOnlyIncludedCategory}
@@ -346,13 +350,11 @@ const CategoryFilter = ({
       }
       onKeyDown={handleKeyDown}
     >
-      <span className="flex items-center gap-2 text-sm font-bold text-gray-600">
+      <span className="flex items-center gap-2">
         <span className={`h-2.5 w-2.5 rounded-full ${category.barColor}`} />
         {labels.categoryNames[category.key]}
       </span>
-      <span className={`font-mono text-sm font-black ${category.color}`}>
-        {formatDuration(categoryTotalMs)}
-      </span>
+      <span>{formatDuration(categoryTotalMs)}</span>
     </button>
   );
 };
@@ -372,10 +374,7 @@ const CategoryFilters = ({
   onToggleCategory: (category: StudyActivityCategory) => void;
   projection: StudyTimeProjection;
 }) => (
-  <div
-    className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
-    aria-label={labels.categoryFilters}
-  >
+  <div className="time-legend" aria-label={labels.categoryFilters}>
     {STUDY_TIME_CATEGORIES.map((category) => (
       <CategoryFilter
         key={category.key}
@@ -417,7 +416,7 @@ const StudyRhythmChart = ({
     timeZone,
   });
   const labels: StudyRhythmLabels = {
-    bestRhythm: t('time.analytics.bestRhythm'),
+    bestRhythm: analytics.key === 'week' ? t('time.bestDay') : t('time.analytics.bestRhythm'),
     bucketTotal: (time) => t('time.analytics.bucketTotal', { time }),
     categoryFilters: t('time.analytics.categoryFilters'),
     categoryNames: Object.fromEntries(
@@ -427,7 +426,7 @@ const StudyRhythmChart = ({
     dailyAverage: t('time.analytics.dailyAverage'),
     drillDown: t('time.analytics.drillDown'),
     toggleCategory: t('time.analytics.toggleCategory'),
-    total: t('time.totals.total'),
+    total: analytics.key === 'week' ? t('time.weekTotal') : t('time.totals.total'),
   };
 
   return (
@@ -439,6 +438,7 @@ const StudyRhythmChart = ({
         projection={projection}
         timeZone={timeZone}
       />
+      <h2 className="time-chart-title">{t('time.chartTitle')}</h2>
       <StudyRhythmBars
         analytics={analytics}
         handleMouseDoubleClick={handleMouseDoubleClick}
@@ -451,9 +451,6 @@ const StudyRhythmChart = ({
         timeZone={timeZone}
       />
 
-      <p className="mt-4 text-xs font-semibold text-gray-500">
-        {t('time.analytics.interactionHint')}
-      </p>
       <CategoryFilters
         handleMouseDoubleClick={handleMouseDoubleClick}
         handleTouchActivation={handleTouchActivation}
@@ -462,59 +459,9 @@ const StudyRhythmChart = ({
         onToggleCategory={onToggleCategory}
         projection={projection}
       />
-    </>
-  );
-};
-
-const PeriodNavigation = ({
-  canNavigateLater,
-  isFetching,
-  navigatePeriod,
-  range,
-}: {
-  canNavigateLater: boolean;
-  isFetching: boolean;
-  navigatePeriod: (direction: -1 | 1) => void;
-  range: StudyTimeRange;
-}) => {
-  const { t } = useTranslation(['study']);
-  if (range === 'all') return null;
-  return (
-    <>
-      <div className="hidden items-center gap-1 sm:flex">
-        <button
-          type="button"
-          className="rounded-lg p-2 text-navy transition hover:bg-navy/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-35"
-          aria-label={t('time.analytics.previousPeriod')}
-          onClick={() => navigatePeriod(-1)}
-          disabled={isFetching}
-        >
-          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="rounded-lg p-2 text-navy transition hover:bg-navy/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-35"
-          aria-label={t('time.analytics.nextPeriod')}
-          onClick={() => navigatePeriod(1)}
-          disabled={!canNavigateLater || isFetching}
-        >
-          <ChevronRight className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
-      <button
-        type="button"
-        className="sr-only sm:hidden"
-        aria-label={t('time.analytics.previousPeriod')}
-        onClick={() => navigatePeriod(-1)}
-        disabled={isFetching}
-      />
-      <button
-        type="button"
-        className="sr-only sm:hidden"
-        aria-label={t('time.analytics.nextPeriod')}
-        onClick={() => navigatePeriod(1)}
-        disabled={!canNavigateLater || isFetching}
-      />
+      <p className="mt-4 text-xs font-semibold text-gray-500">
+        {t('time.analytics.interactionHint')}
+      </p>
     </>
   );
 };
@@ -556,6 +503,49 @@ const RangePicker = ({
   );
 };
 
+const PeriodDates = ({
+  canNavigateLater,
+  isFetching,
+  navigatePeriod,
+  range,
+  selectedPeriodLabel,
+}: {
+  canNavigateLater: boolean;
+  isFetching: boolean;
+  navigatePeriod: (direction: -1 | 1) => void;
+  range: StudyTimeRange;
+  selectedPeriodLabel: string;
+}) => {
+  const { t } = useTranslation(['study']);
+  return (
+    <div className="time-dates">
+      {range !== 'all' && (
+        <button
+          type="button"
+          onClick={() => navigatePeriod(-1)}
+          disabled={isFetching}
+          aria-label={t('time.analytics.previousPeriod')}
+        >
+          <ChevronLeft aria-hidden="true" />
+        </button>
+      )}
+      <span data-testid="study-time-period-label" aria-live="polite">
+        {selectedPeriodLabel}
+      </span>
+      {range !== 'all' && (
+        <button
+          type="button"
+          onClick={() => navigatePeriod(1)}
+          disabled={isFetching || !canNavigateLater}
+          aria-label={t('time.analytics.nextPeriod')}
+        >
+          <ChevronRight aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+};
+
 const PeriodControls = ({
   canNavigateLater,
   isFetching,
@@ -571,27 +561,11 @@ const PeriodControls = ({
   selectRange: (range: StudyTimeRange) => void;
   selectedPeriodLabel: string;
 }) => (
-  <div className="mb-6 flex flex-wrap items-end justify-end gap-3">
-    <div className="flex max-w-full flex-col items-end gap-2">
-      <div className="flex max-w-full items-center gap-2">
-        <PeriodNavigation
-          canNavigateLater={canNavigateLater}
-          isFetching={isFetching}
-          navigatePeriod={navigatePeriod}
-          range={range}
-        />
-        <RangePicker range={range} selectRange={selectRange} />
-      </div>
-      {selectedPeriodLabel ? (
-        <p
-          className="pr-1 text-xs font-bold text-gray-500"
-          aria-live="polite"
-          data-testid="study-time-period-label"
-        >
-          {selectedPeriodLabel}
-        </p>
-      ) : null}
-    </div>
+  <div className="time-period">
+    <RangePicker range={range} selectRange={selectRange} />
+    <PeriodDates
+      {...{ canNavigateLater, isFetching, navigatePeriod, range, selectedPeriodLabel }}
+    />
   </div>
 );
 
@@ -726,7 +700,13 @@ const AnalyticsChartPanel = ({
   );
 };
 
-const StudyTimeAnalyticsSection = () => {
+const StudyTimeAnalyticsSection = ({
+  children,
+  showRhythm,
+}: {
+  children: (controls: ReactNode, rhythm: ReactNode) => ReactNode;
+  showRhythm: () => void;
+}) => {
   const { i18n, t } = useTranslation(['study']);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const reduceMotion = useReducedMotion();
@@ -748,19 +728,28 @@ const StudyTimeAnalyticsSection = () => {
   const analyticsTimeZone = safeTimeZone(analyticsQuery.data?.timezone);
   const selectedPeriodLabel = analytics ? periodLabel(analytics, locale, analyticsTimeZone) : '';
 
-  return (
-    <section className="card app-surface p-4 sm:p-6" aria-labelledby="study-time-analytics-heading">
+  const controls = (
+    <PeriodControls
+      canNavigateLater={canNavigateLater}
+      isFetching={analyticsQuery.isFetching}
+      navigatePeriod={(direction) => {
+        showRhythm();
+        navigatePeriod(direction);
+      }}
+      range={range}
+      selectRange={(value) => {
+        showRhythm();
+        selectRange(value);
+      }}
+      selectedPeriodLabel={selectedPeriodLabel}
+    />
+  );
+  return children(
+    controls,
+    <section aria-labelledby="study-time-analytics-heading">
       <h2 id="study-time-analytics-heading" className="sr-only">
         {t('time.analytics.sectionTitle')}
       </h2>
-      <PeriodControls
-        canNavigateLater={canNavigateLater}
-        isFetching={analyticsQuery.isFetching}
-        navigatePeriod={navigatePeriod}
-        range={range}
-        selectRange={selectRange}
-        selectedPeriodLabel={selectedPeriodLabel}
-      />
       <AnalyticsStatus
         hasAnalytics={Boolean(analytics)}
         isError={analyticsQuery.isError}

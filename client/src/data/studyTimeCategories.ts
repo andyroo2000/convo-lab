@@ -1,17 +1,15 @@
 const CATEGORY_COLORS = [
-  ['review', 'text-blue-700', 'bg-blue-500', 'border-blue-500'],
-  ['listen', 'text-cyan-700', 'bg-cyan-500', 'border-cyan-500'],
-  ['writing', 'text-teal-700', 'bg-teal-500', 'border-teal-500'],
-  ['create', 'text-amber-700', 'bg-amber-500', 'border-amber-500'],
-  ['immerse', 'text-emerald-700', 'bg-emerald-500', 'border-emerald-500'],
-  ['conversation', 'text-violet-700', 'bg-violet-500', 'border-violet-500'],
-  ['wanikani', 'text-pink-700', 'bg-pink-500', 'border-pink-500'],
+  ['review', 'bg-[#365f47]'],
+  ['listen', 'bg-[#62879c]'],
+  ['writing', 'bg-[#9d7fa7]'],
+  ['create', 'bg-[#ab812e]'],
+  ['immerse', 'bg-[#6a895e]'],
+  ['conversation', 'bg-[#bc735d]'],
+  ['wanikani', 'bg-[#69678e]'],
 ] as const;
 
-export default CATEGORY_COLORS.map(([key, color, barColor, borderColor]) => ({
+export default CATEGORY_COLORS.map(([key, barColor]) => ({
   key,
   labelKey: `time.totals.${key}`,
-  color,
   barColor,
-  borderColor,
 }));

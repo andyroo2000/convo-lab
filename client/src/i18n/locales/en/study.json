@@ -551,6 +551,12 @@
     "back": "Back to study"
   },
   "time": {
+    "tabs": { "rhythm": "Rhythm", "recap": "Recap", "mastery": "Mastery", "entries": "Entries" },
+    "weekTotal": "Week total",
+    "bestDay": "Best day",
+    "logTime": "Log time",
+    "closeLog": "Close form",
+    "chartTitle": "Study rhythm",
     "title": "Study Time",
     "description": "See where your Japanese time goes across card reviews, listening, card making, immersion, conversation, and WaniKani.",
     "totals": {
@@ -572,7 +578,7 @@
       "chartLabel": "Study time by period and category",
       "categoryFilters": "Study category filters",
       "drillDown": "Double-click or double-tap to open this period.",
-      "interactionHint": "Double-click or double-tap an outlined category to filter it. In Week, Month, and Year views, do the same on a bar to drill in.",
+      "interactionHint": "Double-click or double-tap a category to filter it. In Week, Month, and Year views, do the same on a bar to drill in.",
       "toggleCategory": "Double-click or double-tap to include or filter out this category.",
       "previousPeriod": "Previous period",
       "nextPeriod": "Next period",
@@ -587,7 +593,6 @@
       }
     },
     "jlptMastery": {
-      "eyebrow": "Rough coverage estimate",
       "title": "JLPT Mastery",
       "description": "A ballpark view of how much of ConvoLab’s current JLPT catalogs your cards and WaniKani suggest you know.",
       "levelEyebrow": "JLPT level",
@@ -785,8 +790,6 @@
       "error": "Study time couldn’t be loaded. Please try again."
     },
     "manual": {
-      "sectionTitle": "Manual time entry",
-      "sectionDescription": "Start a timer, add calendar time, or edit entries you logged yourself.",
       "eyebrow": "Editable",
       "title": "Manual entries",
       "empty": "Timers and study time you add yourself will appear here.",
