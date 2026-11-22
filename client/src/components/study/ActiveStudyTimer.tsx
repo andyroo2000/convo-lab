@@ -29,7 +29,12 @@ const ActiveStudyTimer = () => {
   const { active, elapsedMs } = useStudyActivityStatus();
   const { stop } = useStudyActivityActions();
   // Keep automatically tracked reading and composing sessions distraction-free.
-  if (!active || ['card_creation', 'reading', 'journal'].includes(active.activity)) return null;
+  if (!active) return null;
+  if (
+    active.source === 'automatic' &&
+    ['card_creation', 'reading', 'journal'].includes(active.activity)
+  )
+    return null;
 
   return (
     <div className="active-study-timer fixed z-50 flex items-center gap-3 px-3 py-2">
