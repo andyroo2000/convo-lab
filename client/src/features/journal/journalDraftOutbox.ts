@@ -22,7 +22,7 @@ export default class JournalDraftOutbox {
 
   private readonly running = new Map<string, Promise<JournalEntry>>();
 
-  private readonly paused = new Set<string>();
+  private readonly paused = new Map<string, number>();
 
   private readonly retryAt = new Map<string, number>();
 
@@ -100,9 +100,11 @@ export default class JournalDraftOutbox {
   }
 
   private async attempt(draft: JournalDraft, now: number) {
-    if (this.controller.signal.aborted || !this.eligible(draft, now)) return;
+    const current = this.drafts.get(draft.id);
+    if (!current || this.controller.signal.aborted) return;
+    if (!this.eligible(current, now)) return;
     try {
-      await this.save(draft);
+      await this.save(current);
       this.failures.delete(draft.id);
       this.retryAt.delete(draft.id);
     } catch {
@@ -134,7 +136,7 @@ export default class JournalDraftOutbox {
   }
 
   async mutate<T>(id: string, operation: (version: number) => Promise<T>): Promise<T> {
-    this.paused.add(id);
+    this.paused.set(id, (this.paused.get(id) ?? 0) + 1);
     try {
       await this.running.get(id)?.catch(() => undefined);
       return await this.lock(id, async () => {
@@ -145,7 +147,9 @@ export default class JournalDraftOutbox {
         return operation(version);
       });
     } finally {
-      this.paused.delete(id);
+      const remaining = (this.paused.get(id) ?? 1) - 1;
+      if (remaining) this.paused.set(id, remaining);
+      else this.paused.delete(id);
     }
   }
 

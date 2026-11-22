@@ -210,3 +210,53 @@ it('releases a hung save after its deadline without losing the pending payload',
     vi.useRealTimers();
   }
 });
+
+it('keeps automatic sync paused until overlapping mutations both finish', async () => {
+  const { draft, send, outbox } = setup();
+  let finishFirst!: () => void;
+  let finishSecond!: () => void;
+  const first = outbox.mutate(
+    draft.id,
+    () =>
+      new Promise<void>((done) => {
+        finishFirst = done;
+      })
+  );
+  const second = outbox.mutate(
+    draft.id,
+    () =>
+      new Promise<void>((done) => {
+        finishSecond = done;
+      })
+  );
+  await Promise.resolve();
+  finishFirst();
+  await first;
+  await outbox.synchronize(0);
+  expect(send).not.toHaveBeenCalled();
+  finishSecond();
+  await second;
+  await outbox.synchronize(0);
+  expect(send).toHaveBeenCalledTimes(1);
+});
+
+it('does not upload a queued draft deleted while another request is in flight', async () => {
+  const { store, send, outbox } = setup();
+  store.put({ ...newJournalDraft(), body: 'Second entry' });
+  const [first, second] = store.list();
+  let finish!: (value: JournalEntry) => void;
+  send.mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        finish = done;
+      })
+  );
+  const syncing = outbox.synchronize(0);
+  await Promise.resolve();
+  await outbox.mutate(second.id, async () => removeJournalDeviceData('owner', second.id));
+  finish(entry(first));
+  await syncing;
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(store.get(second.id)).toBeNull();
+  expect(outbox.checkpoints.get(second.id).pending).toBeUndefined();
+});
