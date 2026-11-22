@@ -21,6 +21,12 @@ async function deleteDraft(ownerId: string, draft: NonNullable<Editor['draft']>)
   removeJournalDeviceData(ownerId, draft.id);
 }
 
+async function keepDraft(editor: Editor, outbox: JournalDraftOutbox | null) {
+  if (await editor.save()) return true;
+  if (outbox?.blocked.has(editor.draft?.id ?? '')) return false;
+  return editor.locallySaved;
+}
+
 async function closeDraft(
   ownerId: string,
   editor: Editor,
@@ -28,9 +34,9 @@ async function closeDraft(
   client: QueryClient,
   outbox: JournalDraftOutbox | null
 ) {
-  if (kind === 'keep') return (await editor.save()) || editor.locallySaved;
+  if (kind === 'keep') return keepDraft(editor, outbox);
   if (!editor.draft) return false;
-  const {draft} = editor;
+  const { draft } = editor;
   if (outbox)
     await outbox.mutate(draft.id, (version) =>
       deleteDraft(ownerId, { ...draft, expectedVersion: Math.max(version, draft.expectedVersion) })

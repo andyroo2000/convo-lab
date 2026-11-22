@@ -3,13 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import JournalDraftOutbox from './journalDraftOutbox';
 import JournalSyncContext from './JournalSyncContext';
 
-const JournalSyncProvider = ({
-  ownerId,
-  children,
-}: {
-  ownerId: string;
-  children: ReactNode;
-}) => {
+const JournalSyncProvider = ({ ownerId, children }: { ownerId: string; children: ReactNode }) => {
   const client = useQueryClient();
   const outbox = useMemo(() => new JournalDraftOutbox(ownerId), [ownerId]);
   useEffect(() => {
@@ -31,12 +25,12 @@ const JournalSyncProvider = ({
     });
     const timer = window.setInterval(sync, 3000);
     window.addEventListener('online', reconnect);
-    window.addEventListener('focus', reconnect);
+    window.addEventListener('focus', sync);
     sync();
     return () => {
       window.clearInterval(timer);
       window.removeEventListener('online', reconnect);
-      window.removeEventListener('focus', reconnect);
+      window.removeEventListener('focus', sync);
       unsubscribe();
       outbox.stop();
     };

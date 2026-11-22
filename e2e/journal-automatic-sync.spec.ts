@@ -194,4 +194,51 @@ test('an account change in another tab cannot receive the old accounts draft', a
   await expect(page.getByRole('alert')).toContainText('needs attention');
   expect(server.entries.size).toBe(0);
   await expect(editor(page)).toHaveValue('AUTO SYNC TEST - owner one private writing');
+  server.owner = '123';
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await expect(page.getByText('Synced', { exact: true })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  expect(server.entries.size).toBe(1);
+});
+
+test('Keep and Close retains an offline draft and syncs it while a new page is open', async ({
+  page,
+  context,
+}) => {
+  const server = new SyncServer();
+  await server.install(context);
+  await page.goto('/app/journal');
+  await expect(editor(page)).toBeVisible();
+  server.online = false;
+  await editor(page).fill('AUTO SYNC TEST - keep offline and close');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Keep draft & close' }).click();
+  await expect(page.getByRole('dialog', { name: 'Keep this draft?' })).toHaveCount(0);
+  await expect(editor(page)).toHaveValue('');
+  server.online = true;
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await expect.poll(() => server.entries.size).toBe(1);
+  expect([...server.entries.values()][0].body).toBe('AUTO SYNC TEST - keep offline and close');
+});
+
+test('Keep and Close leaves a remotely deleted draft open for recovery', async ({
+  page,
+  context,
+}) => {
+  const server = new SyncServer();
+  await server.install(context);
+  await page.goto('/app/journal');
+  await editor(page).fill('AUTO SYNC TEST - rejected close');
+  await expect(page.getByText('Synced', { exact: true })).toBeVisible();
+  const id = [...server.entries.keys()][0];
+  server.online = false;
+  await editor(page).fill('AUTO SYNC TEST - preserved rejected writing');
+  server.entries.delete(id);
+  server.deleted.add(id);
+  server.online = true;
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Keep draft & close' }).click();
+  await expect(page.getByRole('dialog', { name: 'Keep this draft?' })).toBeVisible();
+  await expect(editor(page)).toHaveValue('AUTO SYNC TEST - preserved rejected writing');
+  expect(server.entries.size).toBe(0);
 });

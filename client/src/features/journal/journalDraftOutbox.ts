@@ -57,8 +57,21 @@ export default class JournalDraftOutbox {
   }
 
   edited(draft: JournalDraft) {
+    try {
+      this.resetValidationRejection(draft);
+    } catch {
+      this.blocked.set(draft.id, 503);
+      this.changed();
+    }
+  }
+
+  private resetValidationRejection(draft: JournalDraft) {
     const checkpoint = this.checkpoints.get(draft.id);
-    if (![400, 422].includes(checkpoint.rejection ?? 0) || checkpoint.pending?.editId === draft.editId) return;
+    if (
+      ![400, 422].includes(checkpoint.rejection ?? 0) ||
+      checkpoint.pending?.editId === draft.editId
+    )
+      return;
     this.checkpoints.remove(draft.id);
     this.blocked.delete(draft.id);
     this.retryAt.delete(draft.id);
@@ -78,8 +91,12 @@ export default class JournalDraftOutbox {
   }
 
   synchronize(now = Date.now()): Promise<void> {
-    return this.drafts.list().reduce((previous, draft) =>
-      previous.then(() => this.attempt(draft, now)), Promise.resolve());
+    return this.drafts
+      .list()
+      .reduce(
+        (previous, draft) => previous.then(() => this.attempt(draft, now)),
+        Promise.resolve()
+      );
   }
 
   private async attempt(draft: JournalDraft, now: number) {
@@ -111,7 +128,8 @@ export default class JournalDraftOutbox {
     const entry = await this.save(draft);
     const remaining = this.drafts.get(draft.id);
     if (!remaining) return entry;
-    if (attempt >= 2) throw new Error('Writing is still changing. It is kept on this device; try Save again.');
+    if (attempt >= 2)
+      throw new Error('Writing is still changing. It is kept on this device; try Save again.');
     return this.saveLatest(remaining, attempt + 1);
   }
 
@@ -164,13 +182,37 @@ export default class JournalDraftOutbox {
 
   private async request(sent: JournalDraft) {
     try {
-      return await this.send(sent, this.controller.signal, this.ownerId);
+      return await this.requestWithinDeadline(sent);
     } catch (error) {
       if (error instanceof JsonRequestError && [400, 403, 404, 409, 422].includes(error.status)) {
-        this.checkpoints.put(sent.id, { pending: sent, rejection: error.status === 403 ? undefined : error.status });
+        this.checkpoints.put(sent.id, {
+          pending: sent,
+          rejection: error.status === 403 ? undefined : error.status,
+        });
         this.blocked.set(sent.id, error.status);
       }
       throw error;
+    }
+  }
+
+  private async requestWithinDeadline(sent: JournalDraft): Promise<JournalEntry> {
+    const deadline = new AbortController();
+    const timer = setTimeout(
+      () => deadline.abort(new Error('Sync timed out; your writing is kept.')),
+      15000
+    );
+    const signal = AbortSignal.any([this.controller.signal, deadline.signal]);
+    let cancel = () => {};
+    const interrupted = new Promise<never>((_, reject) => {
+      cancel = () => reject(signal.reason);
+      signal.addEventListener('abort', cancel, { once: true });
+      if (signal.aborted) cancel();
+    });
+    try {
+      return await Promise.race([this.send(sent, signal, this.ownerId), interrupted]);
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', cancel);
     }
   }
 

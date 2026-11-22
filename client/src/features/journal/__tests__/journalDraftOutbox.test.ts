@@ -179,3 +179,33 @@ it('stops explicit Save safely if another editor continuously changes the draft'
   expect(send).toHaveBeenCalledTimes(3);
   expect(store.get(draft.id)?.body).toContain('more more more');
 });
+
+it('keeps local saving available when a checkpoint is damaged', () => {
+  const { draft, store, outbox } = setup();
+  localStorage.setItem(`convolab:journal-sync:v1:owner:${draft.id}`, 'damaged');
+  const newer = { ...draft, body: 'Writing is still safe', editId: 'safe' };
+  store.put(newer);
+  expect(() => outbox.edited(newer)).not.toThrow();
+  expect(store.get(draft.id)).toEqual(newer);
+  expect(outbox.blocked.get(draft.id)).toBe(503);
+  expect(localStorage.getItem(`convolab:journal-sync:v1:owner:${draft.id}`)).toBe('damaged');
+});
+
+it('releases a hung save after its deadline without losing the pending payload', async () => {
+  vi.useFakeTimers();
+  try {
+    const { draft, store, send, outbox } = setup();
+    send.mockImplementationOnce(() => new Promise(() => {}));
+    const saving = outbox.synchronize(0);
+    await vi.advanceTimersByTimeAsync(15001);
+    await saving;
+    expect(outbox.isSyncing(draft.id)).toBe(false);
+    expect(outbox.checkpoints.get(draft.id).pending).toEqual(draft);
+    expect(store.get(draft.id)).toEqual(draft);
+    outbox.reconnect();
+    await outbox.synchronize(15001);
+    expect(store.get(draft.id)).toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
+});

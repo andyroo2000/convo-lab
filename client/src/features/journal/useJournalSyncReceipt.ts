@@ -15,7 +15,11 @@ interface ReceiptOptions {
   reject: (error: unknown) => void;
 }
 
-function rebaseStoredDraft(store: JournalDraftStore, draft: JournalDraft, rebase: ReceiptOptions['rebase']) {
+function rebaseStoredDraft(
+  store: JournalDraftStore,
+  draft: JournalDraft,
+  rebase: ReceiptOptions['rebase']
+) {
   const local = store.get(draft.id);
   if (local?.editId === draft.editId && local.expectedVersion !== draft.expectedVersion)
     rebase(local);

@@ -105,7 +105,6 @@ export default function useJournalEditor({
     };
   }, [entryId, store]);
 
-
   function change(patch: Partial<Pick<JournalDraft, 'title' | 'body' | 'entryDate'>>) {
     if (!draft || busy) return;
     const entryDate = isUnwrittenJournalDraft(draft, locallySaved)
@@ -181,6 +180,7 @@ export default function useJournalEditor({
   }
 
   function acceptSave(entry: JournalEntry) {
+    setError('');
     acceptedVersion.current = entry.version;
     editedLocally.current = false;
     unavailable.current = false;
