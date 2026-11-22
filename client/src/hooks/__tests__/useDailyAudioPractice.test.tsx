@@ -110,7 +110,12 @@ describe('Daily Audio API requests', () => {
   });
 
   it('loads the newest playable drill beyond the first page in the same request', async () => {
-    const older = dailyAudioCompatibilityFixture.cases[0].payload;
+    const older = {
+      ...practice,
+      id: '123e4567-e89b-42d3-a456-426614174099',
+      practiceDate: '2026-06-01',
+      tracks: [{ ...practice.tracks[0], audioUrl: '/audio/older.mp3' }],
+    };
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ items: [practice], latestPlayableDrill: older, nextCursor: 'older' })
     );
