@@ -66,7 +66,7 @@ export default function useJournalArchive(ownerId: string) {
   const { refetch } = query;
   const refreshContents = useCallback(() => {
     refresh();
-    refetch().catch(() => undefined);
+    refetch({ cancelRefetch: false }).catch(() => undefined);
   }, [refresh, refetch]);
 
   async function remove(entry: Pick<JournalEntry, 'id' | 'version'>) {

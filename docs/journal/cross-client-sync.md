@@ -9,6 +9,7 @@ All three clients use the same account-owned journal API. An entry's ID is stabl
 - An offline deletion is not reported as completed. Retry once online. Android persists its pending deletion; iOS and web retain the entry and require another delete attempt.
 - A stale edit/delete cannot overwrite newer writing. Conflicting drafts remain local and can be saved under a new ID.
 - A remote deletion disappears from the refreshed server list. Unsaved local writing remains recoverable. Trying to save it offers a new-entry recovery action rather than resurrecting the deleted server ID.
+- The API intentionally does not distinguish a deleted entry from another unavailable resource in a 404 response. Clients describe the entry as unavailable, retain the writing, and offer an explicit local-copy action. They never automatically create a second server entry in response to a 404.
 
 ## Verification layers
 

@@ -12,7 +12,7 @@ import { deleteJournalEntry, listJournalEntries, saveJournalDraft } from '../jou
 import { draftFromEntry, JournalDraftStore, newJournalDraft } from '../journalDrafts';
 import useJournalArchive from '../useJournalArchive';
 import useJournalEditor from '../useJournalEditor';
-import type { JournalEntry } from '../types';
+import type { JournalEntry, JournalPage } from '../types';
 
 vi.mock('../journalApi', () => ({
   listJournalEntries: vi.fn(),
@@ -163,6 +163,29 @@ it('retains a failed offline deletion and clears it only after the retry succeed
     expect(await result.current.remove(original)).toBe(true);
   });
   await waitFor(() => expect(result.current.entries).toHaveLength(0));
+});
+
+it('shares an in-flight Contents refresh instead of cancelling it and sending another request', async () => {
+  let release!: (page: JournalPage) => void;
+  const pending = new Promise<JournalPage>((resolve) => {
+    release = resolve;
+  });
+  vi.mocked(listJournalEntries)
+    .mockResolvedValueOnce({ data: [entry()], nextCursor: null })
+    .mockReturnValue(pending);
+  const { result } = archive();
+  await waitFor(() => expect(result.current.entries).toHaveLength(1));
+  expect(listJournalEntries).toHaveBeenCalledTimes(1);
+  act(() => {
+    result.current.refresh();
+    result.current.refresh();
+  });
+  expect(listJournalEntries).toHaveBeenCalledTimes(2);
+  await act(async () => {
+    release({ data: [], nextCursor: null });
+  });
+  await waitFor(() => expect(result.current.entries).toHaveLength(0));
+  expect(listJournalEntries).toHaveBeenCalledTimes(2);
 });
 
 it.each([404, 409])(
