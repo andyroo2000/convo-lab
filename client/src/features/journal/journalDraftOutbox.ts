@@ -159,8 +159,8 @@ export default class JournalDraftOutbox {
   }
 
   private async transmit(fallback: JournalDraft): Promise<JournalEntry> {
-    this.controller.signal.throwIfAborted();
-    const checkpoint = this.checkpoints.get(fallback.id);
+    if (this.controller.signal.aborted) throw new Error('This sync session has stopped.');
+    const checkpoint = this.checkpointForSending(fallback.id);
     if (checkpoint.rejection && checkpoint.rejection !== 403) {
       this.blocked.set(fallback.id, checkpoint.rejection);
       throw new JsonRequestError(
@@ -178,6 +178,20 @@ export default class JournalDraftOutbox {
     this.blocked.delete(sent.id);
     this.changed();
     return entry;
+  }
+
+  private checkpointForSending(id: string) {
+    try {
+      return this.checkpoints.get(id);
+    } catch {
+      this.blocked.set(id, 503);
+      this.changed();
+      throw new JsonRequestError(
+        'Pending sync data could not be read. Your writing is kept; save it as a new entry.',
+        503,
+        {}
+      );
+    }
   }
 
   private async request(sent: JournalDraft) {
@@ -201,7 +215,11 @@ export default class JournalDraftOutbox {
       () => deadline.abort(new Error('Sync timed out; your writing is kept.')),
       15000
     );
-    const signal = AbortSignal.any([this.controller.signal, deadline.signal]);
+    const ownerSignal = this.controller.signal;
+    const stop = () => deadline.abort(new Error('This sync session has stopped.'));
+    ownerSignal.addEventListener('abort', stop, { once: true });
+    if (ownerSignal.aborted) stop();
+    const { signal } = deadline;
     let cancel = () => {};
     const interrupted = new Promise<never>((_, reject) => {
       cancel = () => reject(signal.reason);
@@ -212,6 +230,7 @@ export default class JournalDraftOutbox {
       return await Promise.race([this.send(sent, signal, this.ownerId), interrupted]);
     } finally {
       clearTimeout(timer);
+      ownerSignal.removeEventListener('abort', stop);
       signal.removeEventListener('abort', cancel);
     }
   }

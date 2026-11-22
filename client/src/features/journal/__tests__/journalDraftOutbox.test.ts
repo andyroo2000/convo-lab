@@ -141,6 +141,7 @@ it('preserves malformed pending state instead of sending a replacement', async (
   localStorage.setItem(`convolab:journal-sync:v1:owner:${draft.id}`, 'damaged');
   await outbox.synchronize(0);
   expect(send).not.toHaveBeenCalled();
+  expect(outbox.blocked.get(draft.id)).toBe(503);
   expect(localStorage.getItem(`convolab:journal-sync:v1:owner:${draft.id}`)).toBe('damaged');
 });
 
