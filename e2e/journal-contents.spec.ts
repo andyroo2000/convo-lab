@@ -625,3 +625,35 @@ test('draft dismissal and clarification keep Journal styling and writing intact'
   await clarification.getByRole('button', { name: 'Back to draft' }).click();
   await expect(writing).toHaveValue('今日は友達と車で出かけた。');
 });
+
+test('reopening a cached entry adopts writing changed on another device', async ({
+  page,
+}, info) => {
+  await fixture(page);
+  await page.getByRole('button', { name: 'Contents', exact: true }).click();
+  await page.getByRole('button', { name: 'New entry', exact: true }).click();
+  const latest = { ...entry, version: 4, body: '別の端末で新しく書きました。' };
+  let releaseEntry!: () => void;
+  const pendingEntry = new Promise<void>((resolve) => {
+    releaseEntry = resolve;
+  });
+  await page.route(`**/api/journal/entries/${entry.id}`, async (route) => {
+    await pendingEntry;
+    await route.fulfill({ json: { data: latest } });
+  });
+  await page.route(`**/api/journal/entries/${entry.id}/analysis`, (route) =>
+    route.fulfill({ json: { data: null, entry: latest } })
+  );
+  try {
+    await page.getByRole('button', { name: 'Contents', exact: true }).click();
+    await page.getByRole('link', { name: new RegExp(entry.title) }).click();
+    const writing = page.getByRole('textbox', { name: 'Journal entry in Japanese' });
+    await expect(writing).toHaveValue(latest.body);
+    await page.screenshot({
+      path: info.outputPath('remote-edit-after-reopen.png'),
+      fullPage: true,
+    });
+  } finally {
+    releaseEntry();
+  }
+});
