@@ -54,6 +54,8 @@ const analysis = {
 };
 
 async function fixture(page: Page, correction = false) {
+  // These flows test writing and recovery; keyboard onboarding has its own suite.
+  await page.addInitScript(() => localStorage.setItem('convolab:journal-keyboard:v1', 'device'));
   let selectedId = 'hana';
   await page.route('**/sanctum/csrf-cookie', (route) => route.fulfill({ status: 204 }));
   await page.route('**/fixture-*.png', async (route) => {
