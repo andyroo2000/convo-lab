@@ -42,9 +42,13 @@ export default function useJournalEditor({
   const [submission, setSubmission] = useState<{ data: JournalAnalysis; entry: JournalEntry }>();
   const scope = useRef(0);
   const acceptedVersion = useRef(0);
+  const editedLocally = useRef(false);
+  const unavailable = useRef(false);
 
   function reportLoadError(reason: unknown) {
     if (reason instanceof JsonRequestError && reason.status === 404) {
+      unavailable.current = true;
+      if (!editedLocally.current) setDraft(null);
       setNotFound(true);
       return;
     }
@@ -55,6 +59,8 @@ export default function useJournalEditor({
     scope.current += 1;
     const epoch = scope.current;
     acceptedVersion.current = 0;
+    editedLocally.current = false;
+    unavailable.current = false;
     const controller = new AbortController();
     setDraft(null);
     setError('');
@@ -68,6 +74,7 @@ export default function useJournalEditor({
     try {
       local = store.get(entryId);
       if (local) {
+        editedLocally.current = true;
         setDraft(local);
         setLocallySaved(true);
       }
@@ -79,7 +86,8 @@ export default function useJournalEditor({
     } else if (!local) {
       loadEntry(initialRef.current, entryId, controller.signal)
         .then((entry) => {
-          if (scope.current !== epoch || entry.version <= acceptedVersion.current) return;
+          if (scope.current !== epoch || editedLocally.current) return;
+          if (entry.version <= acceptedVersion.current) return;
           acceptedVersion.current = entry.version;
           setDraft(draftFromEntry(entry));
         })
@@ -100,6 +108,7 @@ export default function useJournalEditor({
       ? newJournalDraft().entryDate
       : draft.entryDate;
     const next = { ...draft, entryDate, ...patch, editId: ulid().toLowerCase() };
+    editedLocally.current = true;
     setDraft(next);
     if (isUnwrittenJournalDraft(next, locallySaved)) return;
     try {
@@ -161,6 +170,9 @@ export default function useJournalEditor({
 
   function acceptSave(entry: JournalEntry) {
     acceptedVersion.current = entry.version;
+    editedLocally.current = false;
+    unavailable.current = false;
+    setNotFound(false);
     setDraft(draftFromEntry(entry));
     setLocallySaved(false);
     setConflict(false);
@@ -207,17 +219,15 @@ export default function useJournalEditor({
   }
 
   function acceptGeneratedEntry(entry: JournalEntry) {
+    if (unavailable.current || editedLocally.current) return;
     if (entry.version <= acceptedVersion.current) return;
+    try {
+      if (store.get(entryId)) return;
+    } catch {
+      return;
+    }
     acceptedVersion.current = entry.version;
-    setDraft((current) => {
-      if (current && current.body !== entry.body) return current;
-      try {
-        if (store.get(entryId)) return current;
-      } catch {
-        return current;
-      }
-      return draftFromEntry(entry);
-    });
+    setDraft(draftFromEntry(entry));
     onSaved(entry);
   }
 
