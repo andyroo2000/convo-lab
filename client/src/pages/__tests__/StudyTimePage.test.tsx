@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { studyTimeBucket, studyTimeRange } from '../../test/fixtures/studyTimeAnalytics';
 import shiftStudyTimeAnchor from '../../utils/studyTimePeriod';
 import StudyTimePage from '../StudyTimePage';
 
@@ -56,6 +57,69 @@ vi.mock('../../components/study/JlptMasteryCard', () => ({
   default: () => <div data-testid="jlpt-mastery-card" />,
 }));
 
+function studyTimePageRanges(historical: boolean) {
+  const dayStart = '2026-07-29T04:00:00Z';
+  const dayEnd = '2026-07-30T04:00:00Z';
+  const nyDate = (month: number, day: number, hour: number) =>
+    new Date(Date.UTC(2026, month, day, hour)).toISOString();
+  const mixed = (duration: number) => ({
+    review: duration,
+    create: duration,
+    conversation: duration,
+  });
+  const months = Array.from({ length: 12 }, (_, i) =>
+    studyTimeBucket(nyDate(i, 1, 5), nyDate(i + 1, 1, 5), {
+      review: 300_000,
+      listen: 150_000,
+      conversation: 150_000,
+    })
+  );
+  const days = Array.from({ length: 31 }, (_, i) =>
+    studyTimeBucket(nyDate(6, i + 1, 4), nyDate(6, i + 2, 4), mixed(i < 29 ? 60_000 : 0))
+  );
+  return [
+    studyTimeRange({
+      key: 'today',
+      startsAt: dayStart,
+      endsAt: dayEnd,
+      buckets: [studyTimeBucket(dayStart, dayEnd, { review: 600_000 })],
+    }),
+    studyTimeRange({
+      key: 'week',
+      startsAt: historical ? '2026-07-20T04:00:00Z' : '2026-07-27T04:00:00Z',
+      endsAt: historical ? '2026-07-27T04:00:00Z' : '2026-08-03T04:00:00Z',
+      buckets: [studyTimeBucket(dayStart, dayEnd, mixed(1_800_000))],
+    }),
+    studyTimeRange({
+      key: 'month',
+      startsAt: nyDate(6, 1, 4),
+      endsAt: nyDate(7, 1, 4),
+      buckets: days,
+    }),
+    studyTimeRange({
+      key: 'year',
+      startsAt: nyDate(0, 1, 5),
+      endsAt: nyDate(12, 1, 5),
+      buckets: months,
+    }),
+    studyTimeRange({
+      key: 'all',
+      startsAt: '2025-01-01T05:00:00Z',
+      endsAt: '2026-07-29T16:00:00Z',
+      bucketUnit: 'month',
+      bucketStep: 1,
+      buckets: [
+        studyTimeBucket('2025-01-01T05:00:00Z', '2025-02-01T05:00:00Z', { review: 3_600_000 }),
+        studyTimeBucket(nyDate(6, 1, 4), '2026-07-29T16:00:00Z', {
+          create: 1_800_000,
+          immerse: 1_800_000,
+          conversation: 1_800_000,
+        }),
+      ],
+    }),
+  ];
+}
+
 vi.mock('../../hooks/useStudyActivity', () => ({
   useStudyActivityAnalytics: (anchorDate: string) => {
     const initialAnchor =
@@ -68,164 +132,7 @@ vi.mock('../../hooks/useStudyActivity', () => ({
         generatedAt: '2026-07-29T16:00:00Z',
         anchorDate,
         timezone: 'America/New_York',
-        ranges: [
-          {
-            key: 'today',
-            startsAt: '2026-07-29T04:00:00Z',
-            endsAt: '2026-07-30T04:00:00Z',
-            totalMs: 600_000,
-            categories: {
-              review: 600_000,
-              listen: 0,
-              create: 0,
-              immerse: 0,
-              conversation: 0,
-              wanikani: 0,
-            },
-            buckets: [
-              {
-                startsAt: '2026-07-29T04:00:00Z',
-                endsAt: '2026-07-30T04:00:00Z',
-                totalMs: 600_000,
-                categories: {
-                  review: 600_000,
-                  listen: 0,
-                  create: 0,
-                  immerse: 0,
-                  conversation: 0,
-                  wanikani: 0,
-                },
-              },
-            ],
-          },
-          {
-            key: 'week',
-            startsAt: '2026-07-27T04:00:00Z',
-            endsAt: isHistorical ? '2026-07-27T04:00:00Z' : '2026-08-03T04:00:00Z',
-            totalMs: 5_400_000,
-            categories: {
-              review: 1_800_000,
-              listen: 0,
-              create: 1_800_000,
-              immerse: 0,
-              conversation: 1_800_000,
-              wanikani: 0,
-            },
-            buckets: [
-              {
-                startsAt: '2026-07-29T04:00:00Z',
-                endsAt: '2026-07-30T04:00:00Z',
-                totalMs: 5_400_000,
-                categories: {
-                  review: 1_800_000,
-                  listen: 0,
-                  create: 1_800_000,
-                  immerse: 0,
-                  conversation: 1_800_000,
-                  wanikani: 0,
-                },
-              },
-            ],
-          },
-          {
-            key: 'month',
-            startsAt: '2026-07-01T04:00:00Z',
-            endsAt: '2026-08-01T04:00:00Z',
-            totalMs: 5_400_000,
-            categories: {
-              review: 1_800_000,
-              listen: 0,
-              create: 1_800_000,
-              immerse: 0,
-              conversation: 1_800_000,
-              wanikani: 0,
-            },
-            buckets: Array.from({ length: 31 }, (_, index) => ({
-              startsAt: new Date(Date.UTC(2026, 6, index + 1, 4)).toISOString(),
-              endsAt: new Date(Date.UTC(2026, 6, index + 2, 4)).toISOString(),
-              totalMs: index < 29 ? 180_000 : 0,
-              categories: {
-                review: index < 29 ? 60_000 : 0,
-                listen: 0,
-                create: index < 29 ? 60_000 : 0,
-                immerse: 0,
-                conversation: index < 29 ? 60_000 : 0,
-                wanikani: 0,
-              },
-            })),
-          },
-          {
-            key: 'year',
-            startsAt: '2026-01-01T05:00:00Z',
-            endsAt: '2027-01-01T05:00:00Z',
-            totalMs: 7_200_000,
-            categories: {
-              review: 3_600_000,
-              listen: 1_800_000,
-              create: 0,
-              immerse: 0,
-              conversation: 1_800_000,
-              wanikani: 0,
-            },
-            buckets: Array.from({ length: 12 }, (_, index) => ({
-              startsAt: new Date(Date.UTC(2026, index, 1, 5)).toISOString(),
-              endsAt: new Date(Date.UTC(2026, index + 1, 1, 5)).toISOString(),
-              totalMs: 600_000,
-              categories: {
-                review: 300_000,
-                listen: 150_000,
-                create: 0,
-                immerse: 0,
-                conversation: 150_000,
-                wanikani: 0,
-              },
-            })),
-          },
-          {
-            key: 'all',
-            startsAt: '2025-01-01T05:00:00Z',
-            endsAt: '2026-07-29T16:00:00Z',
-            bucketUnit: 'month',
-            bucketStep: 1,
-            totalMs: 9_000_000,
-            categories: {
-              review: 3_600_000,
-              listen: 0,
-              create: 1_800_000,
-              immerse: 1_800_000,
-              conversation: 1_800_000,
-              wanikani: 0,
-            },
-            buckets: [
-              {
-                startsAt: '2025-01-01T05:00:00Z',
-                endsAt: '2025-02-01T05:00:00Z',
-                totalMs: 3_600_000,
-                categories: {
-                  review: 3_600_000,
-                  listen: 0,
-                  create: 0,
-                  immerse: 0,
-                  conversation: 0,
-                  wanikani: 0,
-                },
-              },
-              {
-                startsAt: '2026-07-01T04:00:00Z',
-                endsAt: '2026-07-29T16:00:00Z',
-                totalMs: 5_400_000,
-                categories: {
-                  review: 0,
-                  listen: 0,
-                  create: 1_800_000,
-                  immerse: 1_800_000,
-                  conversation: 1_800_000,
-                  wanikani: 0,
-                },
-              },
-            ],
-          },
-        ],
+        ranges: studyTimePageRanges(isHistorical),
       },
       isLoading: false,
       isError: false,
@@ -276,13 +183,8 @@ vi.mock('../../hooks/useStudyActivity', () => ({
   }),
 }));
 
-const expandManualTimeEntry = () => {
-  const disclosure = screen.getByTestId('manual-study-time-section');
-  expect(disclosure).not.toHaveAttribute('open');
-  fireEvent.click(screen.getByRole('heading', { name: 'Manual time entry' }));
-  expect(disclosure).toHaveAttribute('open');
-  return disclosure;
-};
+const openLog = () => fireEvent.click(screen.getByRole('button', { name: 'Log time' }));
+const openTab = (name: string) => fireEvent.click(screen.getByRole('tab', { name }));
 
 describe('StudyTimePage', () => {
   afterEach(() => {
@@ -334,18 +236,15 @@ describe('StudyTimePage', () => {
     expect(
       screen.queryByRole('heading', { name: 'Study rhythm overview' })
     ).not.toBeInTheDocument();
-    const weeklyRecap = screen.getByTestId('weekly-study-recap-card');
-    const jlptMastery = screen.getByTestId('jlpt-mastery-card');
-    const manualTimeEntry = screen.getByTestId('manual-study-time-section');
-    expect(jlptMastery.compareDocumentPosition(manualTimeEntry)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING
+    expect(screen.getByRole('tab', { name: 'Rhythm' })).toHaveAttribute('aria-selected', 'true');
+    openTab('Recap');
+    expect(screen.getByRole('tabpanel')).toContainElement(
+      screen.getByTestId('weekly-study-recap-card')
     );
-
-    expandManualTimeEntry();
-
-    const manualEntries = screen.getByRole('heading', { name: 'Manual entries' });
-    expect(weeklyRecap.compareDocumentPosition(jlptMastery)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(manualTimeEntry).toContainElement(manualEntries);
+    openTab('Mastery');
+    expect(screen.getByRole('tabpanel')).toContainElement(screen.getByTestId('jlpt-mastery-card'));
+    openLog();
+    expect(screen.getByRole('tab', { name: 'Entries' })).toHaveAttribute('aria-selected', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Log entry' }));
 
     expect(logCompletedMock).toHaveBeenCalledWith(
@@ -365,7 +264,7 @@ describe('StudyTimePage', () => {
       refetch: capabilitiesRefetchMock,
     });
     render(<StudyTimePage />);
-    expandManualTimeEntry();
+    openLog();
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Study limits and defaults couldn’t be loaded.'
@@ -382,12 +281,13 @@ describe('StudyTimePage', () => {
 
     render(<StudyTimePage />);
 
+    openTab('Entries');
     expect(capabilitiesQueryMock).toHaveBeenCalledWith(false);
   });
 
   it('loads additional editable entries without expanding the sync window', () => {
     render(<StudyTimePage />);
-    expandManualTimeEntry();
+    openTab('Entries');
     fireEvent.click(screen.getByRole('button', { name: 'Load more entries' }));
     expect(fetchNextPageMock).toHaveBeenCalledOnce();
   });
@@ -408,26 +308,16 @@ describe('StudyTimePage', () => {
     render(<StudyTimePage />);
 
     const initialAnchor = analyticsAnchorMock.mock.calls[0][0] as string;
-    expect(screen.getAllByRole('button', { name: 'Next period' })).toHaveLength(2);
-    screen
-      .getAllByRole('button', { name: 'Next period' })
-      .forEach((button) => expect(button).toBeDisabled());
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'Previous period' })[0]);
-
+    const next = screen.getByRole('button', { name: 'Next period' });
+    expect(next).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }));
     expect(analyticsAnchorMock).toHaveBeenLastCalledWith(
       shiftStudyTimeAnchor(initialAnchor, 'week', -1)
     );
-    screen
-      .getAllByRole('button', { name: 'Next period' })
-      .forEach((button) => expect(button).toBeEnabled());
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'Next period' })[0]);
-
+    expect(next).toBeEnabled();
+    fireEvent.click(next);
     expect(analyticsAnchorMock).toHaveBeenLastCalledWith(initialAnchor);
-    screen
-      .getAllByRole('button', { name: 'Next period' })
-      .forEach((button) => expect(button).toBeDisabled());
+    expect(next).toBeDisabled();
     expect(screen.getByTestId('study-time-period-label')).toHaveTextContent('Jul 27 – Aug 2, 2026');
   });
 
@@ -491,7 +381,7 @@ describe('StudyTimePage', () => {
 
   it('edits a manual entry and remaps its category', () => {
     render(<StudyTimePage />);
-    expandManualTimeEntry();
+    openTab('Entries');
 
     expect(screen.queryByText('Automatic review')).not.toBeInTheDocument();
     expect(screen.queryByText('Imported iTalki lesson')).not.toBeInTheDocument();
@@ -524,7 +414,7 @@ describe('StudyTimePage', () => {
 
   it('confirms before deleting a manual entry', () => {
     render(<StudyTimePage />);
-    expandManualTimeEntry();
+    openTab('Entries');
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Episode 8 cards' }));
     expect(deleteResetMock).toHaveBeenCalledOnce();

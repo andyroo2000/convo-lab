@@ -1,0 +1,296 @@
+.time-record {
+  --time-serif: 'Crimson Pro', 'Noto Serif JP', Georgia, serif;
+  --time-ink: #173b35;
+  --time-green: #316641;
+  --time-line: #cdd6c5;
+  --time-paper: #fffdf4;
+  color: var(--time-ink);
+  font-family: Inter, sans-serif;
+  max-width: 66rem;
+  margin: 0 auto;
+}
+.time-title,
+.time-period,
+.time-dates,
+.time-tabs {
+  display: flex;
+  align-items: center;
+}
+.time-title,
+.time-period {
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+.time-title h1 {
+  color: var(--time-ink);
+  font: 550 clamp(2.2rem, 5vw, 3rem)/1 var(--time-serif);
+  letter-spacing: -0.035em;
+}
+.time-log,
+.time-tabs button,
+.time-period label span,
+.time-dates {
+  font: 500 1.1rem/1.15 var(--time-serif);
+}
+.time-log {
+  background: var(--time-green);
+  color: #fffdf3;
+  border-radius: 2rem;
+  padding: 0.55rem 1rem;
+  min-height: 44px;
+  white-space: nowrap;
+}
+.time-period fieldset {
+  background: #eceee3;
+  border: 1px solid var(--time-line);
+  border-radius: 2rem;
+}
+.time-period label span {
+  border-radius: 2rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--time-ink);
+}
+.time-period input:checked + span {
+  color: white;
+  background: var(--time-green);
+}
+.time-dates {
+  gap: 0.4rem;
+}
+.time-dates button {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+}
+.time-dates svg {
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0.35rem;
+  border: 1px solid var(--time-line);
+  border-radius: 50%;
+}
+.time-dates button:disabled {
+  opacity: 0.35;
+}
+.time-paper {
+  background: var(--time-paper);
+  border: 1px solid var(--time-line);
+  border-radius: 7px;
+  box-shadow: 3px 4px #eceede;
+  padding: 0.65rem clamp(0.8rem, 2.4vw, 1.6rem) 1.3rem;
+}
+.time-tabs {
+  align-items: stretch;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--time-line);
+  margin-bottom: 1.2rem;
+}
+.time-tabs button {
+  padding: 0.45rem 1.15rem;
+  min-height: 44px;
+  color: var(--time-green);
+  background: #e8eadb;
+  border-radius: 6px 6px 0 0;
+}
+.time-tabs button[aria-selected='true'] {
+  color: white;
+  background: var(--time-green);
+}
+.time-record :is(button, input, select, [role='tabpanel']):focus-visible {
+  outline: 2px solid var(--time-green);
+  outline-offset: 2px;
+}
+.time-paper .card.app-surface {
+  color: var(--time-ink);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.time-paper :is(h2, h3, h4) {
+  color: var(--time-ink);
+  font-family: var(--time-serif);
+  font-weight: 550;
+}
+.time-paper h2 {
+  font-size: 1.55rem;
+}
+.time-paper h2.sr-only {
+  font-size: inherit;
+}
+.time-metrics {
+  display: flex;
+  gap: 1rem 2.3rem;
+  align-items: end;
+}
+.time-metrics > div {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+.time-metrics .retro-caps {
+  font:
+    500 0.8rem/1.3 Inter,
+    sans-serif;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.time-metrics p:nth-child(2) {
+  font: 500 1.6rem/1.1 var(--time-serif);
+  color: var(--time-ink);
+}
+.time-metrics > :first-child p:nth-child(2) {
+  font-size: clamp(2.9rem, 6vw, 4rem);
+  letter-spacing: -0.055em;
+}
+.time-chart-title {
+  border-top: 1px solid var(--time-line);
+  padding-top: 1rem;
+  margin-top: 1.4rem;
+}
+.time-chart-title + div {
+  margin-top: 0.6rem;
+}
+.time-chart > div[aria-label] {
+  height: 9rem;
+  border-color: var(--time-line);
+  border-width: 0 0 1px;
+  background: repeating-linear-gradient(
+    to top,
+    transparent 0 calc(50% - 1px),
+    #dde2d3 calc(50% - 1px) 50%
+  );
+}
+.time-chart {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 7px;
+}
+.time-chart .time-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 1.5rem;
+  font:
+    500 0.72rem Inter,
+    sans-serif;
+  color: #526252;
+}
+.time-chart [data-testid='study-rhythm-chart-bucket'] {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 1.5rem;
+  align-items: end;
+  justify-content: stretch;
+}
+.time-chart [data-testid='study-rhythm-chart-bucket'] button {
+  align-self: end;
+  justify-self: center;
+}
+.time-chart-title + div button {
+  width: 65%;
+  max-width: 50px;
+  align-self: center;
+}
+.time-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.9rem;
+  margin-top: 0.35rem;
+}
+.time-legend button {
+  gap: 0.4rem;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+}
+.time-legend button span {
+  font:
+    500 0.8rem Inter,
+    sans-serif;
+  color: var(--time-ink);
+}
+.time-legend button[aria-pressed='false'] {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+.time-log-fields {
+  border-bottom: 1px solid var(--time-line);
+  padding-bottom: 1rem;
+}
+.time-record :is(.app-button-primary, .app-button-secondary) {
+  font-family: var(--time-serif);
+  border-radius: 1.5rem;
+}
+.time-record .app-button-primary {
+  background: var(--time-green);
+  color: white;
+}
+@media (max-width: 600px) {
+  .time-period {
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.65rem;
+  }
+  .time-period fieldset {
+    width: 100%;
+  }
+  .time-period label span {
+    display: grid;
+    place-items: center;
+    min-height: 42px;
+    padding: 0.25rem;
+  }
+  .time-dates {
+    justify-content: center;
+  }
+  .time-tabs button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.45rem 0.12rem;
+    font-size: 1.04rem;
+  }
+  .time-paper {
+    padding-inline: 0.75rem;
+  }
+  .time-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+  }
+  .time-metrics > :first-child {
+    grid-column: 1/-1;
+  }
+  .time-chart > div[aria-label] {
+    height: 7.5rem;
+  }
+  .time-paper .card.app-surface {
+    padding-inline: 0.2rem;
+  }
+}
+
+.time-paper [role='tabpanel'] > .card {
+  padding: 0;
+}
+.time-paper :is(#jlpt-mastery-title, #weekly-recap-title) {
+  font: 550 1.55rem/1.12 var(--time-serif);
+}
+.time-paper [aria-labelledby='jlpt-mastery-title'] article {
+  background: var(--time-paper);
+  border-color: var(--time-line);
+}
+.time-paper [aria-labelledby='jlpt-mastery-title'] [role='progressbar'] > div,
+.time-paper [aria-labelledby='weekly-recap-title'] .bg-navy {
+  background-color: var(--time-green);
+}
+.time-paper
+  :is([aria-labelledby='jlpt-mastery-title'], [aria-labelledby='weekly-recap-title'])
+  :is(.text-coral, .text-violet-600) {
+  color: var(--time-green);
+}
+.time-paper [aria-labelledby='jlpt-mastery-title'] .font-mono {
+  color: var(--time-ink);
+  font-family: var(--time-serif);
+  font-weight: 550;
+}

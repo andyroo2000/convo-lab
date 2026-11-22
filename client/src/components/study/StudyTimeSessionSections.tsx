@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
-import { CalendarPlus, ChevronDown, Clock3, Pencil, Play, Trash2 } from 'lucide-react';
+import { CalendarPlus, Clock3, Pencil, Play, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import ConfirmModal from '../common/ConfirmModal';
@@ -439,8 +439,7 @@ const StudyTimeDeleteModal = ({ deletion }: { deletion: StudyTimeSessionManager[
   );
 };
 
-const StudyTimeSessionSections = () => {
-  const { t } = useTranslation(['study']);
+const StudyTimeSessionSections = ({ logging }: { logging: boolean }) => {
   const manager = useStudyTimeSessionManager();
 
   return (
@@ -452,36 +451,13 @@ const StudyTimeSessionSections = () => {
           manager.capabilities.retry().catch(() => undefined);
         }}
       />
-      <section
-        className="card app-surface overflow-hidden"
-        aria-labelledby="manual-study-time-title"
-      >
-        <details className="group" data-testid="manual-study-time-section">
-          <summary className="flex cursor-pointer list-none items-start gap-3 p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-navy sm:p-6">
-            <ChevronDown
-              className="mt-1 h-5 w-5 shrink-0 text-coral transition-transform group-open:rotate-180"
-              aria-hidden="true"
-            />
-            <Clock3 className="h-7 w-7 shrink-0 text-coral" aria-hidden="true" />
-            <div className="min-w-0">
-              <h2 id="manual-study-time-title" className="text-xl font-bold text-navy sm:text-2xl">
-                {t('time.manual.sectionTitle')}
-              </h2>
-              <p className="mt-1 max-w-2xl text-sm font-semibold text-gray-500">
-                {t('time.manual.sectionDescription')}
-              </p>
-            </div>
-          </summary>
-
-          <div className="space-y-6 border-t border-gray-200 p-4 sm:p-6">
-            <section className="grid gap-6 lg:grid-cols-2">
-              <StudyTimerSection timer={manager.timer} />
-              <StudyCalendarSection calendar={manager.calendar} />
-            </section>
-            <StudyManualSessionsSection history={manager.history} />
-          </div>
-        </details>
-      </section>
+      {logging && (
+        <section className="time-log-fields grid gap-5 lg:grid-cols-2">
+          <StudyTimerSection timer={manager.timer} />
+          <StudyCalendarSection calendar={manager.calendar} />
+        </section>
+      )}
+      <StudyManualSessionsSection history={manager.history} />
       <StudyTimeEditDialog edit={manager.edit} />
       <StudyTimeDeleteModal deletion={manager.deletion} />
     </>

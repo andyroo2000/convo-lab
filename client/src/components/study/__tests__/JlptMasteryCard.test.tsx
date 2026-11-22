@@ -79,15 +79,6 @@ describe('JlptMasteryCard', () => {
     render(<JlptMasteryCard />);
 
     expect(overviewMock).toHaveBeenCalledWith({ enabled: true, refetchOnMount: 'always' });
-    const title = screen.getByRole('heading', { name: 'JLPT Mastery' });
-    const disclosure = screen.getByRole('group');
-    const chevron = screen.getByTestId('jlpt-mastery-chevron');
-    expect(chevron.compareDocumentPosition(title)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(disclosure).not.toHaveAttribute('open');
-
-    fireEvent.click(title);
-
-    expect(disclosure).toHaveAttribute('open');
     expect(screen.getByRole('heading', { name: 'N5' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'N4' })).toBeInTheDocument();
     expect(screen.getByText('Foundation')).toBeInTheDocument();
@@ -145,7 +136,6 @@ describe('JlptMasteryCard', () => {
     );
     setOverview({ data: { jlptMastery: { ...mastery, ...higherLevels } } });
     render(<JlptMasteryCard />);
-    fireEvent.click(screen.getByRole('heading', { name: 'JLPT Mastery' }));
 
     expect(
       screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)
@@ -182,7 +172,6 @@ describe('JlptMasteryCard', () => {
     });
 
     render(<JlptMasteryCard />);
-    fireEvent.click(screen.getByRole('heading', { name: 'JLPT Mastery' }));
 
     const progress = screen.getByRole('progressbar', { name: 'N5 Vocabulary mastery' });
     expect(progress).toHaveAttribute('aria-valuenow', '100');
@@ -200,7 +189,6 @@ describe('JlptMasteryCard', () => {
     });
 
     render(<JlptMasteryCard />);
-    fireEvent.click(screen.getByRole('heading', { name: 'JLPT Mastery' }));
 
     expect(screen.getByRole('heading', { name: 'N5' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'N4' })).not.toBeInTheDocument();
@@ -209,7 +197,6 @@ describe('JlptMasteryCard', () => {
   it('retries a failed overview request', () => {
     setOverview({ data: undefined, isError: true });
     render(<JlptMasteryCard />);
-    fireEvent.click(screen.getByRole('heading', { name: 'JLPT Mastery' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(refetchMock).toHaveBeenCalledOnce();
@@ -218,7 +205,6 @@ describe('JlptMasteryCard', () => {
   it('announces loading and handles an unavailable mastery estimate', () => {
     setOverview({ data: undefined, isLoading: true });
     const view = render(<JlptMasteryCard />);
-    fireEvent.click(screen.getByRole('heading', { name: 'JLPT Mastery' }));
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading your mastery estimate');
 
