@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { RefreshCw } from 'lucide-react';
 import type { StudyJlptLevelMastery, StudyJlptMasteryMetric } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
+import MasterySpreadChart from './MasterySpreadChart';
 
 import { useStudyOverview } from '../../hooks/useStudy';
 
@@ -202,13 +203,18 @@ const JlptMasteryCard = () => {
   }
 
   return (
-    <section className="card app-surface overflow-hidden" aria-labelledby="jlpt-mastery-title">
-      <header className="px-4 pt-4 sm:px-6">
-        <h2 id="jlpt-mastery-title">{t('time.jlptMastery.title')}</h2>
-        <p className="mt-1 text-sm text-gray-600">{t('time.jlptMastery.description')}</p>
-      </header>
-      {body}
-    </section>
+    <>
+      {overviewQuery.data?.masterySpread && (
+        <MasterySpreadChart spread={overviewQuery.data.masterySpread} />
+      )}
+      <section className="card app-surface overflow-hidden" aria-labelledby="jlpt-mastery-title">
+        <header className="px-4 pt-4 sm:px-6">
+          <h2 id="jlpt-mastery-title">{t('time.jlptMastery.title')}</h2>
+          <p className="mt-1 text-sm text-gray-600">{t('time.jlptMastery.description')}</p>
+        </header>
+        {body}
+      </section>
+    </>
   );
 };
 

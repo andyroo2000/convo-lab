@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Settings, LogOut, Shield } from 'lucide-react';
+import { Settings, LogOut, Shield, SlidersHorizontal } from 'lucide-react';
 import type { UserMenuMobileNavItem } from './UserMenu';
 
 const itemClass =
@@ -20,7 +20,21 @@ const UserMenuItems = ({
   logout: () => void;
 }) => {
   const { t } = useTranslation('common');
+  const { pathname, search } = useLocation();
+  const onStudy =
+    !new URLSearchParams(search).has('viewAs') &&
+    ['/app/study', '/app/study/', '/app/study/daily-audio'].includes(pathname);
   const destinations = [
+    ...(onStudy
+      ? [
+          {
+            id: 'study-preferences',
+            path: '/app/study/settings',
+            label: t('study:notebook.preferences'),
+            icon: SlidersHorizontal,
+          },
+        ]
+      : []),
     ...(userRole === 'admin'
       ? [{ id: 'admin', path: '/app/admin', label: t('admin'), icon: Shield }]
       : []),

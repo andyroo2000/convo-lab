@@ -1,17 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
-import AudioPlayer from '../AudioPlayer';
-import CurrentTextDisplay from '../CurrentTextDisplay';
-import ViewToggleButtons from '../common/ViewToggleButtons';
-import { useAudioPlayer } from '../../hooks/useAudioPlayer';
-import useWarmAudioCache from '../../hooks/useWarmAudioCache';
+import { useTranslation } from 'react-i18next';
+import { useCallback, useEffect, memo, useMemo, useState, useRef } from 'react';
+import { Play, Pause } from 'lucide-react';
 import type { DailyAudioPracticeTiming, LanguageCode, LessonScriptUnit } from '../../types';
+import { useAudioPlayer } from '../../hooks/useAudioPlayer';
+import { useStudyActivityActions } from '../../contexts/StudyActivityContext';
 import {
   findCurrentL2Unit,
   normalizeTimingDataForDuration,
   versionAudioUrl,
 } from './scriptTrackTiming';
-import { useStudyActivityActions } from '../../contexts/StudyActivityContext';
+import StudyRubyText from '../study/StudyRubyText';
 
 interface ScriptTrackPlayerProps {
   title: string;
@@ -27,215 +25,18 @@ interface ScriptTrackPlayerProps {
 const DAILY_AUDIO_COMPLETION_PREFIX = 'Daily Audio completed: ';
 const STUDY_ACTIVITY_NAME_MAX_LENGTH = 120;
 
-interface TrackHeaderProps {
-  title: string;
-  meta: string;
-  hasTimings: boolean;
-  showReadings: boolean;
-  showTranslations: boolean;
-  onToggleReadings: () => void;
-  onToggleTranslations: () => void;
-}
-
-interface TrackPlaybackProps {
-  playbackAudioUrl: string | null;
-  status: string;
-  hasTimings: boolean;
-  currentUnit: LessonScriptUnit | null;
-  targetLanguage: LanguageCode;
-  showReadings: boolean;
-  showTranslations: boolean;
-  audioRef: (element: HTMLAudioElement | null) => void;
-  onEnded: () => void;
-}
-
 function boundedActivityName(name: string) {
   return Array.from(name).slice(0, STUDY_ACTIVITY_NAME_MAX_LENGTH).join('');
 }
 
-function formatDuration(seconds?: number | null) {
-  if (!seconds) return null;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-function visibleTranscriptUnits(units: LessonScriptUnit[]) {
-  return units.filter((unit) => unit.type === 'L2' || unit.type === 'narration_L1');
-}
-
-function formatLanguageLabel(language: LanguageCode) {
-  return language === 'ja' ? 'Japanese' : language.toUpperCase();
-}
-
-function formatTrackStatus(status: string) {
-  if (status === 'skipped') return 'Skipped during drill development.';
-  if (status === 'draft' || status === 'generating') return 'Preparing audio...';
-  if (status === 'error') return 'Track audio could not be generated.';
-  return `Track audio is ${status}.`;
-}
-
-function formatTrackMeta(status: string, durationLabel: string | null) {
-  if (durationLabel) return `${durationLabel} audio`;
-  if (status === 'skipped') return 'Skipped';
-  return status;
-}
-
-function readyAudioUrl(status: string, audioUrl?: string | null, updatedAt?: string | null) {
-  if (status !== 'ready' || !audioUrl) return null;
-  return versionAudioUrl(audioUrl, updatedAt);
-}
-
-const TrackHeader = ({
-  title,
-  meta,
-  hasTimings,
-  showReadings,
-  showTranslations,
-  onToggleReadings,
-  onToggleTranslations,
-}: TrackHeaderProps) => (
-  <div className="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <h2 className="retro-headline text-3xl sm:text-[2.5rem]">{title}</h2>
-      <p className="retro-caps text-[rgba(20,50,86,0.62)]">{meta}</p>
-    </div>
-    {hasTimings ? (
-      <ViewToggleButtons
-        showReadings={showReadings}
-        showTranslations={showTranslations}
-        onToggleReadings={onToggleReadings}
-        onToggleTranslations={onToggleTranslations}
-        readingsLabel="Furigana"
-        className="justify-end gap-4"
-      />
-    ) : null}
-  </div>
-);
-
-const TrackPlayback = ({
-  playbackAudioUrl,
-  status,
-  hasTimings,
-  currentUnit,
-  targetLanguage,
-  showReadings,
-  showTranslations,
-  audioRef,
-  onEnded,
-}: TrackPlaybackProps) => {
-  if (!playbackAudioUrl) {
-    return (
-      <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.12)] px-4 py-5 text-[rgba(20,50,86,0.72)]">
-        {formatTrackStatus(status)}
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {hasTimings ? (
-        <CurrentTextDisplay
-          currentUnit={currentUnit}
-          targetLanguage={targetLanguage}
-          showReadings={showReadings}
-          showTranslations={showTranslations}
-        />
-      ) : null}
-      <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 py-3">
-        <AudioPlayer
-          src={playbackAudioUrl}
-          audioRef={audioRef}
-          key={playbackAudioUrl}
-          onEnded={onEnded}
-        />
-      </div>
-    </>
-  );
-};
-
-const TrackTranscript = ({
-  units,
-  targetLanguage,
-}: {
-  units: LessonScriptUnit[];
-  targetLanguage: LanguageCode;
-}) => {
-  if (!units.length) return null;
-
-  return (
-    <details className="group">
-      <summary className="cursor-pointer retro-caps text-[rgba(20,50,86,0.72)]">Transcript</summary>
-      <div className="mt-3 grid gap-2">
-        {visibleTranscriptUnits(units).map((unit, index) => (
-          <div
-            // eslint-disable-next-line react/no-array-index-key -- Script units do not have stable IDs.
-            key={`${unit.type}-${index}`}
-            className="border-2 border-[rgba(20,50,86,0.08)] bg-white/55 px-3 py-2"
-          >
-            <p className="text-sm uppercase tracking-[0.12em] text-[rgba(20,50,86,0.48)]">
-              {unit.type === 'L2' ? formatLanguageLabel(targetLanguage) : 'Narrator'}
-            </p>
-            <p className="text-lg font-semibold text-[rgba(20,50,86,0.9)]">{unit.text}</p>
-            {unit.type === 'L2' && unit.translation ? (
-              <p className="text-sm text-[rgba(20,50,86,0.62)]">{unit.translation}</p>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    </details>
-  );
-};
-
-const ScriptTrackPlayer = ({
-  title,
-  status,
-  audioUrl,
-  scriptUnits,
-  timingData,
-  targetLanguage,
-  approxDurationSeconds,
-  updatedAt,
-}: ScriptTrackPlayerProps) => {
-  const { audioRef, currentTime, duration, isPlaying } = useAudioPlayer();
+function useDrillActivity(title: string, isPlaying: boolean) {
   const {
     start: startActivity,
     stop: stopActivity,
     stopAndWait: stopActivityAndWait,
     logCompletedAndWait,
   } = useStudyActivityActions();
-  const [showReadings, setShowReadings] = useState(false);
-  const [showTranslations, setShowTranslations] = useState(false);
-  const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
-  const durationLabel = formatDuration(approxDurationSeconds);
-  const playbackAudioUrl = readyAudioUrl(status, audioUrl, updatedAt);
-  const units = useMemo(() => scriptUnits ?? [], [scriptUnits]);
-  const timings = useMemo(() => timingData ?? [], [timingData]);
   const activityName = boundedActivityName(title);
-  const scaledTimings = useMemo(
-    () => normalizeTimingDataForDuration(timings, duration || approxDurationSeconds),
-    [approxDurationSeconds, duration, timings]
-  );
-
-  useWarmAudioCache([playbackAudioUrl], Boolean(playbackAudioUrl));
-
-  useEffect(() => {
-    if (!playbackAudioUrl) {
-      setCurrentUnit(null);
-      return;
-    }
-    if (!units.length) {
-      setCurrentUnit(null);
-      return;
-    }
-    if (!scaledTimings.length) {
-      setCurrentUnit(null);
-      return;
-    }
-
-    setCurrentUnit(findCurrentL2Unit(units, scaledTimings, currentTime));
-  }, [currentTime, playbackAudioUrl, scaledTimings, units]);
-
   useEffect(() => {
     if (!isPlaying) return undefined;
     startActivity({
@@ -264,33 +65,220 @@ const ScriptTrackPlayer = ({
       .catch(() => undefined);
   }, [activityName, logCompletedAndWait, stopActivityAndWait, title]);
 
+  return recordCompletion;
+}
+function clock(seconds: number) {
+  const t = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+}
+function useDrillPlayback() {
+  const audio = useAudioPlayer();
+  const ref = audio.audioRef;
+  const media = useRef<HTMLAudioElement | null>(null);
+  const attach = useCallback(
+    (node: HTMLAudioElement | null) => {
+      media.current = node;
+      ref(node);
+    },
+    [ref]
+  );
+  const [failed, setFailed] = useState(false);
+  const toggle = () => {
+    const node = media.current;
+    if (!node) return;
+    if (audio.isPlaying) {
+      node.pause();
+      return;
+    }
+    if (failed) node.load();
+    setFailed(false);
+    node.play().catch(() => setFailed(true));
+  };
+  return { audio, attach, failed, setFailed, toggle };
+}
+const Transport = ({
+  audio,
+  total,
+  toggle,
+}: {
+  audio: ReturnType<typeof useAudioPlayer>;
+  total: number;
+  toggle: () => void;
+}) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
   return (
-    <section className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">
-      <div className="space-y-4 px-4 py-4 sm:px-5">
-        <TrackHeader
-          title={title}
-          meta={formatTrackMeta(status, durationLabel)}
-          hasTimings={Boolean(timings.length)}
-          showReadings={showReadings}
-          showTranslations={showTranslations}
-          onToggleReadings={() => setShowReadings((value) => !value)}
-          onToggleTranslations={() => setShowTranslations((value) => !value)}
+    <div className="drill-transport">
+      <button type="button" className="drill-primary" onClick={toggle}>
+        {audio.isPlaying ? (
+          <>
+            <Pause size={15} /> {t('pause')}
+          </>
+        ) : (
+          <>
+            <Play size={15} /> {t('play')}
+          </>
+        )}
+      </button>
+      <div className="drill-timeline">
+        <input
+          type="range"
+          aria-label={t('seek')}
+          min={0}
+          max={total || 1}
+          step={0.1}
+          disabled={!audio.duration}
+          value={Math.min(audio.currentTime, total)}
+          onChange={(e) => audio.seek(Number(e.target.value))}
         />
-        <TrackPlayback
-          playbackAudioUrl={playbackAudioUrl}
-          status={status}
-          hasTimings={Boolean(timings.length)}
-          currentUnit={currentUnit}
-          targetLanguage={targetLanguage}
-          showReadings={showReadings}
-          showTranslations={showTranslations}
-          audioRef={audioRef}
-          onEnded={recordCompletion}
-        />
-        <TrackTranscript units={units} targetLanguage={targetLanguage} />
+        <div>
+          <span>{clock(audio.currentTime)}</span>
+          <span>{clock(total)}</span>
+        </div>
       </div>
-    </section>
+    </div>
+  );
+};
+type TranscriptProps = Pick<
+  ScriptTrackPlayerProps,
+  'scriptUnits' | 'timingData' | 'targetLanguage'
+> & { total: number; currentTime: number };
+function useTranscriptUnit({
+  scriptUnits,
+  timingData,
+  total,
+  currentTime,
+}: Omit<TranscriptProps, 'targetLanguage'>) {
+  const timings = useMemo(
+    () => normalizeTimingDataForDuration(timingData ?? [], total),
+    [timingData, total]
+  );
+  return (
+    findCurrentL2Unit(scriptUnits ?? [], timings, currentTime) ??
+    (currentTime === 0 ? scriptUnits?.find((u) => u.type === 'L2') : null)
+  );
+}
+type ScriptTextProps = Pick<TranscriptProps, 'scriptUnits' | 'targetLanguage'>;
+const FullTranscript = memo(({ scriptUnits, targetLanguage }: ScriptTextProps) => (
+  // Unit order is fixed for the lifetime of a recording revision.
+  <div className="drill-script">
+    {scriptUnits?.map((line, index) => {
+      if (line.type !== 'L2' && line.type !== 'narration_L1') return null;
+      return (
+        // eslint-disable-next-line react/no-array-index-key -- Script units have no IDs and stay in recording order.
+        <p key={index} lang={line.type === 'L2' ? targetLanguage : undefined}>
+          {line.text}
+        </p>
+      );
+    })}
+  </div>
+));
+FullTranscript.displayName = 'FullTranscript';
+
+const CurrentLine = ({
+  unit,
+  targetLanguage,
+}: {
+  unit: Extract<LessonScriptUnit, { type: 'L2' }>;
+  targetLanguage: LanguageCode;
+}) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
+  const [readings, setReadings] = useState(false);
+  const [translations, setTranslations] = useState(false);
+  return (
+    <>
+      <div lang={targetLanguage}>
+        {readings && unit.reading ? <StudyRubyText text={unit.reading} /> : unit.text}
+      </div>
+      {unit.reading && (
+        <button type="button" aria-pressed={readings} onClick={() => setReadings(!readings)}>
+          {t('furigana')}
+        </button>
+      )}
+      {unit.translation && (
+        <button
+          type="button"
+          aria-pressed={translations}
+          onClick={() => setTranslations(!translations)}
+        >
+          {t('translation')}
+        </button>
+      )}
+      {translations && <p>{unit.translation}</p>}
+    </>
   );
 };
 
+const Transcript = ({
+  scriptUnits,
+  timingData,
+  targetLanguage,
+  total,
+  currentTime,
+}: TranscriptProps) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
+  const unit = useTranscriptUnit({ scriptUnits, timingData, total, currentTime });
+  if (!scriptUnits?.length) return <p>{t('noTranscript')}</p>;
+  const script = <FullTranscript scriptUnits={scriptUnits} targetLanguage={targetLanguage} />;
+  if (!timingData?.length) return script;
+  return (
+    <div className="drill-transcript">
+      {unit?.type === 'L2' ? (
+        <CurrentLine unit={unit} targetLanguage={targetLanguage} />
+      ) : (
+        <p>{t('listening')}</p>
+      )}
+      <details>
+        <summary>{t('fullScript')}</summary>
+        {script}
+      </details>
+    </div>
+  );
+};
+const TranscriptDisclosure = (props: TranscriptProps) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
+  const [show, setShow] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        className="drill-disclose"
+        aria-expanded={show}
+        onClick={() => setShow(!show)}
+      >
+        {show ? (
+          <>
+            {t('hideText')} <span aria-hidden="true">⌃</span>
+          </>
+        ) : (
+          <>
+            {t('showText')} <span aria-hidden="true">⌄</span>
+          </>
+        )}
+      </button>
+      {show && <Transcript {...props} />}
+    </>
+  );
+};
+const ScriptTrackPlayer = (props: ScriptTrackPlayerProps) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
+  const { title, approxDurationSeconds, status, audioUrl, updatedAt } = props;
+  const { audio, attach, failed, setFailed, toggle } = useDrillPlayback();
+  const complete = useDrillActivity(title, audio.isPlaying);
+  const total = audio.duration || approxDurationSeconds || 0;
+  if (status !== 'ready' || !audioUrl) return <p>{t('unavailable')}</p>;
+  return (
+    <>
+      <audio
+        ref={attach}
+        src={versionAudioUrl(audioUrl, updatedAt)}
+        preload="metadata"
+        onEnded={complete}
+        onError={() => setFailed(true)}
+      />
+      <Transport audio={audio} total={total} toggle={toggle} />
+      {failed && <p role="alert">{t('playError')}</p>}
+      <TranscriptDisclosure {...props} total={total} currentTime={audio.currentTime} />
+    </>
+  );
+};
 export default ScriptTrackPlayer;

@@ -242,7 +242,7 @@ describe('StudyPage card rendering', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
 
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -290,7 +290,7 @@ describe('StudyPage card rendering', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
 
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -341,7 +341,7 @@ describe('StudyPage card rendering', () => {
     });
 
     renderStudyPage({ knownKanji: ['風', '呂', '虫'], knownKanjiActive: true });
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('study-cloze-prompt')).toBeInTheDocument();
@@ -405,7 +405,7 @@ describe('StudyPage card rendering', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     await waitFor(() => {
@@ -446,7 +446,7 @@ describe('StudyPage card rendering', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     await waitFor(() => {

@@ -297,10 +297,7 @@ describe('Layout', () => {
         'href',
         '/app/study/cards'
       );
-      expect(within(learningDock).getByRole('link', { name: 'Daily Audio' })).toHaveAttribute(
-        'href',
-        '/app/study/daily-audio'
-      );
+      expect(within(learningDock).queryByRole('link', { name: 'Daily Audio' })).toBeNull();
       expect(within(learningDock).getByRole('link', { name: 'Time' })).toHaveAttribute(
         'href',
         '/app/study/time'
@@ -346,11 +343,11 @@ describe('Layout', () => {
       window.history.pushState({}, '', '/app/study/daily-audio');
       renderLayout('/app/study/daily-audio');
 
-      expect(screen.getByTestId('mobile-learning-dock-audio')).toHaveAttribute(
+      expect(screen.getByTestId('mobile-learning-dock-study')).toHaveAttribute(
         'aria-current',
         'page'
       );
-      expect(screen.getByTestId('mobile-learning-dock-study')).not.toHaveAttribute('aria-current');
+      expect(screen.queryByTestId('mobile-learning-dock-audio')).toBeNull();
     });
   });
 

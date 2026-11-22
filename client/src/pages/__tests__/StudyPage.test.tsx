@@ -27,9 +27,8 @@ describe('StudyPage overview and lessons', () => {
   it('renders overview counts without eagerly starting a study session', () => {
     renderStudyPage();
 
-    expect(screen.getByRole('button', { name: 'Reviews' })).toBeInTheDocument();
-    expect(screen.getByText('4 reviews')).toBeInTheDocument();
-    expect(screen.getByText('20 cards total')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start review' })).toBeInTheDocument();
+    expect(screen.getByText('4', { selector: '.study-count strong' })).toBeInTheDocument();
     expect(screen.queryByText('Due')).not.toBeInTheDocument();
     expect(screen.queryByText('Total')).not.toBeInTheDocument();
     expect(screen.queryByText('Failed')).not.toBeInTheDocument();
@@ -38,10 +37,9 @@ describe('StudyPage overview and lessons', () => {
     expect(screen.queryByRole('link', { name: 'Browse' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Import' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Create Card' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute('href', '/app/study/cards');
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Browse cards/ })).toHaveAttribute(
       'href',
-      '/app/study/settings'
+      '/app/study/browse'
     );
     expect(screen.queryByRole('link', { name: 'History' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Refresh counts' })).not.toBeInTheDocument();
@@ -65,7 +63,7 @@ describe('StudyPage overview and lessons', () => {
     );
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
 
     expect(screen.getByText('Loading study session…')).toBeInTheDocument();
     expect(screen.queryByText(/No cards are ready right now/i)).not.toBeInTheDocument();
@@ -94,11 +92,11 @@ describe('StudyPage overview and lessons', () => {
     renderStudyPage();
 
     const emptyMessage = 'Open Cards to create your first card and start studying here.';
-    const beginButton = screen.getByRole('button', { name: 'Reviews' });
+    const beginButton = screen.getByRole('button', { name: 'Start review' });
     const emptyState = screen.getByText(emptyMessage);
     expect(beginButton).toBeDisabled();
     expect(beginButton.getAttribute('aria-describedby')?.split(' ')).toContain(emptyState.id);
-    expect(beginButton).toHaveAccessibleDescription(`0 reviews All caught up ${emptyMessage}`);
+    expect(beginButton).toHaveAccessibleDescription(`0 cards due All caught up ${emptyMessage}`);
     expect(beginButton).not.toHaveAttribute('title');
   });
 
@@ -120,9 +118,11 @@ describe('StudyPage overview and lessons', () => {
 
     renderStudyPage();
 
-    expect(screen.getByText('0 reviews')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start review' })).toHaveAccessibleDescription(
+      /^0 cards due/
+    );
     expect(screen.queryByText('8 reviews')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reviews' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Start review' })).toBeDisabled();
   });
 
   it('includes failed retries whose due time has arrived', () => {
@@ -139,8 +139,8 @@ describe('StudyPage overview and lessons', () => {
 
     renderStudyPage();
 
-    expect(screen.getByText('5 reviews')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reviews' })).toBeEnabled();
+    expect(screen.getByText('5', { selector: '.study-count strong' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start review' })).toBeEnabled();
   });
 
   it('points to Lessons when reviews are exhausted but new cards remain', () => {
@@ -158,8 +158,8 @@ describe('StudyPage overview and lessons', () => {
 
     renderStudyPage();
 
-    expect(screen.getByRole('button', { name: 'Reviews' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'My usual mix' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Start review' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Start lesson' })).toBeEnabled();
     expect(
       screen.getByText('No reviews are due. You can start a Lesson whenever you’re ready.')
     ).toBeInTheDocument();
@@ -189,7 +189,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start lesson' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
@@ -243,7 +243,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start lesson' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: /Good/ }));
@@ -270,7 +270,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: /Good/ }));
 
@@ -290,7 +290,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: /Good/ }));
 
@@ -359,7 +359,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start lesson' }));
 
     expect(await screen.findByText('Card 1 of 2')).toBeInTheDocument();
     expect(screen.getByText('会社')).toBeInTheDocument();
@@ -410,7 +410,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start lesson' }));
 
     expect(await screen.findByText('Card 1 of 1')).toBeInTheDocument();
     expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
@@ -428,9 +428,9 @@ describe('StudyPage overview and lessons', () => {
 
     renderStudyPage();
 
-    const beginButton = screen.getByRole('button', { name: 'Reviews' });
+    const beginButton = screen.getByRole('button', { name: 'Start review' });
     expect(beginButton).toBeEnabled();
-    expect(beginButton).toHaveAccessibleDescription('0 reviews All caught up');
+    expect(beginButton).toHaveAccessibleDescription('0 cards due All caught up');
     expect(screen.getByText('Loading overview…')).toBeInTheDocument();
     expect(
       screen.queryByText('Open Cards to create your first card and start studying here.')
@@ -451,7 +451,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
 
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
@@ -502,7 +502,7 @@ describe('StudyPage overview and lessons', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     const gradeTray = screen.getByTestId('study-grade-tray');

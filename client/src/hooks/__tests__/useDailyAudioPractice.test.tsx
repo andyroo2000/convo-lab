@@ -103,10 +103,28 @@ describe('Daily Audio API requests', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/daily-audio-practice',
+      '/api/daily-audio-practice?paginated=1&cursor=0&limit=14',
       expect.objectContaining({ credentials: 'include' })
     );
     expect(result.current.data?.[0]?.tracks.map((track) => track.sortOrder)).toEqual([1, 2]);
+  });
+
+  it('loads the newest playable drill beyond the first page in the same request', async () => {
+    const older = {
+      ...practice,
+      id: '123e4567-e89b-42d3-a456-426614174099',
+      practiceDate: '2026-06-01',
+      tracks: [{ ...practice.tracks[0], audioUrl: '/audio/older.mp3' }],
+    };
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ items: [practice], latestPlayableDrill: older, nextCursor: 'older' })
+    );
+    const { result } = renderHook(() => useRecentDailyAudioPractice(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.map((item) => item.id)).toEqual([practice.id, older.id]);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('normalizes the canonical provider resource for browser playback', async () => {

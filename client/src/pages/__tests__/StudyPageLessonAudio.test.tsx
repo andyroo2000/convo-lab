@@ -34,7 +34,7 @@ async function startLesson(cards: StudyCardSummary[] = [audioCard()]) {
     cards,
   });
   const view = renderStudyPage();
-  await userEvent.click(screen.getByRole('button', { name: 'My usual mix' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Start lesson' }));
   await screen.findByText(`Card 1 of ${cards.length}`);
   return view;
 }

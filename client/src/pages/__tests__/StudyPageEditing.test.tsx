@@ -69,7 +69,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: /good/i }));
 
@@ -114,7 +114,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     await waitFor(() => {
@@ -159,7 +159,7 @@ describe('StudyPage editing and session actions', () => {
     deleteStudyCardMock.mockRejectedValue(new Error('Delete failed.'));
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
     await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
@@ -192,7 +192,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
     await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
@@ -242,7 +242,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
 
@@ -295,7 +295,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
 
@@ -324,7 +324,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Suspend' }));
 
@@ -358,7 +358,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Set due' }));
     await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }));
@@ -433,7 +433,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Good' }));
 
@@ -492,7 +492,7 @@ describe('StudyPage editing and session actions', () => {
     });
 
     renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Reviews' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Good' }));
     await userEvent.click(await screen.findByRole('button', { name: 'End session' }));
