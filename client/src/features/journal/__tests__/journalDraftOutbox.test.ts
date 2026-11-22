@@ -168,3 +168,14 @@ it('retries corrected writing after validation fails', async () => {
   expect(send.mock.calls[1]?.[0]).toEqual(corrected);
   expect(store.get(draft.id)).toBeNull();
 });
+
+it('stops explicit Save safely if another editor continuously changes the draft', async () => {
+  const { draft, store, send, outbox } = setup();
+  send.mockImplementation(async (sent) => {
+    store.put({ ...sent, body: `${sent.body} more`, editId: `${sent.editId}-next` });
+    return entry(sent);
+  });
+  await expect(outbox.saveLatest(draft)).rejects.toThrow('Writing is still changing');
+  expect(send).toHaveBeenCalledTimes(3);
+  expect(store.get(draft.id)?.body).toContain('more more more');
+});

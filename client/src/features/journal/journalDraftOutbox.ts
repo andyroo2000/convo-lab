@@ -107,10 +107,12 @@ export default class JournalDraftOutbox {
     return task;
   }
 
-  async saveLatest(draft: JournalDraft): Promise<JournalEntry> {
+  async saveLatest(draft: JournalDraft, attempt = 0): Promise<JournalEntry> {
     const entry = await this.save(draft);
     const remaining = this.drafts.get(draft.id);
-    return remaining ? this.saveLatest(remaining) : entry;
+    if (!remaining) return entry;
+    if (attempt >= 2) throw new Error('Writing is still changing. It is kept on this device; try Save again.');
+    return this.saveLatest(remaining, attempt + 1);
   }
 
   async mutate<T>(id: string, operation: (version: number) => Promise<T>): Promise<T> {
