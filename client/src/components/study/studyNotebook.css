@@ -231,3 +231,14 @@
   font-size: 0.9rem;
   min-height: 44px;
 }
+
+.drill-script {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 16rem;
+  overflow: auto;
+}
+.drill-transcript summary {
+  cursor: pointer;
+  padding: 0.6rem 0;
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import playableDrill from '../utils/playableDrill';
@@ -9,22 +10,23 @@ import '../components/study/studyNotebook.css';
 
 type Shelf = ReturnType<typeof useStudyDrill>;
 const ShelfHeader = ({ model, open }: { model: Shelf; open: () => void }) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
   const { recordings, recording, setPreferred, active, create, recent, capabilities } = model;
   const disabled =
     !capabilities.data || active || create.isPending || recent.isLoading || recent.isError;
   return (
     <header>
       <div>
-        <h2>Daily Audio</h2>
+        <h2>{t('title')}</h2>
         {recordings.length > 1 ? (
           <select
-            aria-label="Recording date"
+            aria-label={t('recordingDate')}
             value={recording?.id}
             onChange={(e) => setPreferred(e.target.value)}
           >
             {recordings.map((p) => (
               <option value={p.id} key={p.id}>
-                {p.practiceDate} · {p.targetDurationMinutes} min
+                {p.practiceDate} · {t('minutes', { minutes: p.targetDurationMinutes })}
               </option>
             ))}
           </select>
@@ -36,7 +38,7 @@ const ShelfHeader = ({ model, open }: { model: Shelf; open: () => void }) => {
                 day: 'numeric',
                 year: 'numeric',
               })}{' '}
-              · {recording.targetDurationMinutes} min
+              · {t('minutes', { minutes: recording.targetDurationMinutes })}
             </p>
           )
         )}
@@ -44,7 +46,7 @@ const ShelfHeader = ({ model, open }: { model: Shelf; open: () => void }) => {
       <button
         className="drill-add"
         type="button"
-        aria-label="New audio drill"
+        aria-label={t('newDrill')}
         disabled={disabled}
         onClick={open}
       >
@@ -72,31 +74,34 @@ const ShelfRecording = ({ model }: { model: Shelf }) => {
   );
 };
 const GenerationStatus = ({ model }: { model: Shelf }) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
   const { active, today, progress, create } = model;
   const pending = active || create.isPending;
   if (pending)
-    return <p role="status">Preparing your audio drill… {progress != null && `${progress}%`}</p>;
-  if (today?.status === 'generating')
-    return <p role="status">Generation has stalled. Use New audio drill to retry.</p>;
-  if (today?.status === 'error')
     return (
-      <p role="alert">{today.errorMessage || 'Your drill could not be generated. Try again.'}</p>
+      <p role="status">
+        {t('preparing')} {progress != null && `${progress}%`}
+      </p>
     );
+  if (today?.status === 'generating') return <p role="status">{t('stalled')}</p>;
+  if (today?.status === 'error')
+    return <p role="alert">{today.errorMessage || t('generationError')}</p>;
   return null;
 };
 const ShelfErrors = ({ model }: { model: Shelf }) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
   const { recent, detail, create, capabilities } = model;
   return (
     <>
       {create.isError && <p role="alert">{create.error.message}</p>}
       {recent.isError && (
         <button type="button" onClick={() => recent.refetch()}>
-          Retry loading drills
+          {t('retryList')}
         </button>
       )}
       {detail.isError && (
         <button type="button" onClick={() => detail.refetch()}>
-          Retry loading drill details
+          {t('retryDetail')}
         </button>
       )}
       <StudyCapabilitiesError
@@ -108,13 +113,15 @@ const ShelfErrors = ({ model }: { model: Shelf }) => {
   );
 };
 const EmptyShelf = ({ model }: { model: Shelf }) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
   const { recent, recording, today } = model;
-  if (recent.isLoading) return <p role="status">Loading Daily Audio…</p>;
+  if (recent.isLoading) return <p role="status">{t('loading')}</p>;
   if (!recent.isSuccess) return null;
-  if (!recording && !today) return <p>Create your first audio drill to start listening.</p>;
+  if (!recording && !today) return <p>{t('first')}</p>;
   return null;
 };
 const DailyAudioPracticePage = () => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
   const model = useStudyDrill();
   const [open, setOpen] = useState(false);
   const { capabilities, generate, today } = model;
@@ -124,7 +131,7 @@ const DailyAudioPracticePage = () => {
     generate(minutes).catch(() => undefined);
   };
   return (
-    <section className="drill-shelf" aria-label="Daily Audio">
+    <section className="drill-shelf" aria-label={t('title')}>
       <ShelfHeader model={model} open={() => setOpen(true)} />
       <ShelfRecording model={model} />
       <EmptyShelf model={model} />

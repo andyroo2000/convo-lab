@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import useJournalModal from '../../features/journal/useJournalModal';
 
@@ -8,6 +9,7 @@ interface Props {
   onClose: () => void;
 }
 const NewDrillDialog = ({ limits, replacing, onCreate, onClose }: Props) => {
+  const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
   const dialog = useJournalModal();
   const [minutes, select] = useState(limits.default);
   const [confirm, setConfirm] = useState(false);
@@ -23,16 +25,18 @@ const NewDrillDialog = ({ limits, replacing, onCreate, onClose }: Props) => {
   };
   return (
     <dialog ref={dialog} className="new-drill" aria-labelledby="new-drill-title" onCancel={onClose}>
-      <h2 id="new-drill-title">{confirm ? 'Replace today’s recording?' : 'New audio drill'}</h2>
+      <h2 id="new-drill-title" aria-live="polite">
+        {confirm ? t('replaceTitle') : t('newDrill')}
+      </h2>
       {confirm ? (
-        <p>This will replace today’s drill with a new recording.</p>
+        <p>{t('replaceMessage')}</p>
       ) : (
         <fieldset>
-          <legend>Drill length</legend>
+          <legend>{t('length')}</legend>
           <div className="drill-lengths">
             {options.map((n) => (
               <button type="button" key={n} onClick={() => select(n)} aria-pressed={n === minutes}>
-                {n} min
+                {t('minutes', { minutes: n })}
               </button>
             ))}
           </div>
@@ -40,10 +44,10 @@ const NewDrillDialog = ({ limits, replacing, onCreate, onClose }: Props) => {
       )}
       <footer>
         <button type="button" className="drill-primary" onClick={submit}>
-          {confirm ? 'Replace recording' : `Generate ${minutes}-min drill`}
+          {confirm ? t('replace') : t('generate', { minutes })}
         </button>
         <button type="button" onClick={onClose}>
-          Cancel
+          {t('cancel')}
         </button>
       </footer>
     </dialog>

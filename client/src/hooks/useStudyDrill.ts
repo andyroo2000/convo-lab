@@ -16,6 +16,21 @@ function todayDate() {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
+function useLocalPracticeDate() {
+  const [day, setDay] = useState(todayDate);
+  useEffect(() => {
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const refresh = () => setDay(todayDate());
+    const timer = window.setTimeout(refresh, midnight.getTime() - Date.now());
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [day]);
+  return day;
+}
 function useActiveGeneration(practice?: DailyAudioPractice) {
   const until = practice?.status === 'generating' ? Date.parse(practice.updatedAt) + expiry : 0;
   const [clock, setClock] = useState(Date.now);
@@ -46,7 +61,8 @@ export default function useStudyDrill() {
   const practices = [...(recent.data ?? [])].sort((a, b) =>
     b.practiceDate.localeCompare(a.practiceDate)
   );
-  const today = practices.find((p) => p.practiceDate === todayDate());
+  const day = useLocalPracticeDate();
+  const today = practices.find((p) => p.practiceDate === day);
   const recordings = practices.filter(playableDrill);
   const [preferred, setPreferred] = useState<string>();
   const latest = recordings.find((p) => p.id === preferred) ?? recordings[0];
