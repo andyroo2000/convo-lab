@@ -19,7 +19,7 @@ export const EditorMessages = ({
     )}
     {editor.conflict && (
       <div className="space-y-2 text-sm">
-        <p>This entry changed on another device. Your writing is still here.</p>
+        <p>This entry changed or is no longer available online. Your writing is still here.</p>
         <button
           type="button"
           className="btn-secondary"

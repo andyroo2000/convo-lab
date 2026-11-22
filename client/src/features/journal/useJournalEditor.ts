@@ -115,7 +115,14 @@ export default function useJournalEditor({
   }
 
   function reportSaveError(reason: unknown) {
-    setConflict(reason instanceof JsonRequestError && reason.status === 409);
+    const deleted = reason instanceof JsonRequestError && reason.status === 404;
+    setConflict(deleted || (reason instanceof JsonRequestError && reason.status === 409));
+    if (deleted) {
+      setError(
+        'This entry is no longer available online. Your writing is still on this device; save it as a new entry.'
+      );
+      return;
+    }
     setError(
       reason instanceof Error
         ? reason.message

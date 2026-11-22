@@ -19,6 +19,9 @@ export default function useJournalArchive(ownerId: string) {
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     networkMode: 'offlineFirst',
     retry: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: 'always',
   });
   const refresh = useCallback(() => {
     try {
@@ -59,6 +62,12 @@ export default function useJournalArchive(ownerId: string) {
     refresh();
     client.invalidateQueries({ queryKey: ['journal-archive', ownerId] }).catch(() => undefined);
   }, [client, ownerId, refresh]);
+
+  const { refetch } = query;
+  const refreshContents = useCallback(() => {
+    refresh();
+    refetch().catch(() => undefined);
+  }, [refresh, refetch]);
 
   async function remove(entry: Pick<JournalEntry, 'id' | 'version'>) {
     try {
@@ -104,6 +113,6 @@ export default function useJournalArchive(ownerId: string) {
     remove,
     rename,
     snapshot,
-    refresh,
+    refresh: refreshContents,
   };
 }
