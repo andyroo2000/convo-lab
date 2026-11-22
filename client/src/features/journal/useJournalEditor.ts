@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
+import useJournalSyncReceipt, { journalSyncStatus } from './useJournalSyncReceipt';
+import { useJournalSync } from './JournalSyncContext';
 import isUnwrittenJournalDraft from './journalDraftPersistence';
 import useJournalClarification from './useJournalClarification';
 import { rememberJournalVersion } from './useJournalVersion';
@@ -27,6 +29,7 @@ export default function useJournalEditor({
   initialEntry,
   initialDraft,
 }: EditorOptions) {
+  const { outbox, revision } = useJournalSync();
   const clarification = useJournalClarification(`${ownerId}:${entryId}`);
   const initialRef = useRef(initialEntry);
   const blankRef = useRef(initialDraft);
@@ -102,17 +105,26 @@ export default function useJournalEditor({
     };
   }, [entryId, store]);
 
+
   function change(patch: Partial<Pick<JournalDraft, 'title' | 'body' | 'entryDate'>>) {
     if (!draft || busy) return;
     const entryDate = isUnwrittenJournalDraft(draft, locallySaved)
       ? newJournalDraft().entryDate
       : draft.entryDate;
-    const next = { ...draft, entryDate, ...patch, editId: ulid().toLowerCase() };
+    const acknowledged = outbox?.receipts.get(entryId)?.entry.version ?? 0;
+    const next = {
+      ...draft,
+      entryDate,
+      ...patch,
+      expectedVersion: Math.max(draft.expectedVersion, acknowledged),
+      editId: ulid().toLowerCase(),
+    };
     editedLocally.current = true;
     setDraft(next);
     if (isUnwrittenJournalDraft(next, locallySaved)) return;
     try {
       store.put(next);
+      outbox?.edited(next);
       setLocallySaved(true);
       setError('');
     } catch {
@@ -179,6 +191,10 @@ export default function useJournalEditor({
     onSaved(entry);
   }
 
+  function saveRemote(sent: JournalDraft) {
+    return outbox ? outbox.saveLatest(sent) : saveJournalDraft(sent);
+  }
+
   async function save(submit = false) {
     if (!draft || busy) return false;
     const epoch = scope.current;
@@ -186,7 +202,7 @@ export default function useJournalEditor({
     setBusy(true);
     setError('');
     try {
-      const entry = await saveJournalDraft(sent);
+      const entry = await saveRemote(sent);
       const storageError = acknowledgeStorage(sent, entry);
       if (scope.current !== epoch) return false;
       acceptSave(entry);
@@ -231,6 +247,20 @@ export default function useJournalEditor({
     onSaved(entry);
   }
 
+  useJournalSyncReceipt({
+    outbox,
+    revision,
+    entryId,
+    store,
+    draft,
+    accept: (entry) => {
+      acceptSave(entry);
+      setError('');
+    },
+    rebase: setDraft,
+    reject: reportSaveError,
+  });
+
   return {
     clarification,
     requestingFeedback,
@@ -240,6 +270,12 @@ export default function useJournalEditor({
     notFound,
     conflict,
     locallySaved,
+    syncStatus: journalSyncStatus(
+      draft,
+      locallySaved,
+      Boolean(outbox?.isSyncing(entryId)),
+      editedLocally.current
+    ),
     pristine: isUnwrittenJournalDraft(draft, locallySaved),
     submitted,
     submission,

@@ -122,17 +122,13 @@ it('keeps the modal open while saving, blocks dismissal, and closes only after s
   expect(submitJournalEntry).not.toHaveBeenCalled();
 });
 
-it('keeps writing available after an online save failure', async () => {
+it('closes after an offline save while keeping the durable draft queued', async () => {
   const { close, store, draft } = setup();
   vi.mocked(saveJournalDraft).mockRejectedValue(new Error('Offline'));
   openDialog();
   fireEvent.click(screen.getByRole('button', { name: 'Keep draft & close' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Could not save online. Your draft is still open.'
-  );
-  expect(close).not.toHaveBeenCalled();
+  await waitFor(() => expect(close).toHaveBeenCalledOnce());
   expect(store.get(draft.id)?.body).toBe(draft.body);
-  fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 

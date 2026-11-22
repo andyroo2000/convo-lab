@@ -20,10 +20,15 @@ export async function getJournalEntry({ id, signal }: EntryRequest) {
   return response.data;
 }
 
-export async function saveJournalDraft(draft: JournalDraft, signal?: AbortSignal) {
+export async function saveJournalDraft(
+  draft: JournalDraft,
+  signal?: AbortSignal,
+  ownerId?: string
+) {
   const { title, body, entryDate, expectedVersion } = draft;
   const response = await requestJson<{ data: JournalEntry }>(entryPath(draft.id), {
     method: 'PUT',
+    headers: ownerId ? { 'X-Journal-Owner': ownerId } : undefined,
     body: JSON.stringify({ title, body, entryDate, expectedVersion }),
     signal,
   });

@@ -2,7 +2,7 @@ import { ulid } from 'ulid';
 import { z } from 'zod';
 import type { JournalDraft, JournalEntry } from './types';
 
-const draftSchema = z.object({
+export const draftSchema = z.object({
   id: z.string().regex(/^[0-9a-hjkmnp-tv-z]{26}$/),
   title: z.string().nullable(),
   rootEntryId: z.string().nullable().optional(),
