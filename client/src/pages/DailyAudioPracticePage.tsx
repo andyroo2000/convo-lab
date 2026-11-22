@@ -191,7 +191,7 @@ const EmptyPractice = () => (
   <section className="card retro-paper-panel space-y-3 py-10 text-center">
     <h2 className="retro-headline text-3xl">Ready when you are</h2>
     <p className="mx-auto max-w-xl text-gray-600">
-      Your daily drills, dialogues, and story will appear here after generation.
+      Your daily drills will appear here after generation.
     </p>
   </section>
 );
@@ -238,6 +238,7 @@ const GenerationProgress = ({
         </h2>
         <p className="text-[rgba(20,50,86,0.68)]">
           {practice.tracks
+            .filter((track) => track.mode === 'drill')
             .map((track) => `${track.title}: ${formatStatus(track.status)}`)
             .join(' - ')}
         </p>
@@ -284,19 +285,21 @@ const ReadyPractice = ({ practice }: { practice: DailyAudioPractice }) => {
         </div>
       </section>
       <div className="space-y-4">
-        {practice.tracks.map((track) => (
-          <ScriptTrackPlayer
-            key={track.id}
-            title={track.title}
-            status={track.status}
-            audioUrl={track.audioUrl}
-            scriptUnits={track.scriptUnitsJson}
-            timingData={track.timingData}
-            approxDurationSeconds={track.approxDurationSeconds}
-            updatedAt={track.updatedAt}
-            targetLanguage={practice.targetLanguage}
-          />
-        ))}
+        {practice.tracks
+          .filter((track) => track.mode === 'drill')
+          .map((track) => (
+            <ScriptTrackPlayer
+              key={track.id}
+              title={track.title}
+              status={track.status}
+              audioUrl={track.audioUrl}
+              scriptUnits={track.scriptUnitsJson}
+              timingData={track.timingData}
+              approxDurationSeconds={track.approxDurationSeconds}
+              updatedAt={track.updatedAt}
+              targetLanguage={practice.targetLanguage}
+            />
+          ))}
       </div>
     </>
   );
