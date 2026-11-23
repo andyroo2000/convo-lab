@@ -25,9 +25,16 @@ function renderPage(route = '/claim-invite') {
 describe('ClaimInvitePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     mocks.authApi.claimInvite = '/api/convolab/browser/auth/google/invite';
     mocks.authApi.claimInviteBody = (inviteCode: string) => ({ inviteCode });
     vi.stubGlobal('fetch', vi.fn());
+  });
+
+  it('prefills the invitation carried through Google sign-in', () => {
+    sessionStorage.setItem('convolab.beta-invite', 'WELCOME8');
+    renderPage();
+    expect(screen.getByLabelText('Invite Code')).toHaveValue('WELCOME8');
   });
 
   it('claims a direct Learning OS pending session without a URL token', async () => {

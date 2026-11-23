@@ -1,0 +1,71 @@
+import { useEffect, useRef, useState } from 'react';
+import {
+  approveBetaRequest,
+  getBetaRequests,
+  type BetaRequestFilter,
+  type BetaRequestPage,
+} from '../lib/betaRequestsApi';
+
+const message = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
+export default function useBetaRequests() {
+  const [filter, setFilter] = useState<BetaRequestFilter>('pending');
+  const [page, setPage] = useState(1);
+  const [revision, setRevision] = useState(0);
+  const [data, setData] = useState<BetaRequestPage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [sending, setSending] = useState<string | null>(null);
+  const pending = useRef(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError('');
+    getBetaRequests(filter, page, controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setData(result);
+      })
+      .catch((caught: unknown) => {
+        if (!controller.signal.aborted) setError(message(caught, 'Could not load requests.'));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [filter, page, revision]);
+  const approve = async (id: string) => {
+    if (pending.current) return;
+    pending.current = true;
+    setSending(id);
+    setNotice('');
+    try {
+      const sent = await approveBetaRequest(id);
+      setNotice(`Invitation sent to ${sent.email}.`);
+    } catch (caught) {
+      setNotice(message(caught, 'Could not send the invitation. Please retry.'));
+    } finally {
+      pending.current = false;
+      setSending(null);
+      setRevision((value) => value + 1);
+    }
+  };
+  const changeFilter = (value: BetaRequestFilter) => {
+    setFilter(value);
+    setPage(1);
+  };
+  return {
+    filter,
+    changeFilter,
+    page,
+    setPage,
+    data,
+    loading,
+    error,
+    notice,
+    sending,
+    approve,
+    refresh: () => setRevision((value) => value + 1),
+  };
+}

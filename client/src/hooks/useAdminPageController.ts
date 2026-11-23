@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-export type AdminTab = 'users' | 'invite-codes' | 'analytics' | 'settings';
+export type AdminTab = 'users' | 'beta-requests' | 'invite-codes' | 'analytics' | 'settings';
 export type AdminToastType = 'success' | 'error' | 'info';
-const tabs: readonly string[] = ['users', 'invite-codes', 'analytics', 'settings'];
+const tabs: readonly string[] = ['users', 'beta-requests', 'invite-codes', 'analytics', 'settings'];
 
 const useAdminPageController = () => {
   const { user } = useAuth();

@@ -1,7 +1,8 @@
-import { BarChart3, Settings, Ticket, Users } from 'lucide-react';
+import { BarChart3, Inbox, Settings, Ticket, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { AdminTab, AdminToastType } from '../../hooks/useAdminPageController';
 import Toast from '../common/Toast';
+import AdminBetaRequestsTab from './AdminBetaRequestsTab';
 import AdminAnalyticsTab from './AdminAnalyticsTab';
 import AdminInviteCodesTab from './AdminInviteCodesTab';
 import AdminSettingsTab from './AdminSettingsTab';
@@ -10,6 +11,7 @@ import './admin.css';
 
 const ADMIN_TABS = [
   { id: 'users', label: 'Users', Icon: Users },
+  { id: 'beta-requests', label: 'Beta requests', Icon: Inbox },
   { id: 'invite-codes', label: 'Invite Codes', Icon: Ticket },
   { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
   { id: 'settings', label: 'Settings', Icon: Settings },
@@ -57,6 +59,7 @@ const AdminPageContent = ({
       onUserFeedChange={ignoreUserFeed}
       showToast={showToast}
     />
+    {activeTab === 'beta-requests' && <AdminBetaRequestsTab />}
     {activeTab === 'invite-codes' && <AdminInviteCodesTab showToast={showToast} />}
     {activeTab === 'analytics' && <AdminAnalyticsTab />}
     {activeTab === 'settings' && <AdminSettingsTab showToast={showToast} />}
