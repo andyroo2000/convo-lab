@@ -68,9 +68,10 @@ export default function useStudyDrill() {
   const latest = recordings.find((p) => p.id === preferred) ?? recordings[0];
   const detail = useDailyAudioPractice(latest?.id);
   const recording = detail.data ?? latest;
-  const active = useActiveGeneration(today);
-  const status = useDailyAudioPracticeStatus(today?.id, active);
-  useCompletedDrill(today, status.data?.status);
+  const generating = practices.find((practice) => practice.status === 'generating');
+  const active = useActiveGeneration(generating);
+  const status = useDailyAudioPracticeStatus(generating?.id, active);
+  useCompletedDrill(generating, status.data?.status);
   const generate = async (minutes: number) => {
     const practice = await create.mutateAsync(minutes);
     setPreferred(undefined);

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import playableDrill from '../utils/playableDrill';
 import useStudyDrill from '../hooks/useStudyDrill';
+import DrillGenerationProgress from '../components/audio/DrillGenerationProgress';
 import ScriptTrackPlayer from '../components/audio/ScriptTrackPlayer';
 import NewDrillDialog from '../components/audio/NewDrillDialog';
 import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
@@ -77,12 +78,10 @@ const GenerationStatus = ({ model }: { model: Shelf }) => {
   const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
   const { active, today, progress, create } = model;
   const pending = active || create.isPending;
-  if (pending)
-    return (
-      <p role="status">
-        {t('preparing')} {progress != null && `${progress}%`}
-      </p>
-    );
+  if (pending) {
+    const percent = active ? progress : undefined;
+    return <DrillGenerationProgress percent={percent} />;
+  }
   if (today?.status === 'generating') return <p role="status">{t('stalled')}</p>;
   if (today?.status === 'error')
     return <p role="alert">{today.errorMessage || t('generationError')}</p>;

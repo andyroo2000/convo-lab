@@ -218,6 +218,10 @@ describe('DailyAudioPracticePage', () => {
     renderPage();
     expect(mockUseDailyAudioPracticeStatus).toHaveBeenCalledWith('pending', true);
     expect(screen.getByRole('button', { name: 'New audio drill' })).toBeDisabled();
+    expect(screen.getByRole('progressbar', { name: 'Recording your drill…' })).toHaveAttribute(
+      'value',
+      '24'
+    );
     expect(screen.getByText(/24%/)).toBeVisible();
     expect(screen.getByTestId('script-track-player')).toBeVisible();
   });

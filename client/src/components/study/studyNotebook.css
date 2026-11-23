@@ -242,3 +242,21 @@
   cursor: pointer;
   padding: 0.6rem 0;
 }
+
+.drill-generation {
+  display: grid;
+  gap: 0.4rem;
+  margin-block: 0.65rem;
+  color: var(--audio-ink);
+}
+.drill-generation > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.drill-generation progress {
+  width: 100%;
+  height: 0.5rem;
+  accent-color: #386577;
+}
