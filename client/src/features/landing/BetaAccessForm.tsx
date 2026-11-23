@@ -1,10 +1,12 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 
 const BetaAccessForm = () => {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState('');
+  const submitting = useRef(false);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting.current) return;
     const data = new FormData(event.currentTarget);
     const devices = data.getAll('devices');
     if (!devices.length) {
@@ -12,6 +14,7 @@ const BetaAccessForm = () => {
       return;
     }
     setError('');
+    submitting.current = true;
     setStatus('sending');
     try {
       const response = await fetch('/api/convolab/browser/auth/beta-requests', {
@@ -32,6 +35,8 @@ const BetaAccessForm = () => {
         caught instanceof Error ? caught.message : 'We couldn’t send the request. Please try again.'
       );
       setStatus('idle');
+    } finally {
+      submitting.current = false;
     }
   };
   return (

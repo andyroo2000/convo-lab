@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import landingChapters from './landingChapters';
-import { startLandingStory } from './landingScroll';
+import { startLandingStory, goToLandingChapter } from './landingScroll';
 
 const JournalLandingStory = () => {
   const story = useRef<HTMLDivElement>(null);
@@ -45,6 +45,20 @@ const JournalLandingStory = () => {
             </figure>
           </section>
         ))}
+        <nav className="landing-chapter-nav" aria-label="Page sections">
+          {landingChapters.map((chapter, index) => (
+            <button
+              type="button"
+              key={chapter.film}
+              data-chapter={index}
+              aria-label={chapter.title}
+              title={chapter.title}
+              onClick={() => goToLandingChapter(story.current, index)}
+            >
+              <span aria-hidden="true" />
+            </button>
+          ))}
+        </nav>
       </div>
     </div>
   );

@@ -56,7 +56,7 @@ assert_body health '"frontend":true'
 request root /
 assert_status root 200
 assert_header root '^Cache-Control: no-cache, no-store, must-revalidate'
-assert_body root '<title>ConvoLab | Japanese Date, Time, Money, Counter &amp; Verb Practice Tools</title>'
+assert_body root '<title>Journal — Japanese writing practice | ConvoLab</title>'
 assert_body root '<link rel="canonical" href="https://convo-lab.com/" />'
 
 request tool /tools/japanese-date
