@@ -230,6 +230,28 @@ describe('DailyAudioPracticePage', () => {
     expect(screen.getByText(`${percent}%`)).toBeVisible();
     expect(screen.getByTestId('script-track-player')).toBeVisible();
   });
+  it('follows a live recording even when the first practice is an abandoned generation', () => {
+    const active = {
+      ...readyPractice,
+      id: 'live',
+      status: 'generating',
+      updatedAt: new Date().toISOString(),
+      tracks: [],
+    };
+    const stalled = {
+      ...active,
+      id: 'stalled',
+      practiceDate: todayPracticeDate(),
+      updatedAt: '2026-01-01T00:00:00Z',
+    };
+    mockUseRecentDailyAudioPractice.mockReturnValue({ data: [stalled, active] });
+    mockUseDailyAudioPracticeStatus.mockReturnValue({
+      data: { status: 'generating', progress: 50 },
+    });
+    renderPage();
+    expect(mockUseDailyAudioPracticeStatus).toHaveBeenCalledWith('live', true);
+    expect(screen.getByRole('progressbar')).toHaveAttribute('value', '50');
+  });
   it('shows indeterminate progress while the create request is pending', () => {
     mockUseCreateDailyAudioPractice.mockReturnValue({ isPending: true });
     renderPage();
