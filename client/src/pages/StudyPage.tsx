@@ -411,8 +411,6 @@ const isQuizSurfaceVisible = (reviewSession: StudyReviewSession) => {
   return reviewSession.masteryAnimation !== null;
 };
 
-const showMasteryFeedback = (showQuizSurface: boolean) => showQuizSurface;
-
 const StudyFocusExperience = ({
   capabilitiesQuery,
   isDeleteConfirmOpen,
@@ -436,14 +434,18 @@ const StudyFocusExperience = ({
   const displayedCard = reviewSession.masteryAnimation?.card ?? reviewSession.currentCard;
   const displayedCardIsRevealed = isDisplayedCardRevealed(reviewSession);
   const showQuizSurface = isQuizSurfaceVisible(reviewSession);
+  const sessionFinished = hideFocusHeader(reviewSession);
   return (
     <>
       {/* Keep horizontal overflow hidden: clip breaks Chromium hit-testing on tall cards. */}
-      <div className="study-washi-backdrop fixed inset-0 z-[60] overflow-hidden">
-        <section className="h-[100dvh] md:px-3 md:py-2">
+      <div
+        className={`study-washi-backdrop ${sessionFinished ? 'study-washi-complete' : 'fixed inset-0 z-[60] overflow-hidden'}`}
+        data-study-session-active={!sessionFinished}
+      >
+        <section className="study-washi-viewport">
           <div
             data-testid="study-focus-shell"
-            className="study-washi-session study-focus-shell mx-auto flex h-[100dvh] min-h-0 max-w-7xl flex-col overflow-x-hidden bg-[#fdfbf5] px-2 pt-2 md:h-[calc(100dvh-1rem)] md:rounded-2xl md:px-4 md:py-2 md:shadow-sm md:ring-1 md:ring-navy/10"
+            className="study-washi-session study-focus-shell relative mx-auto flex min-h-0 max-w-7xl flex-col overflow-x-hidden"
           >
             <StudyCapabilitiesError
               isError={capabilitiesQuery.isError}
@@ -456,8 +458,11 @@ const StudyFocusExperience = ({
               runBackgroundTask={runBackgroundTask}
             />
             <StudyPracticeBanner reviewSession={reviewSession} />
-            {showMasteryFeedback(showQuizSurface) ? (
-              <div className="mastery-feedback-lane" data-testid="mastery-feedback-lane">
+            {showQuizSurface && reviewSession.masteryAnimation ? (
+              <div
+                className="study-mastery-overlay mastery-feedback-lane"
+                data-testid="mastery-feedback-lane"
+              >
                 <StudyMasteryFeedback reviewSession={reviewSession} />
               </div>
             ) : null}

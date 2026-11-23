@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import i18n from '../../../i18n';
@@ -46,6 +46,7 @@ describe('StudyReviewActions localization', () => {
     );
 
     expect(screen.getByRole('button', { name: 'カードを編集' })).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('カードのその他の操作'));
     expect(screen.getByRole('button', { name: '今回のセッションだけ隠す' })).toBeInTheDocument();
   });
 });

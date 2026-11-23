@@ -350,8 +350,8 @@ describe('StudyPage card rendering', () => {
     expect(clozePrompt).toHaveTextContent('お風呂ふろに虫むし[...]！');
     expect(screen.getByText('backup hint')).toBeInTheDocument();
     expect(screen.queryByText('are (existence verb)')).not.toBeInTheDocument();
-    expect(screen.queryByText('Click or push space to reveal')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tap to reveal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Use Reveal answer or press Space.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Use Reveal answer.')).not.toBeInTheDocument();
     expect(
       screen.queryByText('お風呂に虫{{c1::がいる::are (existence verb)}}！')
     ).not.toBeInTheDocument();

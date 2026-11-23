@@ -192,6 +192,7 @@ describe('StudyPage overview and lessons', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Start lesson' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'More card options' }));
     await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
 
     expect(screen.getByText('Lesson complete')).toBeInTheDocument();
@@ -254,7 +255,8 @@ describe('StudyPage overview and lessons', () => {
     expect(screen.getByTestId('study-focus-card-scroll')).toBeInTheDocument();
     expect(screen.queryByText('Lesson complete')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Finish mastery animation' }));
+    // Simulate the animation completion callback; the real overlay ignores pointer input.
+    fireEvent.click(screen.getByRole('button', { name: 'Finish mastery animation' }));
 
     expect(await screen.findByText('Lesson complete')).toBeInTheDocument();
   });
@@ -457,22 +459,31 @@ describe('StudyPage overview and lessons', () => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
     });
     expect(startStudySessionMock).toHaveBeenCalledWith();
-    expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
-    expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
-    expect(screen.getByTestId('study-review-header')).toHaveTextContent(
-      '0Failed1Queued0NewEnd session'
-    );
+    expect(screen.getByText('Use Reveal answer or press Space.')).toBeInTheDocument();
+    expect(screen.getByText('Use Reveal answer.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'End session' })).toBeInTheDocument();
     expect(screen.getByTestId('study-review-metrics')).not.toHaveClass('border-b');
     expect(screen.getByRole('group', { name: '0 failed, 1 queued, 0 new' })).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
-    expect(screen.getByTestId('mastery-feedback-lane')).toHaveClass('mastery-feedback-lane');
+    expect(screen.queryByTestId('mastery-feedback-lane')).not.toBeInTheDocument();
     expect(screen.getByTestId('study-focus-card-scroll')).toHaveClass(
       'study-focus-scroll',
-      'overflow-x-hidden',
-      'pb-0'
+      'overflow-x-hidden'
     );
     expect(screen.getByTestId('study-focus-card-scroll').className).not.toContain('pb-24');
+  });
+
+  it.each(['Space', 'Enter'])('reveals with the %s keyboard action', async (key) => {
+    startStudySessionMock.mockResolvedValue({
+      overview: studyOverviewData.current,
+      cards: [baseCard],
+    });
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
+    if (key === 'Enter') screen.getByRole('button', { name: 'Reveal answer' }).focus();
+    await userEvent.keyboard(key === 'Space' ? '[Space]' : '[Enter]');
+    expect(screen.getByTestId('study-grade-tray')).toBeInTheDocument();
   });
 
   it('keeps grade controls accessible separately from revealed-card maintenance actions', async () => {
@@ -506,17 +517,12 @@ describe('StudyPage overview and lessons', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     const gradeTray = screen.getByTestId('study-grade-tray');
-    expect(screen.getByTestId('study-focus-shell')).toHaveClass(
-      'study-focus-shell',
-      'h-[100dvh]',
-      'min-h-0'
-    );
+    expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell', 'min-h-0');
     expect(screen.getByTestId('study-focus-card-scroll')).toHaveClass(
       'study-focus-scroll',
       'min-h-0',
       'overflow-y-auto',
-      'overflow-x-hidden',
-      'md:pb-16'
+      'overflow-x-hidden'
     );
     expect(gradeTray).toHaveClass('fixed');
     expect(gradeTray.className).not.toContain('md:static');
@@ -535,7 +541,11 @@ describe('StudyPage overview and lessons', () => {
     const reviewHeader = screen.getByTestId('study-review-header');
     const reviewActions = within(reviewHeader).getByTestId('study-review-actions');
     expect(within(reviewActions).getByRole('button', { name: 'Edit card' })).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('More card options'));
     expect(within(reviewActions).getByRole('button', { name: 'Set due' })).toBeInTheDocument();
+    await userEvent.keyboard('[Escape]');
+    expect(screen.queryByRole('button', { name: 'Set due' })).not.toBeInTheDocument();
+    expect(gradeTray).toBeInTheDocument();
     expect(
       within(gradeTray).queryByRole('button', { name: 'Play answer audio' })
     ).not.toBeInTheDocument();

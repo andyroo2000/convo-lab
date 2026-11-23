@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface StudyReviewHeaderProps {
@@ -36,8 +37,12 @@ const StudyReviewHeader = ({
   ];
 
   return (
-    <header className="space-y-2" data-testid="study-review-header">
-      <div className="flex items-center gap-3 pb-2" data-testid="study-review-metrics">
+    <header className="study-session-toolbar" data-testid="study-review-header">
+      <button type="button" onClick={onExit} className="study-session-exit">
+        <ChevronLeft size={18} aria-hidden="true" />
+        {exitLabel ?? t('reviewHeader.exit')}
+      </button>
+      <div className="sr-only" data-testid="study-review-metrics">
         <div
           className="grid min-w-0 flex-1 grid-cols-3"
           role="group"
@@ -58,13 +63,6 @@ const StudyReviewHeader = ({
             </div>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={onExit}
-          className="app-button-secondary shrink-0 px-3 py-2 text-xs"
-        >
-          {exitLabel ?? t('reviewHeader.exit')}
-        </button>
       </div>
       <div
         className="sr-only"
@@ -79,7 +77,10 @@ const StudyReviewHeader = ({
           style={{ width: `${String(progress * 100)}%` }}
         />
       </div>
-      {actions}
+      <span className="study-session-position" aria-hidden="true">
+        {Math.round(progress * 100)}%
+      </span>
+      <div className="ml-auto">{actions}</div>
     </header>
   );
 };

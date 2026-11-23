@@ -104,6 +104,7 @@ const useReviewPresentationLifecycle = (
   const { cardStartedAtRef, focusMode, setEditing, setShowSetDueControls } = core.state;
   const { stopAllAudio } = interactions;
   const currentCardId = core.currentCard?.id;
+  const activeFocus = focusMode && !core.reviewSessionComplete && !core.practiceComplete;
   useStudyEmptySessionRefresh({
     autoRefreshEmptySessionRef: core.state.autoRefreshEmptySessionRef,
     blocked: isEmptySessionRefreshBlocked(
@@ -129,13 +130,13 @@ const useReviewPresentationLifecycle = (
     if (!focusMode) stopAllAudio();
   }, [focusMode, stopAllAudio]);
   useEffect(() => {
-    if (!focusMode) return undefined;
+    if (!activeFocus) return undefined;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [focusMode]);
+  }, [activeFocus]);
 };
 
 const useReviewKeyboard = (

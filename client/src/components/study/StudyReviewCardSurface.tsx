@@ -1,5 +1,4 @@
 import type { StudyCardSummary, StudyClientCapabilities } from '@languageflow/shared/src/types';
-import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type useStudyReviewSession from '../../hooks/useStudyReviewSession';
@@ -48,32 +47,14 @@ interface StudyReviewCardSurfaceProps {
   visible: boolean;
 }
 
-const isRevealKey = (key: string) => {
-  if (key === 'Enter') return true;
-  return key === ' ';
-};
-
 const StudyReviewPrompt = ({
   card,
-  onReveal,
   promptAudioRef,
-}: Pick<StudyReviewCardSurfaceProps, 'card' | 'onReveal' | 'promptAudioRef'>) => {
+}: Pick<StudyReviewCardSurfaceProps, 'card' | 'promptAudioRef'>) => {
   const { t } = useTranslation('study');
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!isRevealKey(event.key)) return;
-    event.preventDefault();
-    onReveal();
-  };
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={t('focus.reveal')}
-      onClick={onReveal}
-      onKeyDown={handleKeyDown}
-      className="study-washi-sheet study-washi-prompt"
-    >
+    <div className="study-washi-sheet study-washi-prompt">
       <div className="w-full min-w-0 overflow-x-hidden">
         <StudyCardFace
           card={card}
@@ -82,7 +63,7 @@ const StudyReviewPrompt = ({
           promptAudioRef={promptAudioRef}
         />
         {card.cardType !== 'cloze' ? (
-          <p className="mt-8 text-center text-xs uppercase tracking-[0.18em] text-gray-400 sm:mt-10 sm:text-sm sm:tracking-[0.2em]">
+          <p className="sr-only">
             <span className="md:hidden">{t('focus.revealHintMobile')}</span>
             <span className="hidden md:inline">{t('focus.revealHintDesktop')}</span>
           </p>
@@ -225,18 +206,24 @@ const StudyGradeTray = ({
 };
 
 const StudyReviewCardSurface = (props: StudyReviewCardSurfaceProps) => {
-  const { revealed, showGradeTray, visible } = props;
+  const { onReveal, revealed, visible } = props;
+  const { t } = useTranslation('study');
   if (!visible) return null;
 
   return (
     <div
       data-testid="study-focus-card-scroll"
-      className={`study-washi-scroll study-focus-scroll relative mt-2 flex min-h-0 min-w-0 flex-1 flex-col space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
-        showGradeTray ? 'pb-24 md:pb-16' : 'pb-0'
-      }`}
+      className="study-washi-scroll study-focus-scroll relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"
     >
       {revealed ? <StudyReviewAnswer {...props} /> : <StudyReviewPrompt {...props} />}
       <StudyGradeTray {...props} />
+      {!revealed ? (
+        <div className="study-washi-grade-tray fixed inset-x-0 bottom-0 z-[70]">
+          <button type="button" className="study-session-reveal" onClick={onReveal}>
+            {t('focus.reveal')}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 };
