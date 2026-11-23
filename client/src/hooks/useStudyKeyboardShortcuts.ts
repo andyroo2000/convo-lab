@@ -43,6 +43,7 @@ const getKeyboardGrade = (event: KeyboardEvent): 'again' | 'hard' | 'good' | 'ea
 };
 
 function isTypingTarget(target: EventTarget | null) {
+  if (target instanceof Element && target.closest('[data-study-action-menu]')) return true;
   if (target instanceof HTMLInputElement) return true;
   return target instanceof HTMLTextAreaElement;
 }

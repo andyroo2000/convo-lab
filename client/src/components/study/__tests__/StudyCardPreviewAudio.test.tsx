@@ -34,11 +34,11 @@ describe('StudyCardPreview audio', () => {
     );
     const button = screen.getByRole('button', { name: 'Play answer audio' });
     const audio = screen.getByTestId('study-answer-audio-element');
-    expect(button).toHaveAttribute('aria-pressed', 'false');
+    expect(button).toHaveAttribute('data-playing', 'false');
     fireEvent.play(audio);
-    expect(button).toHaveAttribute('aria-pressed', 'true');
+    expect(button).toHaveAttribute('data-playing', 'true');
     fireEvent(audio, new Event(event));
-    expect(button).toHaveAttribute('aria-pressed', 'false');
+    expect(button).toHaveAttribute('data-playing', 'false');
   });
 
   it('derives the audio MIME type from the answer audio asset', () => {

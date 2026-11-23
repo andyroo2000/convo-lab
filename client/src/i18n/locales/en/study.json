@@ -78,8 +78,8 @@
     "retryReview": "Retry this review",
     "reviewConflictRecovered": "Review status changed on the server. Your Study session was refreshed.",
     "reveal": "Reveal answer",
-    "revealHintDesktop": "Click or push space to reveal",
-    "revealHintMobile": "Tap to reveal"
+    "revealHintDesktop": "Use Reveal answer or press Space.",
+    "revealHintMobile": "Use Reveal answer."
   },
   "wrapUp": {
     "title": "Nice work",
@@ -878,6 +878,7 @@
     "back": "Back to Study"
   },
   "preview": {
+    "audioPlaying": "Playing audio",
     "audioFailed": "Audio playback failed. Try again."
   },
   "piles": {

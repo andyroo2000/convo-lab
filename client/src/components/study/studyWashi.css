@@ -66,12 +66,6 @@
 .study-session-menu {
   position: relative;
 }
-.study-session-menu summary {
-  list-style: none;
-}
-.study-session-menu summary::-webkit-details-marker {
-  display: none;
-}
 .study-session-menu-items {
   position: absolute;
   right: 0;
@@ -211,7 +205,7 @@
 .study-washi-sheet .study-speaker-button:hover {
   background: #608751;
 }
-.study-washi-sheet .study-speaker-button[aria-pressed='true'] {
+.study-washi-sheet .study-speaker-button[data-playing='true'] {
   background: #487443;
 }
 .study-washi-sheet .study-speaker-button:focus-visible,

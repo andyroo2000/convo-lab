@@ -200,7 +200,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
                 event.stopPropagation();
               }}
               aria-label={label}
-              aria-pressed={playing}
+              data-playing={playing}
               data-testid={testId ? `${testId}-button` : undefined}
               className={`study-speaker-button inline-flex items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md ${
                 playing ? 'ring-2 ring-navy/20' : ''
@@ -213,6 +213,9 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
           </div>
         ) : null}
 
+        <span className="sr-only" role="status">
+          {playing ? t('preview.audioPlaying') : ''}
+        </span>
         <audio
           key={url}
           ref={audioRef}
