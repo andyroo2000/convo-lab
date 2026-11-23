@@ -36,6 +36,7 @@ vi.mock('../hooks/useFeatureFlags', () => ({
 }));
 vi.mock('../hooks/useDemo', () => ({ useIsDemo: () => false }));
 vi.mock('../features/readings/useReadings', () => ({ default: () => ({ data: [] }) }));
+vi.mock('../pages/LandingPage', () => ({ default: () => <h1>Journal landing</h1> }));
 vi.mock('../pages/LoginPage', () => ({ default: () => <h1>Sign in</h1> }));
 vi.mock('../components/common/PWAInstallPrompt', () => ({ default: () => null }));
 vi.mock('../components/study/StudyFeatureBoundary', () => ({ default: () => <Outlet /> }));
@@ -63,19 +64,27 @@ describe('App route retirement', () => {
     expect(screen.getByRole('link', { name: 'Back to Journal' })).toBeVisible();
   });
 
-  it.each(['/', '/app'])('opens Journal from %s', async (path) => {
+  it.each(['/app'])('opens Journal from %s', async (path) => {
     window.history.replaceState(null, '', path);
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Journal home' })).toBeVisible();
     await waitFor(() => expect(window.location.pathname).toBe('/app/journal'));
   });
 
-  it('sends signed-out home visitors to sign-in with Journal as their return destination', async () => {
+  it('keeps signed-out home visitors on the public landing page', async () => {
     auth.signedOut = true;
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Journal landing' })).toBeVisible();
+    expect(window.location.pathname).toBe('/');
+  });
+
+  it('preserves the app destination when sending signed-out visitors to sign-in', async () => {
+    auth.signedOut = true;
+    window.history.replaceState(null, '', '/app');
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeVisible();
     expect(window.location.pathname).toBe('/login');
-    expect(new URLSearchParams(window.location.search).get('returnUrl')).toBe('/app/journal');
+    expect(new URLSearchParams(window.location.search).get('returnUrl')).toBe('/app');
   });
 
   it('keeps a direct tools visit public', async () => {

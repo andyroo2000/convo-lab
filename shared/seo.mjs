@@ -2,9 +2,9 @@ export const PUBLIC_MARKETING_SITE_URL = 'https://convo-lab.com';
 
 export const INDEXABLE_ROUTE_CONFIG = {
   '/': {
-    title: 'ConvoLab | Japanese Date, Time, Money, Counter & Verb Practice Tools',
+    title: 'Journal — Japanese writing practice | ConvoLab',
     description:
-      'Practice Japanese date, time, money, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
+      'Practice Japanese with clear corrections, furigana adapted to your level, and audio for shadowing. Join the Journal beta on web, iOS, and Android.',
     robots: 'index,follow',
     canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/`,
   },
