@@ -10,7 +10,6 @@ const JournalEntryContent = ({
   onOpen,
   onClose,
   onBusyChange,
-  onWritingChange,
 }: {
   ownerId: string;
   entryId: string;
@@ -19,7 +18,6 @@ const JournalEntryContent = ({
   onOpen: (id: string) => void;
   onClose: () => void;
   onBusyChange: (busy: boolean) => void;
-  onWritingChange?: (writing: boolean) => void;
 }) => (
   <JournalEditor
     ownerId={ownerId}
@@ -29,7 +27,6 @@ const JournalEntryContent = ({
     onOpen={onOpen}
     onClose={onClose}
     onBusyChange={onBusyChange}
-    onWritingChange={onWritingChange}
     renderFeedback={(analysis, heading) => (
       <JournalConversation
         key={analysis.id}

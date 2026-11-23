@@ -27,6 +27,7 @@ async function entryResponse(route: Route, entries: Map<string, JournalEntry>) {
 
 async function journalFixture(page: Page) {
   const entries = new Map<string, JournalEntry>();
+  await page.addInitScript(() => localStorage.setItem('convolab:journal-keyboard:v1', 'device'));
   await page.route('**/sanctum/csrf-cookie', (route) => route.fulfill({ status: 204 }));
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -95,10 +96,14 @@ test('Journal starts blank, saves on typing, closes deliberately, and resumes to
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Keep draft & close' }).click();
   await expect(notebook).toHaveValue('');
-  await expect(page.getByRole('button', { name: 'Continue draft' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue draft' })).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: info.outputPath('continue-draft-mobile.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Continue draft' }).click();
+  await page.screenshot({ path: info.outputPath('blank-notebook-mobile.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Contents' }).click();
+  await page
+    .getByRole('dialog', { name: 'Contents' })
+    .getByRole('link', { name: /Untitled entry/ })
+    .click();
   await expect(notebook).toHaveValue('今日、映画を見た。');
   await page.goto('/app/journal');
   await expect(page).toHaveURL(/\/app\/journal\/[a-z0-9]+$/);

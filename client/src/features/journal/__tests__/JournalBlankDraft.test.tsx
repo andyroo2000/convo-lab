@@ -1,10 +1,10 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { getJournalEntry } from '../journalApi';
 import { JournalDraftStore, newJournalDraft } from '../journalDrafts';
 import useJournalEditor from '../useJournalEditor';
 import JournalDraftActions from '../JournalDraftActions';
-import { todayJournalEntry, unfinishedDeviceDraft } from '../journalLandingSelection';
+import todayJournalEntry from '../journalLandingSelection';
 
 vi.mock('../journalApi', () => ({ getJournalEntry: vi.fn() }));
 beforeEach(() => {
@@ -32,21 +32,17 @@ it('opens an unsaved notebook without a request or storage write and preserves J
 });
 
 it('chooses the newest nonempty entry dated today and never opens yesterday or tomorrow', () => {
-  const entry = { ...newJournalDraft(new Date(2026, 10, 16)), body: 'Writing' };
+  const entry = { ...newJournalDraft(new Date(2026, 10, 16)), body: 'Writing', version: 1 };
   const older = { ...entry, id: 'a' };
   const newer = { ...entry, id: 'b' };
   const yesterday = { ...entry, id: 'c', entryDate: '2026-11-15' };
   const tomorrow = { ...entry, id: 'd', entryDate: '2026-11-17' };
   expect(todayJournalEntry([older, tomorrow, newer, yesterday], '2026-11-16')?.id).toBe('b');
+  expect(todayJournalEntry([newer], '2026-11-16', [])).toBeUndefined();
+  expect(todayJournalEntry([{ ...newer, version: 0 }], '2026-11-16', [])?.id).toBe('b');
   expect(
     todayJournalEntry([yesterday, tomorrow, { ...newer, body: '' }], '2026-11-16')
   ).toBeUndefined();
-});
-
-it('offers older unfinished writing without mistaking a tutor answer or empty draft for an entry', () => {
-  const old = { ...newJournalDraft(new Date(2026, 10, 15)), body: 'Unfinished' };
-  const answer = { ...newJournalDraft(), body: 'An answer', rootEntryId: old.id };
-  expect(unfinishedDeviceDraft([newJournalDraft(), answer, old])?.id).toBe(old.id);
 });
 
 it('closes an unwritten notebook immediately without a keep/delete modal', () => {
@@ -89,4 +85,18 @@ it('dates a new draft when writing begins, even if the blank notebook was opened
   } finally {
     vi.useRealTimers();
   }
+});
+
+it('leaves a successfully synced notebook quiet and still identifies unsynced edits', async () => {
+  const draft = { ...newJournalDraft(), body: '今日の練習' };
+  const entry = { ...draft, version: 1, createdAt: 'now', updatedAt: 'now' };
+  const { result } = renderHook(() =>
+    useJournalEditor({ ownerId: 'owner', entryId: entry.id, initialEntry: entry, onSaved: vi.fn() })
+  );
+  await waitFor(() => expect(result.current.draft?.body).toBe(draft.body));
+  expect(result.current.syncStatus).toBeNull();
+  expect(result.current.canLoadFeedback).toBe(true);
+  act(() => result.current.change({ body: '今日の練習です。' }));
+  expect(result.current.syncStatus).toBe('Saved on this device');
+  expect(result.current.canLoadFeedback).toBe(false);
 });

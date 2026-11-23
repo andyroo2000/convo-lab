@@ -50,14 +50,9 @@ export default function useJournalSyncReceipt(options: ReceiptOptions) {
   }, [revision, outbox, entryId, editId]);
 }
 
-export function journalSyncStatus(
-  draft: JournalDraft | null,
-  saved: boolean,
-  syncing: boolean,
-  dirty: boolean
-) {
+export function journalSyncStatus(saved: boolean, syncing: boolean, dirty: boolean) {
   if (syncing) return 'Syncing…';
   if (saved) return 'Saved on this device';
   if (dirty) return 'Not saved on this device';
-  return draft?.expectedVersion ? 'Synced' : null;
+  return null;
 }
