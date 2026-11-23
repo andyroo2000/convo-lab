@@ -260,3 +260,21 @@
   height: 0.5rem;
   accent-color: #386577;
 }
+.drill-generation progress[value] {
+  appearance: none;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--audio-rule);
+  overflow: hidden;
+}
+.drill-generation progress[value]::-webkit-progress-bar {
+  background: var(--audio-rule);
+}
+.drill-generation progress[value]::-webkit-progress-value {
+  background: var(--audio-ink);
+  border-radius: inherit;
+}
+.drill-generation progress[value]::-moz-progress-bar {
+  background: var(--audio-ink);
+  border-radius: inherit;
+}
