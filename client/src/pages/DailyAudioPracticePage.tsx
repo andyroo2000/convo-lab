@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import playableDrill from '../utils/playableDrill';
 import useStudyDrill from '../hooks/useStudyDrill';
+import DrillGenerationProgress from '../components/audio/DrillGenerationProgress';
 import ScriptTrackPlayer from '../components/audio/ScriptTrackPlayer';
 import NewDrillDialog from '../components/audio/NewDrillDialog';
 import StudyCapabilitiesError from '../components/study/StudyCapabilitiesError';
@@ -75,17 +76,15 @@ const ShelfRecording = ({ model }: { model: Shelf }) => {
 };
 const GenerationStatus = ({ model }: { model: Shelf }) => {
   const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
-  const { active, today, progress, create } = model;
+  const { active, latestAttempt, progress, create } = model;
   const pending = active || create.isPending;
-  if (pending)
-    return (
-      <p role="status">
-        {t('preparing')} {progress != null && `${progress}%`}
-      </p>
-    );
-  if (today?.status === 'generating') return <p role="status">{t('stalled')}</p>;
-  if (today?.status === 'error')
-    return <p role="alert">{today.errorMessage || t('generationError')}</p>;
+  if (pending) {
+    const percent = active ? progress : undefined;
+    return <DrillGenerationProgress percent={percent} />;
+  }
+  if (latestAttempt?.status === 'generating') return <p role="status">{t('stalled')}</p>;
+  if (latestAttempt?.status === 'error')
+    return <p role="alert">{latestAttempt.errorMessage || t('generationError')}</p>;
   return null;
 };
 const ShelfErrors = ({ model }: { model: Shelf }) => {
@@ -114,10 +113,11 @@ const ShelfErrors = ({ model }: { model: Shelf }) => {
 };
 const EmptyShelf = ({ model }: { model: Shelf }) => {
   const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
-  const { recent, recording, today } = model;
+  const { recent, recording, latestAttempt } = model;
   if (recent.isLoading) return <p role="status">{t('loading')}</p>;
   if (!recent.isSuccess) return null;
-  if (!recording && !today) return <p>{t('first')}</p>;
+  if (!recording && !['error', 'generating'].includes(latestAttempt?.status ?? ''))
+    return <p>{t('first')}</p>;
   return null;
 };
 const DailyAudioPracticePage = () => {

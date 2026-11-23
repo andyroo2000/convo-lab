@@ -68,9 +68,15 @@ export default function useStudyDrill() {
   const latest = recordings.find((p) => p.id === preferred) ?? recordings[0];
   const detail = useDailyAudioPractice(latest?.id);
   const recording = detail.data ?? latest;
-  const active = useActiveGeneration(today);
-  const status = useDailyAudioPracticeStatus(today?.id, active);
-  useCompletedDrill(today, status.data?.status);
+  // A current run takes precedence over old errors or abandoned generations.
+  const attempt =
+    practices.find(
+      (practice) =>
+        practice.status === 'generating' && Date.parse(practice.updatedAt) + expiry > Date.now()
+    ) ?? practices[0];
+  const active = useActiveGeneration(attempt);
+  const status = useDailyAudioPracticeStatus(attempt?.id, active);
+  useCompletedDrill(attempt, status.data?.status);
   const generate = async (minutes: number) => {
     const practice = await create.mutateAsync(minutes);
     setPreferred(undefined);
@@ -86,6 +92,7 @@ export default function useStudyDrill() {
     create,
     recording,
     recordings,
+    latestAttempt: attempt,
     setPreferred,
     detail,
     generate,
