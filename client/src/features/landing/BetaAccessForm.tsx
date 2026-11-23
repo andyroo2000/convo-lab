@@ -1,9 +1,13 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 const BetaAccessForm = () => {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState('');
   const submitting = useRef(false);
+  const confirmation = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (status === 'sent') confirmation.current?.focus();
+  }, [status]);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting.current) return;
@@ -21,19 +25,24 @@ const BetaAccessForm = () => {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ email: data.get('email'), devices, message: data.get('message') }),
+        body: JSON.stringify({
+          email: String(data.get('email') ?? '').trim(),
+          devices,
+          message: data.get('message'),
+        }),
       });
-      if (!response.ok)
-        throw new Error(
+      if (!response.ok) {
+        setError(
           response.status === 429
             ? 'Too many requests. Please try again later.'
             : 'We couldn’t send the request. Please try again.'
         );
+        setStatus('idle');
+        return;
+      }
       setStatus('sent');
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : 'We couldn’t send the request. Please try again.'
-      );
+    } catch {
+      setError('We couldn’t send the request. Please try again.');
       setStatus('idle');
     } finally {
       submitting.current = false;
@@ -51,7 +60,7 @@ const BetaAccessForm = () => {
         <span className="landing-pencil" aria-hidden="true" />
       </div>
       {status === 'sent' ? (
-        <p role="status" className="landing-success">
+        <p role="status" className="landing-success" tabIndex={-1} ref={confirmation}>
           Thanks for your interest! We’ll email you about access to the beta.
         </p>
       ) : (

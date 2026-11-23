@@ -60,7 +60,8 @@ describe('Journal landing page', () => {
     vi.stubGlobal('fetch', request);
     renderPage();
     completeRequest();
-    expect(await screen.findByRole('status')).toHaveTextContent('We’ll email you about access');
+    await waitFor(() => expect(screen.getByRole('status')).toHaveFocus());
+    expect(screen.getByRole('status')).toHaveTextContent('We’ll email you about access');
     expect(request).toHaveBeenCalledWith(
       '/api/convolab/browser/auth/beta-requests',
       expect.objectContaining({
@@ -92,7 +93,9 @@ describe('Journal landing page', () => {
     vi.stubGlobal('fetch', request);
     renderPage();
     completeRequest();
-    expect(await screen.findByRole('alert')).toHaveTextContent('Network unavailable');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We couldn’t send the request. Please try again.'
+    );
     expect(screen.getByLabelText('Email')).toHaveValue('learner@example.com');
     fireEvent.submit(screen.getByRole('form', { name: 'Request beta access' }));
     expect(await screen.findByRole('status')).toBeInTheDocument();
