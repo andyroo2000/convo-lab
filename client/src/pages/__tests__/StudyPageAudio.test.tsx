@@ -106,7 +106,7 @@ describe('StudyPage audio and motion', () => {
 
     expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Replay answer audio' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Play answer audio' })).toBeEnabled();
     });
   });
 
@@ -169,7 +169,7 @@ describe('StudyPage audio and motion', () => {
       expect(playMock).toHaveBeenCalledTimes(1);
       expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Replay answer audio' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Play answer audio' }));
 
       expect(playMock).toHaveBeenCalledTimes(2);
     } finally {

@@ -67,7 +67,7 @@ const StudyReviewHeader = ({
         </button>
       </div>
       <div
-        className="h-1 overflow-hidden rounded-full bg-navy/10"
+        className="sr-only"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}

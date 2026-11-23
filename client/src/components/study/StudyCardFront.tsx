@@ -253,7 +253,7 @@ const ClozePrompt = ({
         as="p"
         text={model.displayText}
         testId="study-cloze-prompt"
-        className={`mx-auto max-w-5xl leading-relaxed text-black ${compactMobile ? 'text-2xl sm:text-4xl md:text-6xl' : 'text-3xl sm:text-4xl md:text-6xl'}`}
+        className={`study-card-heading mx-auto max-w-5xl leading-relaxed text-black ${compactMobile ? 'text-2xl sm:text-4xl md:text-6xl' : 'text-3xl sm:text-4xl md:text-6xl'}`}
         rtClassName="text-[0.34em] font-medium text-gray-500"
       />
       <ClozeHint compactMobile={compactMobile} hint={model.hint} />
@@ -385,7 +385,7 @@ const MediaPrompt = ({
   promptAudioRef?: Ref<AudioPlayerHandle>;
 }) => (
   <div
-    className={`flex flex-col items-center justify-center text-center sm:min-h-[58vh] sm:gap-8 ${compactMobile ? 'min-h-[calc(100dvh-12rem)] gap-4' : 'min-h-[calc(100dvh-14rem)] gap-5'}`}
+    className={`study-card-media-prompt flex flex-col items-center justify-center text-center sm:min-h-[58vh] sm:gap-8 ${compactMobile ? 'min-h-[calc(100dvh-12rem)] gap-4' : 'min-h-[calc(100dvh-14rem)] gap-5'}`}
   >
     <MediaPromptImage compactMobile={compactMobile} imageUrl={media.imageUrl} />
     <MediaPromptAudio audioLed={audioLed} media={media} promptAudioRef={promptAudioRef} />
@@ -440,9 +440,9 @@ const TextPrompt = ({
               media.displayText)
         }
         testId="study-front-heading"
-        autoFitSingleLine
+        autoFitSingleLine={!compactMobile}
         minFontSizePx={compactMobile ? 24 : 28}
-        className={`mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl ${getHeadlineClasses(media.headlineText, { compactMobile })}`}
+        className={`study-card-heading mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl ${getHeadlineClasses(media.headlineText, { compactMobile })}`}
         rtClassName="text-[0.34em] font-medium text-gray-500"
       />
     ) : null}

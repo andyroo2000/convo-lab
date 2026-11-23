@@ -6,7 +6,7 @@ import type useStudyReviewSession from '../../hooks/useStudyReviewSession';
 import { StudyCardFace } from './StudyCardPreview';
 import StudyCardEditor from './StudyCardEditor';
 import StudyGradeButtons from './StudyGradeButtons';
-import { getStudyCardAudioUrl } from './studyCardUtils';
+import './studyWashi.css';
 import type { StudySessionGrade } from './studySessionWrapUpModel';
 
 type StudyReviewSession = ReturnType<typeof useStudyReviewSession>;
@@ -72,7 +72,7 @@ const StudyReviewPrompt = ({
       aria-label={t('focus.reveal')}
       onClick={onReveal}
       onKeyDown={handleKeyDown}
-      className="flex min-h-[calc(100dvh-7.5rem)] w-full flex-1 items-center justify-center px-3 py-4 text-left transition md:min-h-[60vh] md:rounded-2xl md:bg-white md:px-12 md:py-12 md:shadow-sm md:ring-1 md:ring-navy/10 md:hover:shadow-md"
+      className="study-washi-sheet study-washi-prompt"
     >
       <div className="w-full min-w-0 overflow-x-hidden">
         <StudyCardFace
@@ -128,7 +128,7 @@ const StudyReviewAnswer = ({
 >) => {
   if (editing && !masteryAnimationActive) {
     return (
-      <div className="min-h-[calc(100dvh-7.5rem)] min-w-0 flex-1 overflow-x-hidden px-2 py-2 md:min-h-[60vh] md:rounded-2xl md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-navy/10">
+      <div className="study-washi-sheet min-w-0">
         <StudyCardEditor
           card={card}
           defaultAnswerAudioVoiceId={cardAuthoringCapabilities?.defaultAnswerAudioVoiceId}
@@ -149,14 +149,15 @@ const StudyReviewAnswer = ({
   }
 
   return (
-    <div className="min-h-[calc(100dvh-7.5rem)] min-w-0 flex-1 overflow-x-hidden px-2 py-2 md:min-h-[60vh] md:rounded-2xl md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-navy/10">
+    <div className="study-washi-sheet min-w-0">
       <div className="flex flex-col gap-4 md:gap-5">
-        <div className="flex min-h-[calc(100dvh-9.5rem)] min-w-0 items-start justify-center overflow-x-hidden md:block md:min-h-0">
+        <div className="min-w-0">
           <div className="w-full min-w-0 overflow-x-hidden">
             <StudyCardFace
               card={card}
               layout="mobile-focus"
               side="back"
+              inlineAnswerAudio
               answerAudioRef={answerAudioRef}
             />
           </div>
@@ -182,8 +183,6 @@ const isGradeDisabled = ({
 };
 
 const StudyGradeTray = ({
-  answerAudioRef,
-  card,
   masteryAnimationActive,
   onGrade,
   reviewBusy,
@@ -193,8 +192,6 @@ const StudyGradeTray = ({
   undoPending,
 }: Pick<
   StudyReviewCardSurfaceProps,
-  | 'answerAudioRef'
-  | 'card'
   | 'masteryAnimationActive'
   | 'onGrade'
   | 'reviewBusy'
@@ -205,19 +202,12 @@ const StudyGradeTray = ({
 >) => {
   if (!showGradeTray) return null;
 
-  const replayAnswerAudio = getStudyCardAudioUrl(card)
-    ? () => {
-        const playPromise = answerAudioRef.current?.play();
-        runBackgroundTask(playPromise, { label: 'Study answer-audio replay' });
-      }
-    : undefined;
-
   return (
     <div
       data-testid="study-grade-tray"
-      className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:bg-cream/95 md:px-6 md:py-2"
+      className="study-washi-grade-tray fixed inset-x-0 bottom-0 z-[70]"
     >
-      <div data-testid="study-grade-tray-inner" className="mx-auto max-w-7xl">
+      <div data-testid="study-grade-tray-inner" className="mx-auto max-w-3xl">
         <StudyGradeButtons
           disabled={isGradeDisabled({
             masteryAnimationActive,
@@ -228,7 +218,6 @@ const StudyGradeTray = ({
           onGrade={(grade) => {
             runBackgroundTask(() => onGrade(grade), { label: 'Study card grade' });
           }}
-          onReplayAudio={replayAnswerAudio}
         />
       </div>
     </div>
@@ -242,7 +231,7 @@ const StudyReviewCardSurface = (props: StudyReviewCardSurfaceProps) => {
   return (
     <div
       data-testid="study-focus-card-scroll"
-      className={`study-focus-scroll relative mt-2 flex min-h-0 min-w-0 flex-1 flex-col justify-between space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
+      className={`study-washi-scroll study-focus-scroll relative mt-2 flex min-h-0 min-w-0 flex-1 flex-col space-y-4 overflow-y-auto overflow-x-hidden md:space-y-2 ${
         showGradeTray ? 'pb-24 md:pb-16' : 'pb-0'
       }`}
     >

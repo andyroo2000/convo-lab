@@ -164,7 +164,7 @@ describe('lesson preview audio', () => {
 
     fireEvent.keyDown(window, { code: 'Space' });
     await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole('button', { name: 'Replay answer audio' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Play answer audio' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reveal answer' })).not.toBeInTheDocument();
     expect(mutateAsyncMock).not.toHaveBeenCalled();
   });

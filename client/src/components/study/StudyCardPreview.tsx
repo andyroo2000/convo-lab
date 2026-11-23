@@ -41,9 +41,9 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
         as="div"
         text={readingText}
         testId="study-japanese-heading"
-        autoFitSingleLine
+        autoFitSingleLine={!compactMobile}
         minFontSizePx={headingMinFontSizePx}
-        className={`study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
+        className={`study-card-heading study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
           headlineText,
           { compactMobile }
         )}`}
@@ -57,9 +57,9 @@ const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) =
       <StudyRubyText
         as="div"
         text={answerText}
-        autoFitSingleLine
+        autoFitSingleLine={!compactMobile}
         minFontSizePx={headingMinFontSizePx}
-        className={`${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
+        className={`study-card-heading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full text-center font-semibold leading-tight text-black ${headingWrapClasses} ${getHeadlineClasses(
           answerText,
           { compactMobile }
         )}`}
@@ -166,7 +166,7 @@ const getStudyCardBackModel = (card: StudyCardSummary) => {
 
 const getBackLayoutClasses = (compactMobile: boolean) => ({
   container: compactMobile
-    ? 'w-full min-w-0 space-y-3 overflow-x-clip text-center md:space-y-8'
+    ? 'study-card-answer w-full min-w-0 space-y-3 overflow-x-clip text-center md:space-y-8'
     : 'space-y-5 text-center sm:space-y-8',
   image: compactMobile
     ? 'max-h-[30dvh] w-auto max-w-full rounded-lg md:max-h-[48dvh] md:w-full md:rounded-xl'
@@ -197,7 +197,7 @@ const AnswerDetails = ({
     ) : null}
     {model.meaning ? (
       <p
-        className={`mx-auto max-w-full break-words text-gray-800 md:max-w-4xl ${
+        className={`study-card-meaning mx-auto max-w-full break-words text-gray-800 md:max-w-4xl ${
           compactMobile
             ? `${DESCENDER_SAFE_PADDING_CLASS} text-base leading-snug sm:text-xl md:text-3xl`
             : 'text-lg sm:text-2xl md:text-3xl'
@@ -256,7 +256,7 @@ const ClozeAnswerDetails = ({
   <>
     {model.meaning ? (
       <p
-        className={`mx-auto max-w-4xl text-gray-800 ${
+        className={`study-card-meaning mx-auto max-w-4xl text-gray-800 ${
           compactMobile
             ? `${DESCENDER_SAFE_PADDING_CLASS} text-base leading-snug sm:text-2xl md:text-4xl`
             : 'text-xl sm:text-3xl md:text-4xl'
@@ -377,9 +377,9 @@ const ClozeStudyCardBack = ({
           as="div"
           text={model.clozeHeading}
           testId="study-cloze-heading"
-          autoFitSingleLine
+          autoFitSingleLine={!compactMobile}
           minFontSizePx={compactMobile ? 24 : 28}
-          className={`study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl ${getHeadlineClasses(
+          className={`study-card-heading study-card-reading ${DESCENDER_SAFE_PADDING_CLASS} mx-auto w-full max-w-full min-w-0 whitespace-normal break-words text-center font-semibold leading-tight text-black md:max-w-5xl ${getHeadlineClasses(
             clozeHeadlineText,
             { compactMobile }
           )}`}
@@ -392,7 +392,7 @@ const ClozeStudyCardBack = ({
         inlineAnswerAudio={inlineAnswerAudio}
         model={model}
       />
-      <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
+      <div className="study-card-answer-divider mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       <AnswerImageLayout compactMobile={compactMobile} details={details} model={model} />
       <MissingAnswerAudioNotice model={model} />
     </div>
@@ -423,7 +423,7 @@ const StandardStudyCardBack = ({
         inlineAnswerAudio={inlineAnswerAudio}
         model={model}
       />
-      <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
+      <div className="study-card-answer-divider mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       <AnswerImageLayout compactMobile={compactMobile} details={details} model={model} />
       <MissingAnswerAudioNotice model={model} />
       {model.answerHeading && !model.meaning && !model.notes.length ? (

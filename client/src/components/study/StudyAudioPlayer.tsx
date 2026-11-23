@@ -1,3 +1,4 @@
+import { Volume2 } from 'lucide-react';
 import {
   forwardRef,
   useCallback,
@@ -200,17 +201,11 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
               }}
               aria-label={label}
               data-testid={testId ? `${testId}-button` : undefined}
-              className={`inline-flex items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md ${
+              className={`study-speaker-button inline-flex items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md ${
                 playing ? 'ring-2 ring-navy/20' : ''
               } ${buttonSizeClasses}`}
             >
-              <svg
-                viewBox="0 0 24 24"
-                className={`ml-0.5 fill-current ${iconSizeClasses}`}
-                aria-hidden="true"
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
+              <Volume2 className={iconSizeClasses} aria-hidden="true" />
             </button>
           </div>
         ) : null}
