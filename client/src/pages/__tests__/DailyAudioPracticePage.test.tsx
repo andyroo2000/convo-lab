@@ -202,28 +202,38 @@ describe('DailyAudioPracticePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Replace recording' }));
     await waitFor(() => expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1));
   });
-  it('keeps the last recording available and polls an active generation', () => {
+  it.each([
+    [0, 'Waiting to start…'],
+    [1, 'Preparing your audio drill…'],
+    [24, 'Recording your drill…'],
+    [95, 'Finishing audio…'],
+  ])('shows %i percent for a drill still generating after midnight', (percent, label) => {
     const pending = {
       ...readyPractice,
       id: 'pending',
-      practiceDate: todayPracticeDate(),
+      practiceDate: '2026-09-01',
       updatedAt: new Date().toISOString(),
       status: 'generating',
       tracks: [],
     };
     mockUseRecentDailyAudioPractice.mockReturnValue({ data: [pending, readyPractice] });
     mockUseDailyAudioPracticeStatus.mockReturnValue({
-      data: { status: 'generating', progress: 24 },
+      data: { status: 'generating', progress: percent },
     });
     renderPage();
     expect(mockUseDailyAudioPracticeStatus).toHaveBeenCalledWith('pending', true);
     expect(screen.getByRole('button', { name: 'New audio drill' })).toBeDisabled();
-    expect(screen.getByRole('progressbar', { name: 'Recording your drill…' })).toHaveAttribute(
+    expect(screen.getByRole('progressbar', { name: String(label) })).toHaveAttribute(
       'value',
-      '24'
+      String(percent)
     );
-    expect(screen.getByText(/24%/)).toBeVisible();
+    expect(screen.getByText(`${percent}%`)).toBeVisible();
     expect(screen.getByTestId('script-track-player')).toBeVisible();
+  });
+  it('shows indeterminate progress while the create request is pending', () => {
+    mockUseCreateDailyAudioPractice.mockReturnValue({ isPending: true });
+    renderPage();
+    expect(screen.getByRole('progressbar')).not.toHaveAttribute('value');
   });
   it('enables retry once the current generation crosses its stale threshold', () => {
     vi.useFakeTimers();

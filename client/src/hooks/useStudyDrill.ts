@@ -87,6 +87,7 @@ export default function useStudyDrill() {
     create,
     recording,
     recordings,
+    latestAttempt: practices[0],
     setPreferred,
     detail,
     generate,

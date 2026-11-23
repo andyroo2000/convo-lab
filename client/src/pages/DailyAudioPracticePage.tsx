@@ -76,15 +76,15 @@ const ShelfRecording = ({ model }: { model: Shelf }) => {
 };
 const GenerationStatus = ({ model }: { model: Shelf }) => {
   const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
-  const { active, today, progress, create } = model;
+  const { active, latestAttempt, progress, create } = model;
   const pending = active || create.isPending;
   if (pending) {
     const percent = active ? progress : undefined;
     return <DrillGenerationProgress percent={percent} />;
   }
-  if (today?.status === 'generating') return <p role="status">{t('stalled')}</p>;
-  if (today?.status === 'error')
-    return <p role="alert">{today.errorMessage || t('generationError')}</p>;
+  if (latestAttempt?.status === 'generating') return <p role="status">{t('stalled')}</p>;
+  if (latestAttempt?.status === 'error')
+    return <p role="alert">{latestAttempt.errorMessage || t('generationError')}</p>;
   return null;
 };
 const ShelfErrors = ({ model }: { model: Shelf }) => {
@@ -113,10 +113,11 @@ const ShelfErrors = ({ model }: { model: Shelf }) => {
 };
 const EmptyShelf = ({ model }: { model: Shelf }) => {
   const { t } = useTranslation('study', { keyPrefix: 'drillPlayer' });
-  const { recent, recording, today } = model;
+  const { recent, recording, latestAttempt } = model;
   if (recent.isLoading) return <p role="status">{t('loading')}</p>;
   if (!recent.isSuccess) return null;
-  if (!recording && !today) return <p>{t('first')}</p>;
+  if (!recording && !['error', 'generating'].includes(latestAttempt?.status ?? ''))
+    return <p>{t('first')}</p>;
   return null;
 };
 const DailyAudioPracticePage = () => {
