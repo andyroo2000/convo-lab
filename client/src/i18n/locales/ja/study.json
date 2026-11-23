@@ -125,6 +125,7 @@
     "failedSameStage": "{{item}} は {{level}} のままです。もう一度。"
   },
   "reviewActions": {
+    "more": "カードのその他の操作",
     "edit": "カードを編集",
     "bury": "今回のセッションだけ隠す",
     "suspend": "停止",

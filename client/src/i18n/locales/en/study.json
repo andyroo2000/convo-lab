@@ -125,6 +125,7 @@
     "failedSameStage": "{{item}} remains {{level}}. Try again."
   },
   "reviewActions": {
+    "more": "More card options",
     "edit": "Edit card",
     "bury": "Bury for session",
     "suspend": "Suspend",

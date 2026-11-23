@@ -1,4 +1,3 @@
-import { Volume2 } from 'lucide-react';
 import {
   forwardRef,
   useCallback,
@@ -13,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import { getAudioPreloadMode } from '../../lib/audioCache';
 import { getAudioMimeType } from './studyCardUtils';
+import StudySpeakerIcon from './StudySpeakerIcon';
 
 export interface AudioPlayerHandle {
   play: () => Promise<boolean>;
@@ -200,12 +200,15 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
                 event.stopPropagation();
               }}
               aria-label={label}
+              aria-pressed={playing}
               data-testid={testId ? `${testId}-button` : undefined}
               className={`study-speaker-button inline-flex items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md ${
                 playing ? 'ring-2 ring-navy/20' : ''
               } ${buttonSizeClasses}`}
             >
-              <Volume2 className={iconSizeClasses} aria-hidden="true" />
+              <span className={`study-speaker-glyph ${iconSizeClasses}`}>
+                <StudySpeakerIcon playing={playing} />
+              </span>
             </button>
           </div>
         ) : null}

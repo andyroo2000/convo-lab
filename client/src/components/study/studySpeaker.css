@@ -1,0 +1,55 @@
+.study-speaker-icon {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.study-speaker-cone {
+  fill: currentColor;
+}
+.study-speaker-wave {
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.study-speaker-icon[data-playing='true'] .study-speaker-wave {
+  animation: study-wave-one 2.56s steps(1, end) infinite;
+}
+.study-speaker-icon[data-playing='true'] .study-speaker-wave-2 {
+  animation-name: study-wave-two;
+}
+.study-speaker-icon[data-playing='true'] .study-speaker-wave-3 {
+  animation-name: study-wave-three;
+}
+@keyframes study-wave-one {
+  0% {
+    opacity: 0;
+  }
+  31.25%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes study-wave-two {
+  0% {
+    opacity: 0;
+  }
+  46.875%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes study-wave-three {
+  0% {
+    opacity: 0;
+  }
+  62.5%,
+  100% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .study-speaker-icon[data-playing='true'] .study-speaker-wave {
+    animation: none;
+    opacity: 1;
+  }
+}

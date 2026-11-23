@@ -254,7 +254,7 @@ describe('StudyPage overview and lessons', () => {
     expect(screen.getByTestId('study-focus-card-scroll')).toBeInTheDocument();
     expect(screen.queryByText('Lesson complete')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Finish mastery animation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish mastery animation' }));
 
     expect(await screen.findByText('Lesson complete')).toBeInTheDocument();
   });
@@ -460,17 +460,16 @@ describe('StudyPage overview and lessons', () => {
     expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
     expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
     expect(screen.getByTestId('study-review-header')).toHaveTextContent(
-      '0Failed1Queued0NewEnd session'
+      'End session0Failed1Queued0New0%'
     );
     expect(screen.getByTestId('study-review-metrics')).not.toHaveClass('border-b');
     expect(screen.getByRole('group', { name: '0 failed, 1 queued, 0 new' })).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
-    expect(screen.getByTestId('mastery-feedback-lane')).toHaveClass('mastery-feedback-lane');
+    expect(screen.queryByTestId('mastery-feedback-lane')).not.toBeInTheDocument();
     expect(screen.getByTestId('study-focus-card-scroll')).toHaveClass(
       'study-focus-scroll',
-      'overflow-x-hidden',
-      'pb-0'
+      'overflow-x-hidden'
     );
     expect(screen.getByTestId('study-focus-card-scroll').className).not.toContain('pb-24');
   });
@@ -506,17 +505,12 @@ describe('StudyPage overview and lessons', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     const gradeTray = screen.getByTestId('study-grade-tray');
-    expect(screen.getByTestId('study-focus-shell')).toHaveClass(
-      'study-focus-shell',
-      'h-[100dvh]',
-      'min-h-0'
-    );
+    expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell', 'min-h-0');
     expect(screen.getByTestId('study-focus-card-scroll')).toHaveClass(
       'study-focus-scroll',
       'min-h-0',
       'overflow-y-auto',
-      'overflow-x-hidden',
-      'md:pb-16'
+      'overflow-x-hidden'
     );
     expect(gradeTray).toHaveClass('fixed');
     expect(gradeTray.className).not.toContain('md:static');
@@ -535,6 +529,7 @@ describe('StudyPage overview and lessons', () => {
     const reviewHeader = screen.getByTestId('study-review-header');
     const reviewActions = within(reviewHeader).getByTestId('study-review-actions');
     expect(within(reviewActions).getByRole('button', { name: 'Edit card' })).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('More card options'));
     expect(within(reviewActions).getByRole('button', { name: 'Set due' })).toBeInTheDocument();
     expect(
       within(gradeTray).queryByRole('button', { name: 'Play answer audio' })

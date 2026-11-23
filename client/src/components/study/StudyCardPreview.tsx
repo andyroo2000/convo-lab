@@ -329,11 +329,14 @@ const AnswerImageLayout = ({
   model: StudyCardBackModel;
 }) => {
   const reviewImageUrl = toAssetUrl(model.reviewImage?.url);
-  if (!reviewImageUrl) return details;
+  if (!reviewImageUrl) return <div className="study-answer-details">{details}</div>;
 
   const classes = getBackLayoutClasses(compactMobile);
   return (
-    <div className={classes.imageLayout} data-testid="study-answer-image-layout">
+    <div
+      className={`study-answer-details ${classes.imageLayout}`}
+      data-testid="study-answer-image-layout"
+    >
       <div
         className="mx-auto flex w-full min-w-0 justify-center md:block md:border-r md:border-gray-300/80 md:pr-8"
         data-testid="study-answer-image-column"
