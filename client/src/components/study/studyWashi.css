@@ -1,0 +1,188 @@
+.study-washi-backdrop,
+.study-washi-session.study-focus-shell {
+  background: #f3eddf;
+  color: #11335c;
+  color-scheme: light;
+}
+
+.study-washi-session.study-focus-shell {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.study-washi-scroll {
+  padding: 24px 12px 100px;
+}
+
+.study-washi-sheet {
+  position: relative;
+  isolation: isolate;
+  flex: none;
+  width: 100%;
+  max-width: 720px;
+  margin: auto;
+  padding: 30px 25px;
+  border-radius: 1px;
+  background: #ece3cb;
+  box-shadow: 1px 2px 6px #74674224;
+  text-align: left;
+  font-family: 'Crimson Pro', Georgia, serif;
+}
+
+.study-washi-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/images/study-washi-fibers.png') repeat;
+  background-size: 192px 192px;
+  opacity: 0.5;
+}
+
+.study-washi-sheet .study-card-heading {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: clamp(26px, 2.6vw, 32px);
+  font-weight: 500;
+  line-height: 1.9;
+  letter-spacing: 0.015em;
+  text-align: left;
+  color: #11335c;
+  overflow-wrap: anywhere;
+  line-break: strict;
+}
+
+.study-washi-sheet .study-card-heading rt {
+  color: #696c61;
+}
+
+.study-washi-sheet .study-card-answer {
+  text-align: left;
+}
+
+.study-washi-sheet .study-card-answer > * + * {
+  margin-top: 24px;
+}
+
+.study-washi-sheet .study-card-meaning {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: clamp(24px, 2.5vw, 30px);
+  line-height: 1.35;
+  color: #11335c;
+  text-align: left;
+}
+
+.study-washi-sheet [data-testid='study-answer-notes'] {
+  border-left: 2px solid #aeb892;
+  padding-left: 11px;
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.study-washi-sheet [data-testid='study-answer-notes'] p {
+  color: #696c61;
+}
+
+.study-washi-sheet [data-testid='study-answer-notes'] [aria-hidden='true'],
+.study-washi-sheet .study-card-answer-divider {
+  display: none;
+}
+
+.study-washi-sheet .study-card-media-prompt {
+  min-height: 200px;
+}
+
+.study-washi-sheet .study-speaker-button {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: #78a46a;
+  color: #fbf5e0;
+  box-shadow: none;
+}
+
+.study-washi-sheet .study-speaker-button svg {
+  width: 34px;
+  height: 34px;
+  stroke-width: 2.1;
+}
+
+.study-washi-sheet .study-speaker-button svg path[d$='z' i] {
+  fill: currentColor;
+  stroke-width: 1.4;
+}
+
+.study-washi-sheet .study-speaker-button:hover {
+  background: #6a965c;
+}
+
+.study-washi-sheet .study-speaker-button:focus-visible,
+.study-washi-sheet:focus-visible {
+  outline: 2px solid #11335c;
+  outline-offset: 4px;
+}
+
+.study-washi-grade-tray {
+  background: #f3eddf;
+  padding: 12px 20px max(16px, env(safe-area-inset-bottom));
+}
+
+.study-washi-grade {
+  min-height: 48px;
+  padding: 8px 2px;
+  border: 1px solid #ccc7b6;
+  border-radius: 5px;
+  background: #eae2cf;
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 20px;
+  color: #477341;
+}
+
+.study-washi-grade[data-grade='again'] {
+  color: #a35040;
+}
+
+.study-washi-grade[data-grade='hard'] {
+  color: #80602a;
+}
+
+.study-washi-grade[data-grade='good'] {
+  background: #78a855;
+  border-color: transparent;
+  color: #132c0c;
+}
+
+.study-washi-grade:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+@media (min-width: 768px) {
+  .study-washi-scroll {
+    padding: 32px 32px 100px;
+  }
+
+  .study-washi-sheet {
+    padding: 40px 48px;
+  }
+}
+
+@media (max-width: 370px) {
+  .study-washi-scroll {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  .study-washi-sheet {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .study-washi-sheet .study-card-heading {
+    font-size: 24px;
+  }
+}

@@ -520,15 +520,13 @@ describe('StudyPage overview and lessons', () => {
     );
     expect(gradeTray).toHaveClass('fixed');
     expect(gradeTray.className).not.toContain('md:static');
-    expect(screen.getByTestId('study-grade-tray-inner')).toHaveClass('mx-auto', 'max-w-7xl');
+    expect(screen.getByTestId('study-grade-tray-inner')).toHaveClass('mx-auto', 'max-w-3xl');
     expect(gradeTray.className).not.toContain('md:pb-6');
     const againButton = within(gradeTray).getByRole('button', { name: /again/i });
-    expect(againButton).toHaveClass('md:min-h-[2.25rem]');
     expect(againButton.className).not.toContain('md:min-h-[8.25rem]');
     expect(againButton).toBeInTheDocument();
-    expect(within(gradeTray).getByRole('button', { name: 'Replay answer audio' })).toHaveClass(
-      'md:min-h-[2.25rem]'
-    );
+    expect(within(gradeTray).getAllByRole('button')).toHaveLength(4);
+    expect(screen.getByRole('button', { name: 'Play answer audio' })).toBeEnabled();
     expect(within(gradeTray).getByRole('button', { name: /hard/i })).toBeInTheDocument();
     expect(within(gradeTray).getByRole('button', { name: /good/i })).toBeInTheDocument();
     expect(within(gradeTray).getByRole('button', { name: /easy/i })).toBeInTheDocument();
@@ -538,6 +536,8 @@ describe('StudyPage overview and lessons', () => {
     const reviewActions = within(reviewHeader).getByTestId('study-review-actions');
     expect(within(reviewActions).getByRole('button', { name: 'Edit card' })).toBeInTheDocument();
     expect(within(reviewActions).getByRole('button', { name: 'Set due' })).toBeInTheDocument();
-    expect(within(gradeTray).getByRole('button', { name: 'Replay answer audio' })).toBeEnabled();
+    expect(
+      within(gradeTray).queryByRole('button', { name: 'Play answer audio' })
+    ).not.toBeInTheDocument();
   });
 });
