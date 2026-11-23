@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { JsonRequestError } from '../../lib/apiClient';
+import { useJournalSync } from './JournalSyncContext';
+import type JournalDraftOutbox from './journalDraftOutbox';
 import { deleteJournalEntry } from './journalApi';
 import { removeJournalDeviceData } from './journalDeviceCleanup';
 import type useJournalEditor from './useJournalEditor';
@@ -19,15 +21,27 @@ async function deleteDraft(ownerId: string, draft: NonNullable<Editor['draft']>)
   removeJournalDeviceData(ownerId, draft.id);
 }
 
+async function keepDraft(editor: Editor, outbox: JournalDraftOutbox | null) {
+  if (await editor.save()) return true;
+  if (outbox?.blocked.has(editor.draft?.id ?? '')) return false;
+  return editor.locallySaved;
+}
+
 async function closeDraft(
   ownerId: string,
   editor: Editor,
   kind: 'keep' | 'delete',
-  client: QueryClient
+  client: QueryClient,
+  outbox: JournalDraftOutbox | null
 ) {
-  if (kind === 'keep') return editor.save();
+  if (kind === 'keep') return keepDraft(editor, outbox);
   if (!editor.draft) return false;
-  await deleteDraft(ownerId, editor.draft);
+  const { draft } = editor;
+  if (outbox)
+    await outbox.mutate(draft.id, (version) =>
+      deleteDraft(ownerId, { ...draft, expectedVersion: Math.max(version, draft.expectedVersion) })
+    );
+  else await deleteDraft(ownerId, draft);
   client.invalidateQueries({ queryKey: ['journal-archive', ownerId] }).catch(() => undefined);
   client.invalidateQueries({ queryKey: ['journal-conversation', ownerId] }).catch(() => undefined);
   return true;
@@ -39,6 +53,7 @@ function closeError(reason: unknown) {
 
 export default function useJournalDraftClose(ownerId: string, editor: Editor, onClose: () => void) {
   const client = useQueryClient();
+  const { outbox } = useJournalSync();
   const active = useRef(true);
   const pending = useRef(false);
   const [action, setAction] = useState<'keep' | 'delete' | null>(null);
@@ -56,7 +71,7 @@ export default function useJournalDraftClose(ownerId: string, editor: Editor, on
     setAction(kind);
     setError('');
     try {
-      const success = await closeDraft(ownerId, editor, kind, client);
+      const success = await closeDraft(ownerId, editor, kind, client, outbox);
       if (!success)
         throw new Error('Could not save online. Your draft is still open. Please try again.');
       if (active.current) onClose();

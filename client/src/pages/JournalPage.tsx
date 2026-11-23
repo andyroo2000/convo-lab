@@ -19,6 +19,7 @@ import JournalArchive from '../features/journal/JournalArchive';
 import JournalEntryContent from '../features/journal/JournalEntryContent';
 import JournalLanding from '../features/journal/JournalLanding';
 import useJournalArchive from '../features/journal/useJournalArchive';
+import JournalSyncProvider from '../features/journal/JournalSyncProvider';
 
 function useBlankNotebook() {
   const navigate = useNavigate();
@@ -159,7 +160,9 @@ const JournalPage = () => {
   if (!user) return null;
   return (
     <KnownKanjiProvider>
-      <JournalWorkspace key={user.id} ownerId={String(user.id)} />
+      <JournalSyncProvider key={user.id} ownerId={String(user.id)}>
+        <JournalWorkspace ownerId={String(user.id)} />
+      </JournalSyncProvider>
     </KnownKanjiProvider>
   );
 };

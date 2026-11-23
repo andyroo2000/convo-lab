@@ -12,6 +12,11 @@ export const EditorMessages = ({
   onOpen: (id: string) => void;
 }) => (
   <>
+    {editor.syncStatus && (
+      <p role="status" className="text-xs text-stone-500">
+        {editor.syncStatus}
+      </p>
+    )}
     {editor.error && (
       <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">
         {editor.error}

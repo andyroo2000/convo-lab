@@ -1,3 +1,4 @@
+import { journalSyncPrefix } from './journalSyncStorage';
 import { journalVersionPrefix } from './useJournalVersion';
 
 const pendingPrefix = 'convolab:journal-account-deletion:';
@@ -16,6 +17,13 @@ function isConversationDraft(storage: Storage, key: string, rootId: string) {
   }
 }
 
+function removeSyncData(storage: Storage, ownerId: string, entryId?: string) {
+  const syncPrefix = journalSyncPrefix(ownerId);
+  keys(storage)
+    .filter((key) => (entryId ? key === `${syncPrefix}${entryId}` : key.startsWith(syncPrefix)))
+    .forEach((key) => storage.removeItem(key));
+}
+
 export function removeJournalDeviceData(ownerId: string, entryId?: string, storage = localStorage) {
   const versionPrefix = journalVersionPrefix(ownerId);
   keys(storage)
@@ -25,6 +33,7 @@ export function removeJournalDeviceData(ownerId: string, entryId?: string, stora
         : key.startsWith(versionPrefix)
     )
     .forEach((key) => storage.removeItem(key));
+  removeSyncData(storage, ownerId, entryId);
   const draftPrefix = `convolab:journal:v1:${encodeURIComponent(ownerId)}:`;
   const answerPrefix = `convolab:journal-answer:${ownerId}:`;
   keys(storage).forEach((key) => {

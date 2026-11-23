@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useJournalSync } from './JournalSyncContext';
 import { deleteJournalEntry, listJournalEntries } from './journalApi';
 import { JournalDraftStore } from './journalDrafts';
 import renameJournalEntry from './journalRename';
@@ -8,6 +9,7 @@ import type { JournalDraft, JournalEntry } from './types';
 
 export default function useJournalArchive(ownerId: string) {
   const client = useQueryClient();
+  const { outbox, revision } = useJournalSync();
   const store = useMemo(() => new JournalDraftStore(ownerId), [ownerId]);
   const [drafts, setDrafts] = useState<JournalDraft[]>([]);
   const [error, setError] = useState('');
@@ -41,6 +43,10 @@ export default function useJournalArchive(ownerId: string) {
     };
   }, [refresh]);
 
+  useEffect(() => {
+    refresh();
+  }, [revision, refresh]);
+
   const entries = useMemo(() => {
     const items = new Map<
       string,
@@ -69,7 +75,7 @@ export default function useJournalArchive(ownerId: string) {
     refetch({ cancelRefetch: false }).catch(() => undefined);
   }, [refresh, refetch]);
 
-  async function remove(entry: Pick<JournalEntry, 'id' | 'version'>) {
+  async function removeEntry(entry: Pick<JournalEntry, 'id' | 'version'>) {
     try {
       if (entry.version > 0) await deleteJournalEntry(entry);
     } catch {
@@ -91,9 +97,25 @@ export default function useJournalArchive(ownerId: string) {
     }
   }
 
+  async function remove(entry: Pick<JournalEntry, 'id' | 'version'>) {
+    if (!outbox) return removeEntry(entry);
+    try {
+      return await outbox.mutate(entry.id, (version) =>
+        removeEntry({ ...entry, version: Math.max(entry.version, version) })
+      );
+    } catch {
+      setError('Could not delete this entry online. Your writing is kept.');
+      return false;
+    }
+  }
+
   async function rename(entry: Pick<JournalEntry, 'id' | 'version'>, title: string) {
     try {
-      await renameJournalEntry(store, entry, title);
+      if (outbox)
+        await outbox.mutate(entry.id, (version) =>
+          renameJournalEntry(store, { ...entry, version: Math.max(entry.version, version) }, title)
+        );
+      else await renameJournalEntry(store, entry, title);
     } finally {
       saved();
     }

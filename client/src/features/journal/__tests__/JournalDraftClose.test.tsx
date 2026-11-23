@@ -1,6 +1,17 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
+import JournalDraftOutbox from '../journalDraftOutbox';
+import JournalSyncContext from '../JournalSyncContext';
 import JournalEditorForm from '../JournalEditorForm';
 import useJournalEditor from '../useJournalEditor';
 import { JournalDraftStore, newJournalDraft } from '../journalDrafts';
@@ -122,17 +133,13 @@ it('keeps the modal open while saving, blocks dismissal, and closes only after s
   expect(submitJournalEntry).not.toHaveBeenCalled();
 });
 
-it('keeps writing available after an online save failure', async () => {
+it('closes after an offline save while keeping the durable draft queued', async () => {
   const { close, store, draft } = setup();
   vi.mocked(saveJournalDraft).mockRejectedValue(new Error('Offline'));
   openDialog();
   fireEvent.click(screen.getByRole('button', { name: 'Keep draft & close' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Could not save online. Your draft is still open.'
-  );
-  expect(close).not.toHaveBeenCalled();
+  await waitFor(() => expect(close).toHaveBeenCalledOnce());
   expect(store.get(draft.id)?.body).toBe(draft.body);
-  fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
@@ -193,4 +200,65 @@ it('keeps Submit saving and requesting feedback without opening the close modal'
   await waitFor(() => expect(submitJournalEntry).toHaveBeenCalledWith(entry, 'meaning'));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(close).not.toHaveBeenCalled();
+});
+
+it('closes an acknowledged snapshot without resending stale text after another device edits it', async () => {
+  const draft = { ...newJournalDraft(), body: 'Already saved on web' };
+  const store = new JournalDraftStore('owner');
+  store.put(draft);
+  const entry = { ...draft, version: 1, createdAt: '', updatedAt: '' };
+  vi.mocked(saveJournalDraft).mockResolvedValueOnce(entry);
+  const { result } = renderHook(() =>
+    useJournalEditor({ ownerId: 'owner', entryId: draft.id, onSaved: () => undefined })
+  );
+  await act(async () => {
+    await result.current.save();
+  });
+  vi.mocked(saveJournalDraft).mockRejectedValue(new JsonRequestError('Changed elsewhere', 409, {}));
+  let closed = false;
+  await act(async () => {
+    closed = await result.current.save();
+  });
+  expect(closed).toBe(true);
+  expect(saveJournalDraft).toHaveBeenCalledOnce();
+  expect(store.get(draft.id)).toBeNull();
+});
+
+it('never replaces memory-only typing with an older queued draft after storage fails', async () => {
+  const draft = { ...newJournalDraft(), body: 'Older queued writing' };
+  const store = new JournalDraftStore('owner');
+  store.put(draft);
+  const outbox = new JournalDraftOutbox('owner');
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <JournalSyncContext.Provider value={outbox}>{children}</JournalSyncContext.Provider>
+  );
+  const { result } = renderHook(
+    () => useJournalEditor({ ownerId: 'owner', entryId: draft.id, onSaved: () => undefined }),
+    { wrapper }
+  );
+  const blockedStorage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    throw new Error('Storage full');
+  });
+  act(() => result.current.change({ body: 'Latest memory-only writing' }));
+  await act(async () => {
+    expect(await result.current.save()).toBe(false);
+  });
+  expect(result.current.draft?.body).toBe('Latest memory-only writing');
+  expect(saveJournalDraft).not.toHaveBeenCalled();
+  blockedStorage.mockRestore();
+  vi.mocked(saveJournalDraft).mockImplementation(async (sent) => ({
+    ...sent,
+    version: 1,
+    createdAt: '',
+    updatedAt: '',
+  }));
+  await act(async () => {
+    expect(await result.current.save()).toBe(true);
+  });
+  expect(saveJournalDraft).toHaveBeenCalledWith(
+    expect.objectContaining({ body: 'Latest memory-only writing' }),
+    expect.any(AbortSignal),
+    'owner'
+  );
+  expect(result.current.draft?.body).toBe('Latest memory-only writing');
 });
