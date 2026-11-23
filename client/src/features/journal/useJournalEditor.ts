@@ -129,7 +129,7 @@ export default function useJournalEditor({
     } catch {
       setLocallySaved(false);
       setError(
-        'Could not save on this device. Keep this page open. Use Close, then Keep draft & close to save online.'
+        'Could not save on this device. Keep this page open and try again after freeing storage.'
       );
     }
   }
@@ -200,11 +200,19 @@ export default function useJournalEditor({
     return !submit && !editedLocally.current && (draft?.expectedVersion ?? 0) > 0;
   }
 
+  function preserveUnsavedWriting(sent: JournalDraft) {
+    if (!editedLocally.current || locallySaved) return;
+    store.put(sent);
+    outbox?.edited(sent);
+    setLocallySaved(true);
+  }
+
   async function persistDraft(sent: JournalDraft, submit: boolean) {
     const epoch = scope.current;
     setBusy(true);
     setError('');
     try {
+      preserveUnsavedWriting(sent);
       const entry = await saveRemote(sent);
       const storageError = acknowledgeStorage(sent, entry);
       if (scope.current !== epoch) return false;
