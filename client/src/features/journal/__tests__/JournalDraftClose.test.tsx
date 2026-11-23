@@ -1,4 +1,12 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
 import JournalEditorForm from '../JournalEditorForm';
@@ -189,4 +197,26 @@ it('keeps Submit saving and requesting feedback without opening the close modal'
   await waitFor(() => expect(submitJournalEntry).toHaveBeenCalledWith(entry, 'meaning'));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(close).not.toHaveBeenCalled();
+});
+
+it('closes an acknowledged snapshot without resending stale text after another device edits it', async () => {
+  const draft = { ...newJournalDraft(), body: 'Already saved on web' };
+  const store = new JournalDraftStore('owner');
+  store.put(draft);
+  const entry = { ...draft, version: 1, createdAt: '', updatedAt: '' };
+  vi.mocked(saveJournalDraft).mockResolvedValueOnce(entry);
+  const { result } = renderHook(() =>
+    useJournalEditor({ ownerId: 'owner', entryId: draft.id, onSaved: () => undefined })
+  );
+  await act(async () => {
+    await result.current.save();
+  });
+  vi.mocked(saveJournalDraft).mockRejectedValue(new JsonRequestError('Changed elsewhere', 409, {}));
+  let closed = false;
+  await act(async () => {
+    closed = await result.current.save();
+  });
+  expect(closed).toBe(true);
+  expect(saveJournalDraft).toHaveBeenCalledOnce();
+  expect(store.get(draft.id)).toBeNull();
 });

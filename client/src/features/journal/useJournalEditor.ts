@@ -196,10 +196,12 @@ export default function useJournalEditor({
     return outbox ? outbox.saveLatest(sent) : saveJournalDraft(sent);
   }
 
-  async function save(submit = false) {
-    if (!draft || busy) return false;
+  function canCloseWithoutSaving(submit: boolean) {
+    return !submit && !editedLocally.current && (draft?.expectedVersion ?? 0) > 0;
+  }
+
+  async function persistDraft(sent: JournalDraft, submit: boolean) {
     const epoch = scope.current;
-    const sent = draft;
     setBusy(true);
     setError('');
     try {
@@ -216,6 +218,12 @@ export default function useJournalEditor({
       if (scope.current === epoch) setBusy(false);
     }
     return false;
+  }
+
+  async function save(submit = false) {
+    if (!draft || busy) return false;
+    if (canCloseWithoutSaving(submit)) return true;
+    return persistDraft(draft, submit);
   }
 
   function copyAsNew(): JournalDraft | null {
