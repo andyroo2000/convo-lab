@@ -1,121 +1,111 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import LandingPage from '../LandingPage';
 
-// Mock Logo component
-vi.mock('../../components/common/Logo', () => ({
-  default: () => (
-    <div data-testid="logo">
-      <span>ConvoLab</span>
-    </div>
-  ),
+const mockUser = vi.fn(() => null as { id: string } | null);
+vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ user: mockUser() }) }));
+vi.mock('../../features/landing/landingScroll', () => ({
+  startLandingStory: () => () => undefined,
 }));
 
-// Mock useNavigate
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <LandingPage />
+    </MemoryRouter>
+  );
+const completeRequest = () => {
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'learner@example.com' } });
+  fireEvent.click(screen.getByLabelText('Web'));
+  fireEvent.click(screen.getByLabelText('Android'));
+  fireEvent.change(screen.getByLabelText(/Why would you like to try it/), {
+    target: { value: 'A paragraph a day.' },
+  });
+  fireEvent.submit(screen.getByRole('form', { name: 'Request beta access' }));
+};
 
-// Mock AuthContext
-const mockUser = vi.fn(() => null as { id: string; email?: string } | null);
-vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => ({ user: mockUser() }),
-}));
-
-describe('LandingPage', () => {
-  const renderPage = () =>
-    render(
-      <BrowserRouter>
-        <LandingPage />
-      </BrowserRouter>
-    );
-
+describe('Journal landing page', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockUser.mockReturnValue(null);
   });
-
-  describe('header', () => {
-    it('renders logo and tools-first CTA', () => {
-      renderPage();
-      expect(screen.getByTestId('logo')).toBeInTheDocument();
-      expect(screen.getByTestId('landing-header-button-open-tools')).toBeInTheDocument();
-    });
-
-    it('navigates to tools when header tools button clicked', () => {
-      renderPage();
-      fireEvent.click(screen.getByTestId('landing-header-button-open-tools'));
-      expect(mockNavigate).toHaveBeenCalledWith('/tools');
-    });
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
-  describe('unauthenticated user', () => {
-    it('shows private beta badge and no app CTA', () => {
-      renderPage();
-      expect(screen.getByTestId('landing-header-beta-badge')).toBeInTheDocument();
-      expect(screen.queryByTestId('landing-header-button-go-to-app')).not.toBeInTheDocument();
-    });
+  it('offers login and beta access without redirecting guests', () => {
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'I tried journaling to improve my Japanese.'
+    );
+    expect(screen.getAllByRole('link', { name: 'Request access' })).toHaveLength(2);
+    expect(screen.getByRole('heading', { name: 'Just checking!' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Love WaniKani? We do too.' })).toBeInTheDocument();
   });
 
-  describe('authenticated user', () => {
-    beforeEach(() => {
-      mockUser.mockReturnValue({ id: 'user-1', email: 'test@test.com' });
-    });
-
-    it('shows go-to-app CTA in header', () => {
-      renderPage();
-      expect(screen.getByTestId('landing-header-button-go-to-app')).toBeInTheDocument();
-    });
-
-    it('navigates to app library when go-to-app clicked', () => {
-      renderPage();
-      fireEvent.click(screen.getByTestId('landing-header-button-go-to-app'));
-      expect(mockNavigate).toHaveBeenCalledWith('/app/journal');
-    });
+  it('keeps the landing page available with an Open Journal link when signed in', () => {
+    mockUser.mockReturnValue({ id: 'user-1' });
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Open Journal' })).toHaveAttribute(
+      'href',
+      '/app/journal'
+    );
+    expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 
-  describe('hero and sections', () => {
-    it('renders tools-focused headline and beta messaging', () => {
-      renderPage();
-      expect(screen.getByText('Practice Japanese')).toBeInTheDocument();
-      expect(screen.getByText('Dates & Time')).toBeInTheDocument();
-      expect(screen.getByText(/private beta and invite-only/i)).toBeInTheDocument();
-    });
-
-    it('renders tool cards and cta copy', () => {
-      renderPage();
-      expect(screen.getByText('Japanese Date Practice Tool')).toBeInTheDocument();
-      expect(screen.getByText('Japanese Time Practice Tool')).toBeInTheDocument();
-      expect(screen.getByText(/ConvoLab App: Private Beta/)).toBeInTheDocument();
-      expect(screen.getByText('Start With Free Japanese Tools')).toBeInTheDocument();
-    });
+  it('sends the selected platforms and optional message and confirms success', async () => {
+    const request = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', request);
+    renderPage();
+    completeRequest();
+    await waitFor(() => expect(screen.getByRole('status')).toHaveFocus());
+    expect(screen.getByRole('status')).toHaveTextContent('We’ll email you about access');
+    expect(request).toHaveBeenCalledWith(
+      '/api/convolab/browser/auth/beta-requests',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({
+          email: 'learner@example.com',
+          devices: ['Web', 'Android'],
+          message: 'A paragraph a day.',
+        }),
+      })
+    );
   });
 
-  describe('hero actions', () => {
-    it('navigates to date tool', () => {
-      renderPage();
-      fireEvent.click(screen.getByTestId('landing-hero-button-open-date-tool'));
-      expect(mockNavigate).toHaveBeenCalledWith('/tools/japanese-date');
-    });
-
-    it('navigates to time tool', () => {
-      renderPage();
-      fireEvent.click(screen.getByTestId('landing-hero-button-open-time-tool'));
-      expect(mockNavigate).toHaveBeenCalledWith('/tools/japanese-time');
-    });
+  it('requires a platform before sending', () => {
+    const request = vi.fn();
+    vi.stubGlobal('fetch', request);
+    renderPage();
+    fireEvent.submit(screen.getByRole('form', { name: 'Request beta access' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Choose at least one platform.');
+    expect(request).not.toHaveBeenCalled();
   });
 
-  describe('cta section', () => {
-    it('navigates to tools directory from final cta', () => {
-      renderPage();
-      fireEvent.click(screen.getByTestId('landing-cta-button-open-tools'));
-      expect(mockNavigate).toHaveBeenCalledWith('/tools');
-    });
+  it('retains the form after a failed delivery and supports retry', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', request);
+    renderPage();
+    completeRequest();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We couldn’t send the request. Please try again.'
+    );
+    expect(screen.getByLabelText('Email')).toHaveValue('learner@example.com');
+    fireEvent.submit(screen.getByRole('form', { name: 'Request beta access' }));
+    expect(await screen.findByRole('status')).toBeInTheDocument();
+  });
+
+  it('shows rate limits without claiming the email was sent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429 }));
+    renderPage();
+    completeRequest();
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Too many requests'));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

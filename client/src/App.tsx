@@ -24,6 +24,7 @@ import useSeoMeta from './hooks/useSeoMeta';
 import './i18n';
 
 // Lazy load all page components for code splitting
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
@@ -83,6 +84,12 @@ interface RouteSeoConfig {
 }
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
+  '/': {
+    title: 'Journal — Japanese writing practice | ConvoLab',
+    description:
+      'Practice Japanese with clear corrections, furigana adapted to your level, and audio for shadowing. Join the Journal beta on web, iOS, and Android.',
+    canonicalPath: '/',
+  },
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
@@ -198,7 +205,7 @@ const GoogleAnalyticsTracker = () => {
 
 const renderPublicRoutes = () => (
   <>
-    <Route path="/" element={<Navigate to="/app/journal" replace />} />
+    <Route path="/" element={<LandingPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/tools" element={<ToolsPublicLayout />}>
       <Route index element={<ToolsPage />} />
