@@ -53,7 +53,7 @@
 }
 
 .study-washi-sheet .study-card-heading rt {
-  color: #696c61;
+  color: #5c6055;
 }
 
 .study-washi-sheet .study-card-answer {
@@ -82,7 +82,7 @@
 }
 
 .study-washi-sheet [data-testid='study-answer-notes'] p {
-  color: #696c61;
+  color: #5c6055;
 }
 
 .study-washi-sheet [data-testid='study-answer-notes'] [aria-hidden='true'],
@@ -101,7 +101,7 @@
   padding: 0;
   border: 0;
   border-radius: 9px;
-  background: #78a46a;
+  background: #6f9961;
   color: #fbf5e0;
   box-shadow: none;
 }
@@ -140,15 +140,15 @@
   background: #eae2cf;
   font-family: 'Crimson Pro', Georgia, serif;
   font-size: 20px;
-  color: #477341;
+  color: #406739;
 }
 
 .study-washi-grade[data-grade='again'] {
-  color: #a35040;
+  color: #954736;
 }
 
 .study-washi-grade[data-grade='hard'] {
-  color: #80602a;
+  color: #755824;
 }
 
 .study-washi-grade[data-grade='good'] {
