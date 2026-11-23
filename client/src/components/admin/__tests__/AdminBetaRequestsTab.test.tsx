@@ -53,10 +53,15 @@ describe('Admin beta requests', () => {
       new Error('Invitation could not be sent. Retry.')
     );
     render(<AdminBetaRequestsTab />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Approve & send invite' }));
+    const approve = await screen.findByRole('button', { name: 'Approve & send invite' });
+    vi.mocked(getBetaRequests).mockResolvedValue({
+      ...page,
+      requests: [{ ...record, approvedAt: '2026-11-23T12:05:00Z', inviteCode: 'WELCOME8' }],
+    });
+    fireEvent.click(approve);
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('could not be sent'));
     expect(screen.queryByText('Invitation sent to learner@example.com.')).not.toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Approve & send invite' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Retry sending invite' })).toBeEnabled();
   });
   it('filters and pages requests and retries read failures', async () => {
     vi.mocked(getBetaRequests)
@@ -73,5 +78,21 @@ describe('Admin beta requests', () => {
     await waitFor(() =>
       expect(getBetaRequests).toHaveBeenLastCalledWith('invited', 1, expect.any(AbortSignal))
     );
+  });
+  it('returns to the last remaining page after approving its final request', async () => {
+    vi.mocked(getBetaRequests)
+      .mockResolvedValueOnce({ ...page, lastPage: 2, total: 26 })
+      .mockResolvedValueOnce({ ...page, currentPage: 2, lastPage: 2, total: 26 })
+      .mockResolvedValueOnce({ ...page, requests: [], currentPage: 2, lastPage: 1, total: 25 })
+      .mockResolvedValue(page);
+    vi.mocked(approveBetaRequest).mockResolvedValue(record);
+    render(<AdminBetaRequestsTab />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
+    await screen.findByText('Page 2 of 2');
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve & send invite' }));
+    await waitFor(() =>
+      expect(getBetaRequests).toHaveBeenLastCalledWith('pending', 1, expect.any(AbortSignal))
+    );
+    expect(await screen.findByText('learner@example.com')).toBeInTheDocument();
   });
 });

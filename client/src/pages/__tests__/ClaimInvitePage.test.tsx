@@ -61,6 +61,7 @@ describe('ClaimInvitePage', () => {
     expect(screen.getByText('Invalid invite code')).toBeInTheDocument();
   });
   it('opens Journal after the invite is accepted', async () => {
+    sessionStorage.setItem('convolab.beta-invite', 'WELCOME1');
     const location = { href: '/claim-invite' };
     vi.stubGlobal('location', location);
     vi.mocked(fetch).mockResolvedValue({ ok: true } as Response);
@@ -68,6 +69,7 @@ describe('ClaimInvitePage', () => {
     fireEvent.change(screen.getByLabelText('Invite Code'), { target: { value: 'WELCOME1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() => expect(location.href).toBe('/app/journal'));
+    expect(sessionStorage.getItem('convolab.beta-invite')).toBeNull();
     vi.unstubAllGlobals();
   });
 });

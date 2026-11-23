@@ -25,7 +25,9 @@ export default function useBetaRequests() {
     setError('');
     getBetaRequests(filter, page, controller.signal)
       .then((result) => {
-        if (!controller.signal.aborted) setData(result);
+        if (controller.signal.aborted) return;
+        setData(result);
+        setPage(Math.min(result.currentPage, result.lastPage));
       })
       .catch((caught: unknown) => {
         if (!controller.signal.aborted) setError(message(caught, 'Could not load requests.'));
