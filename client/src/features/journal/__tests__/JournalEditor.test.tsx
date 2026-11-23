@@ -17,6 +17,7 @@ vi.mock('../JournalEditorForm', () => ({ default: () => null }));
 function show(body: string, status: 'processing' | 'ready') {
   vi.mocked(useJournalEditor).mockReturnValue({
     draft: { body, expectedVersion: 1 },
+    canLoadFeedback: true,
     submitted: 1,
     clarification: { active: false },
     acceptGeneratedEntry: vi.fn(),
@@ -66,4 +67,23 @@ it('shows the tutor 404 for a missing entry without displaying raw errors or fee
     'href',
     '/app/journal'
   );
+});
+
+it('keeps feedback and its cached error out of the recovery editor for local writing', () => {
+  vi.mocked(useJournalEditor).mockReturnValue({
+    draft: { body: '昨日書いた。', expectedVersion: 1 },
+    canLoadFeedback: false,
+    locallySaved: true,
+    error: 'This entry is unavailable online. Your writing is still here.',
+    conflict: true,
+    clarification: { active: false },
+  } as unknown as ReturnType<typeof useJournalEditor>);
+  vi.mocked(useJournalAnalysis).mockReturnValue({
+    error: new Error('Not found'),
+    data: { entry: { body: '昨日書いた。' }, data: { status: 'ready' } },
+  } as unknown as ReturnType<typeof useJournalAnalysis>);
+  render(<JournalEditor ownerId="a" entryId="local-edit" onSaved={vi.fn()} onOpen={vi.fn()} />);
+  expect(useJournalAnalysis).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }));
+  expect(screen.getByRole('button', { name: 'Save my writing as a new entry' })).toBeVisible();
+  expect(screen.queryByText(/Could not load feedback/)).toBeNull();
 });

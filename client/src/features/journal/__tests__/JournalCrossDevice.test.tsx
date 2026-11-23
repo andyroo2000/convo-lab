@@ -202,6 +202,9 @@ it.each([404, 409])(
       expect(await result.current.save()).toBe(false);
     });
     expect(result.current.conflict).toBe(true);
+    expect(result.current.error).toContain(
+      status === 404 ? 'unavailable online' : 'changed online'
+    );
     expect(store.get(draft.id)).toEqual(draft);
     const copy = result.current.copyAsNew();
     expect(copy?.id).not.toBe(draft.id);

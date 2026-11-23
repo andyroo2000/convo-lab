@@ -135,12 +135,13 @@ export default function useJournalEditor({
   }
 
   function reportSaveError(reason: unknown) {
-    const deleted = reason instanceof JsonRequestError && reason.status === 404;
     const recoverable = reason instanceof JsonRequestError && [404, 409].includes(reason.status);
     setConflict(recoverable || outbox?.blocked.get(entryId) === 503);
-    if (deleted) {
+    if (recoverable) {
       setError(
-        'This entry is no longer available online. Your writing is still on this device; save it as a new entry.'
+        reason.status === 404
+          ? 'This entry is unavailable online. Your writing is still here.'
+          : 'This entry changed online. Your writing is still here.'
       );
       return;
     }
@@ -287,8 +288,8 @@ export default function useJournalEditor({
     notFound,
     conflict,
     locallySaved,
+    canLoadFeedback: Boolean(draft?.expectedVersion) && !editedLocally.current && !conflict,
     syncStatus: journalSyncStatus(
-      draft,
       locallySaved,
       Boolean(outbox?.isSyncing(entryId)),
       editedLocally.current

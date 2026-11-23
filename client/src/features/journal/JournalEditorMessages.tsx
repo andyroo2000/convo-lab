@@ -24,7 +24,7 @@ export const EditorMessages = ({
     )}
     {editor.conflict && (
       <div className="space-y-2 text-sm">
-        <p>This entry changed or is no longer available online. Your writing is still here.</p>
+        {!editor.error && <p>You can keep your writing as a new entry.</p>}
         <button
           type="button"
           className="btn-secondary"

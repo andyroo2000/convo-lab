@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Route } from '@playwright/test';
+import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test';
 import type { JournalEntry } from '../client/src/features/journal/types';
 
 type PendingDraft = Pick<JournalEntry, 'title' | 'body' | 'entryDate'> & {
@@ -111,8 +111,13 @@ class SyncServer {
   }
 }
 
-const editor = (page: import('@playwright/test').Page) =>
-  page.getByRole('textbox', { name: 'Journal entry in Japanese' });
+const editor = (page: Page) => page.getByRole('textbox', { name: 'Journal entry in Japanese' });
+
+async function expectSyncedWriting(page: Page, server: SyncServer, body: string) {
+  await expect.poll(() => [...server.entries.values()].map((entry) => entry.body)).toContain(body);
+  await expect(page.getByText('Saved on this device', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Synced', { exact: true })).toHaveCount(0);
+}
 
 test('offline writing survives reload and automatically syncs without Submit', async ({
   page,
@@ -129,7 +134,7 @@ test('offline writing survives reload and automatically syncs without Submit', a
   await expect(editor(page)).toHaveValue('AUTO SYNC TEST - offline create');
   server.online = true;
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
-  await expect(page.getByText('Synced', { exact: true })).toBeVisible();
+  await expectSyncedWriting(page, server, 'AUTO SYNC TEST - offline create');
   expect(server.entries.size).toBe(1);
   await page.screenshot({ path: info.outputPath('automatic-reconnect.png'), fullPage: true });
 });
@@ -147,7 +152,7 @@ test('lost responses preserve one entry and later typing reaches the server', as
   await editor(page).fill('AUTO SYNC TEST - newer typing');
   await page.reload();
   await expect(editor(page)).toHaveValue('AUTO SYNC TEST - newer typing');
-  await expect(page.getByText('Synced', { exact: true })).toBeVisible();
+  await expectSyncedWriting(page, server, 'AUTO SYNC TEST - newer typing');
   expect(server.entries.size).toBe(1);
   expect([...server.entries.values()][0].body).toBe('AUTO SYNC TEST - newer typing');
   expect(server.writes).toBe(2);
@@ -161,7 +166,7 @@ test('remote deletion pauses offline writing and offers a separate copy', async 
   await server.install(context);
   await page.goto('/app/journal');
   await editor(page).fill('AUTO SYNC TEST - initial');
-  await expect(page.getByText('Synced', { exact: true })).toBeVisible();
+  await expectSyncedWriting(page, server, 'AUTO SYNC TEST - initial');
   const id = [...server.entries.keys()][0];
   server.online = false;
   await editor(page).fill('AUTO SYNC TEST - preserve this offline edit');
@@ -171,9 +176,25 @@ test('remote deletion pauses offline writing and offers a separate copy', async 
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await expect(page.getByRole('button', { name: 'Save my writing as a new entry' })).toBeVisible();
   await expect(editor(page)).toHaveValue('AUTO SYNC TEST - preserve this offline edit');
+  const feedbackRequests: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.endsWith('/analysis')) feedbackRequests.push(request.url());
+  });
+  await page.goto('/app/journal');
+  await expect(editor(page)).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Continue draft' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Contents' }).click();
+  await page
+    .getByRole('dialog', { name: 'Contents' })
+    .getByRole('link', { name: /Untitled entry/ })
+    .click();
+  await expect(editor(page)).toHaveValue('AUTO SYNC TEST - preserve this offline edit');
+  await expect(page.getByRole('alert')).toHaveCount(1);
+  await expect(page.getByText(/Could not load feedback/)).toHaveCount(0);
+  expect(feedbackRequests).toEqual([]);
   await page.screenshot({ path: info.outputPath('deleted-entry-recovery.png'), fullPage: true });
   await page.getByRole('button', { name: 'Save my writing as a new entry' }).click();
-  await expect(page.getByText('Synced', { exact: true })).toBeVisible();
+  await expectSyncedWriting(page, server, 'AUTO SYNC TEST - preserve this offline edit');
   expect(server.entries.has(id)).toBe(false);
   expect([...server.entries.values()][0].body).toBe('AUTO SYNC TEST - preserve this offline edit');
 });
@@ -196,7 +217,7 @@ test('an account change in another tab cannot receive the old accounts draft', a
   await expect(editor(page)).toHaveValue('AUTO SYNC TEST - owner one private writing');
   server.owner = '123';
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
-  await expect(page.getByText('Synced', { exact: true })).toBeVisible();
+  await expectSyncedWriting(page, server, 'AUTO SYNC TEST - owner one private writing');
   await expect(page.getByRole('alert')).toHaveCount(0);
   expect(server.entries.size).toBe(1);
 });
@@ -229,7 +250,7 @@ test('Keep and Close leaves a remotely deleted draft open for recovery', async (
   await server.install(context);
   await page.goto('/app/journal');
   await editor(page).fill('AUTO SYNC TEST - rejected close');
-  await expect(page.getByText('Synced', { exact: true })).toBeVisible();
+  await expectSyncedWriting(page, server, 'AUTO SYNC TEST - rejected close');
   const id = [...server.entries.keys()][0];
   server.online = false;
   await editor(page).fill('AUTO SYNC TEST - preserved rejected writing');

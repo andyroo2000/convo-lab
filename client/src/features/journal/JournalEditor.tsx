@@ -16,7 +16,6 @@ interface JournalEditorProps {
   onClose?: () => void;
   nested?: boolean;
   onBusyChange?: (busy: boolean) => void;
-  onWritingChange?: (writing: boolean) => void;
   initialDraft?: JournalDraft;
   initial?: { entry: JournalEntry; analysis: JournalAnalysis | null };
   pendingHeader?: ReactNode;
@@ -61,22 +60,26 @@ function useEditorFeedback({
     initialEntry: initial?.entry,
     initialDraft,
   });
+  const { canLoadFeedback } = editor;
   const analysis = useJournalAnalysis({
     ownerId,
     entryId,
     submitted: editor.submitted,
     submission: editor.submission,
     initial: initial ? { data: initial.analysis, entry: initial.entry } : undefined,
-    enabled: Boolean(editor.draft?.expectedVersion),
+    enabled: canLoadFeedback,
     onEntry: editor.acceptGeneratedEntry,
   });
-  const current = currentFeedback(editor, analysis);
+  const current = canLoadFeedback ? currentFeedback(editor, analysis) : null;
   const processing = isProcessing(current);
   const waiting = editor.clarification.active || editor.requestingFeedback || processing;
   const retryFeedback = () => {
     analysis.refetch().catch(() => undefined);
   };
-  return { editor, analysis, current, processing, waiting, retryFeedback };
+  const feedbackStatus = canLoadFeedback && (
+    <FeedbackStatus analysis={analysis} current={current} retry={retryFeedback} />
+  );
+  return { editor, current, processing, waiting, feedbackStatus };
 }
 
 function useEditorBusy(
@@ -91,13 +94,6 @@ function useEditorBusy(
   }, [busy, notify]);
 }
 
-function useEditorWriting(editor: Editor, notify: JournalEditorProps['onWritingChange']) {
-  const body = editor.draft?.body;
-  useEffect(() => {
-    notify?.(Boolean(body?.trim()));
-  }, [body, notify]);
-}
-
 const JournalEditor = ({
   ownerId,
   entryId,
@@ -106,13 +102,12 @@ const JournalEditor = ({
   onClose,
   renderFeedback,
   onBusyChange,
-  onWritingChange,
   nested = false,
   initial,
   pendingHeader,
   initialDraft,
 }: JournalEditorProps) => {
-  const { editor, analysis, current, processing, waiting, retryFeedback } = useEditorFeedback({
+  const { editor, current, processing, waiting, feedbackStatus } = useEditorFeedback({
     ownerId,
     entryId,
     onSaved,
@@ -122,7 +117,6 @@ const JournalEditor = ({
   });
   const reviewing = current?.status === 'ready';
   useEditorBusy(editor, processing, onBusyChange);
-  useEditorWriting(editor, onWritingChange);
 
   if (isMissingEntry(editor))
     return (
@@ -139,7 +133,7 @@ const JournalEditor = ({
           workflow={editor.clarification}
           waitingForFeedback
         />
-        <FeedbackStatus analysis={analysis} current={current} retry={retryFeedback} />
+        {feedbackStatus}
       </article>
     );
 
@@ -158,7 +152,7 @@ const JournalEditor = ({
         </>
       )}
 
-      <FeedbackStatus analysis={analysis} current={current} retry={retryFeedback} />
+      {feedbackStatus}
       {reviewing &&
         current &&
         renderFeedback?.(current, nested ? null : <JournalEntryHeading draft={editor.draft} />)}

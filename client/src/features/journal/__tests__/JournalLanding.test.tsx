@@ -5,15 +5,7 @@ import JournalLanding from '../JournalLanding';
 import { newJournalDraft } from '../journalDrafts';
 
 vi.mock('../JournalEntryContent', () => ({
-  default: ({ onWritingChange }: { onWritingChange: (writing: boolean) => void }) => (
-    <textarea
-      aria-label="Notebook"
-      onChange={(event) => onWritingChange(Boolean(event.target.value))}
-    />
-  ),
-}));
-vi.mock('../JournalResume', () => ({
-  default: () => <button type="button">Continue draft</button>,
+  default: () => <textarea aria-label="Notebook" />,
 }));
 
 function props(blank = false): ComponentProps<typeof JournalLanding> {
@@ -51,7 +43,7 @@ it('keeps a deliberately closed draft closed and allows new writing without a fo
   const input = props(true);
   render(<JournalLanding {...input} />);
   expect(input.onSelectToday).not.toHaveBeenCalled();
-  expect(screen.getByRole('button', { name: 'Continue draft' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Continue draft' })).toBeNull();
   const notebook = screen.getByRole('textbox');
   notebook.focus();
   fireEvent.input(notebook, { target: { value: '今日' } });
@@ -80,4 +72,33 @@ it('waits for the initial archive without replacing writing after a late refresh
   rerender(<JournalLanding {...input} />);
   expect(input.onSelectToday).not.toHaveBeenCalled();
   expect(screen.getByRole('textbox')).toBe(notebook);
+});
+
+it.each([null, 'older-entries'])(
+  'keeps an unconfirmed edit in Contents when the next cursor is %s',
+  (nextCursor) => {
+    const input = props();
+    const query = {
+      ...input.archive.query,
+      isSuccess: true,
+      hasNextPage: Boolean(nextCursor),
+      data: { pages: [{ data: [], nextCursor }], pageParams: [undefined] },
+    } as typeof input.archive.query;
+    render(<JournalLanding {...input} archive={{ ...input.archive, query }} />);
+    expect(screen.getByRole('textbox')).toBeVisible();
+    expect(input.onSelectToday).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Continue draft' })).toBeNull();
+  }
+);
+
+it('resumes local writing when the online list is paused', () => {
+  const input = props();
+  const query = {
+    ...input.archive.query,
+    isSuccess: true,
+    fetchStatus: 'paused',
+    data: { pages: [{ data: [], nextCursor: null }], pageParams: [undefined] },
+  } as typeof input.archive.query;
+  render(<JournalLanding {...input} archive={{ ...input.archive, query }} />);
+  expect(input.onSelectToday).toHaveBeenCalledWith(input.archive.entries[0].id);
 });
