@@ -127,8 +127,8 @@ describe('StudyPage audio and motion', () => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
     });
     expect(screen.queryByText('company')).not.toBeInTheDocument();
-    expect(screen.getByText('Click or push space to reveal')).toBeInTheDocument();
-    expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
+    expect(screen.getByText('Use Reveal answer or press Space.')).toBeInTheDocument();
+    expect(screen.getByText('Use Reveal answer.')).toBeInTheDocument();
   });
 
   it('uses Space to reveal audio-led cards from the front side', async () => {
@@ -144,8 +144,8 @@ describe('StudyPage audio and motion', () => {
     await waitFor(() => {
       expect(screen.getByText('company')).toBeInTheDocument();
     });
-    expect(screen.queryByText('Click or push space to reveal')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tap to reveal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Use Reveal answer or press Space.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Use Reveal answer.')).not.toBeInTheDocument();
   });
 
   it('autoplays existing answer audio immediately when revealing a card', async () => {

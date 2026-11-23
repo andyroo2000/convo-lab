@@ -297,6 +297,7 @@ describe('StudyPage editing and session actions', () => {
     renderStudyPage();
     await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'More card options' }));
     await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
 
     expect(
@@ -307,7 +308,8 @@ describe('StudyPage editing and session actions', () => {
 
     fireEvent.keyDown(window, { key: 'z', metaKey: true });
 
-    expect(await screen.findByRole('button', { name: 'Bury for session' })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'More card options' }));
+    expect(screen.getByRole('button', { name: 'Bury for session' })).toBeInTheDocument();
   });
 
   it('suspends a revealed card and removes it from the active session', async () => {
@@ -326,6 +328,7 @@ describe('StudyPage editing and session actions', () => {
     renderStudyPage();
     await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'More card options' }));
     await userEvent.click(screen.getByRole('button', { name: 'Suspend' }));
 
     await waitFor(() => {
@@ -360,6 +363,7 @@ describe('StudyPage editing and session actions', () => {
     renderStudyPage();
     await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'More card options' }));
     await userEvent.click(screen.getByRole('button', { name: 'Set due' }));
     await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }));
 
