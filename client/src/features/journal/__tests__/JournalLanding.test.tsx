@@ -74,16 +74,31 @@ it('waits for the initial archive without replacing writing after a late refresh
   expect(screen.getByRole('textbox')).toBe(notebook);
 });
 
-it('opens a blank notebook when an old device edit points to a missing entry', () => {
+it.each([null, 'older-entries'])(
+  'keeps an unconfirmed edit in Contents when the next cursor is %s',
+  (nextCursor) => {
+    const input = props();
+    const query = {
+      ...input.archive.query,
+      isSuccess: true,
+      hasNextPage: Boolean(nextCursor),
+      data: { pages: [{ data: [], nextCursor }], pageParams: [undefined] },
+    } as typeof input.archive.query;
+    render(<JournalLanding {...input} archive={{ ...input.archive, query }} />);
+    expect(screen.getByRole('textbox')).toBeVisible();
+    expect(input.onSelectToday).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Continue draft' })).toBeNull();
+  }
+);
+
+it('resumes local writing when the online list is paused', () => {
   const input = props();
   const query = {
     ...input.archive.query,
     isSuccess: true,
-    hasNextPage: false,
+    fetchStatus: 'paused',
     data: { pages: [{ data: [], nextCursor: null }], pageParams: [undefined] },
   } as typeof input.archive.query;
   render(<JournalLanding {...input} archive={{ ...input.archive, query }} />);
-  expect(screen.getByRole('textbox')).toBeVisible();
-  expect(input.onSelectToday).not.toHaveBeenCalled();
-  expect(screen.queryByRole('button', { name: 'Continue draft' })).toBeNull();
+  expect(input.onSelectToday).toHaveBeenCalledWith(input.archive.entries[0].id);
 });

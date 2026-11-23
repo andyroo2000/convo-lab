@@ -135,11 +135,14 @@ export default function useJournalEditor({
   }
 
   function reportSaveError(reason: unknown) {
-    const deleted = reason instanceof JsonRequestError && reason.status === 404;
     const recoverable = reason instanceof JsonRequestError && [404, 409].includes(reason.status);
     setConflict(recoverable || outbox?.blocked.get(entryId) === 503);
-    if (deleted) {
-      setError('This entry is unavailable online. Your writing is still here.');
+    if (recoverable) {
+      setError(
+        reason.status === 404
+          ? 'This entry is unavailable online. Your writing is still here.'
+          : 'This entry changed online. Your writing is still here.'
+      );
       return;
     }
     setError(
