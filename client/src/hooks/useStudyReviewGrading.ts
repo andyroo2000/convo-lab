@@ -42,6 +42,7 @@ interface StudyReviewGradingOptions extends SubmissionDependencies {
   masteryAnimation: StudyMasteryAnimation | null;
   practiceMode: boolean;
   reviewPending: boolean;
+  setRetriedBatchIds: Dispatch<SetStateAction<Set<string>>>;
   setPracticeCards: Dispatch<SetStateAction<StudyCardSummary[] | null>>;
   undoPending: boolean;
 }
@@ -53,6 +54,7 @@ const gradePracticeCard = (
 ) => {
   options.stopAllAudio();
   options.resetStudyAudioAutoplayForCard(card.id);
+  if (grade === 'again') options.setRetriedBatchIds((ids) => new Set(ids).add(card.id));
   options.setPracticeCards((current) => getPracticeCardsAfterGrade(current, grade));
   options.setRevealed(false);
   options.setSessionError(null);
@@ -63,6 +65,7 @@ const gradePracticeCard = (
 const repeatLessonCard = (options: StudyReviewGradingOptions, card: StudyCardSummary) => {
   options.stopAllAudio();
   options.resetStudyAudioAutoplayForCard(card.id);
+  options.setRetriedBatchIds((ids) => new Set(ids).add(card.id));
   const nextCards = getLessonCardsAfterAgain(options.cards, options.currentIndex, card);
   options.setSession((currentSession) =>
     currentSession ? { ...currentSession, cards: nextCards } : currentSession

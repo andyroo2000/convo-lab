@@ -3,7 +3,7 @@ import type { StudySessionGrade } from '../components/study/studySessionWrapUpMo
 
 function gradeConfirmation(isCurrent: () => boolean) {
   const delay = new Promise<void>((resolve) => {
-    window.setTimeout(resolve, 420);
+    window.setTimeout(resolve, 650);
   });
   return {
     async isCurrentAfterDelay() {

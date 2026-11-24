@@ -17,7 +17,7 @@ const StudyGradeButtons = ({
 
   return (
     <div className="study-washi-grades">
-      {(['again', 'hard', 'good', 'easy'] as const).map((grade, index) => (
+      {(['again', 'hard', 'good', 'easy'] as const).map((grade) => (
         <button
           key={grade}
           type="button"
@@ -30,12 +30,11 @@ const StudyGradeButtons = ({
         >
           <span className="study-grade-pill">
             {t(`gradeButtons.${grade}`)}
-            <span
-              aria-hidden="true"
-              className={selectedGrade === grade ? 'study-grade-check' : 'study-grade-key'}
-            >
-              {selectedGrade === grade ? '✓' : index + 1}
-            </span>
+            {selectedGrade === grade && (
+              <span aria-hidden="true" className="study-grade-check">
+                ✓
+              </span>
+            )}
           </span>
         </button>
       ))}

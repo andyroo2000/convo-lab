@@ -60,12 +60,15 @@ const useStudyReviewProgressState = () => {
   const [sessionReviewRecords, setSessionReviewRecords] = useState<StudySessionReviewRecord[]>([]);
   const [sessionWasEnded, setSessionWasEnded] = useState(false);
   const [practiceCards, setPracticeCards] = useState<StudyCardSummary[] | null>(null);
+  const [retriedBatchIds, setRetriedBatchIds] = useState<Set<string>>(() => new Set());
   const [practiceInitialCount, setPracticeInitialCount] = useState(0);
 
   return {
     answeredCardIds,
     practiceCards,
     practiceInitialCount,
+    retriedBatchIds,
+    setRetriedBatchIds,
     reviewRetryAvailable,
     reviewSubmitPending,
     sessionReviewRecords,

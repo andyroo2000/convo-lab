@@ -68,6 +68,7 @@ const useStudyReviewSessionPresentation = (base: StudyReviewSessionBase) => {
     focusMode: base.state.focusMode,
     practiceCards: base.state.practiceCards,
     practiceInitialCount: base.state.practiceInitialCount,
+    retriedBatchIds: base.state.retriedBatchIds,
     regenerateAudioError: base.regenerateAudioMutation.error,
     session: base.state.session,
     sessionCardCount: base.sessionCardCountRef.current,

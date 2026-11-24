@@ -224,13 +224,7 @@ const StudyFocusHeader = ({
           {reviewSession.currentCard &&
             isQuizSurfaceVisible(reviewSession) &&
             !reviewSession.editing &&
-            !reviewSession.masteryAnimation && (
-              <StudySessionReplay
-                card={reviewSession.currentCard}
-                revealed={reviewSession.revealed}
-                reveal={reviewSession.revealCurrentCard}
-              />
-            )}
+            !reviewSession.masteryAnimation && <StudySessionReplay />}
         </div>
       }
       exitDisabled={Boolean(reviewSession.selectedGrade)}
