@@ -8,6 +8,7 @@ import AdminInviteCodesTab from './AdminInviteCodesTab';
 import AdminSettingsTab from './AdminSettingsTab';
 import AdminUsersTab from './AdminUsersTab';
 import './admin.css';
+import './adminJournal.css';
 
 const ADMIN_TABS = [
   { id: 'users', label: 'Users', Icon: Users },
@@ -35,9 +36,9 @@ const AdminPageContent = ({
   toastType,
   toastVisible,
 }: Props) => (
-  <div className="retro-admin-v3-wrap max-w-[80rem] mx-auto">
+  <div className="journal-admin retro-admin-v3-wrap max-w-[80rem] mx-auto">
     <header className="admin-heading">
-      <h1>Admin Dashboard</h1>
+      <h1>Admin</h1>
       <p>Users, invitations, and Journal activity</p>
     </header>
     <nav className="retro-admin-v3-tabs" aria-label="Admin sections">
@@ -53,16 +54,18 @@ const AdminPageContent = ({
         </Link>
       ))}
     </nav>
-    <AdminUsersTab
-      isActive={activeTab === 'users'}
-      currentAdminUserId={currentAdminUserId}
-      onUserFeedChange={ignoreUserFeed}
-      showToast={showToast}
-    />
-    {activeTab === 'beta-requests' && <AdminBetaRequestsTab />}
-    {activeTab === 'invite-codes' && <AdminInviteCodesTab showToast={showToast} />}
-    {activeTab === 'analytics' && <AdminAnalyticsTab />}
-    {activeTab === 'settings' && <AdminSettingsTab showToast={showToast} />}
+    <div className="admin-sheet">
+      <AdminUsersTab
+        isActive={activeTab === 'users'}
+        currentAdminUserId={currentAdminUserId}
+        onUserFeedChange={ignoreUserFeed}
+        showToast={showToast}
+      />
+      {activeTab === 'beta-requests' && <AdminBetaRequestsTab />}
+      {activeTab === 'invite-codes' && <AdminInviteCodesTab showToast={showToast} />}
+      {activeTab === 'analytics' && <AdminAnalyticsTab />}
+      {activeTab === 'settings' && <AdminSettingsTab showToast={showToast} />}
+    </div>
     <Toast
       message={toastMessage}
       type={toastType}

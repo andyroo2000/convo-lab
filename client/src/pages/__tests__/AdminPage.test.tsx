@@ -1,4 +1,3 @@
-/* eslint-disable testing-library/no-node-access */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 
@@ -26,7 +25,7 @@ describe('AdminPage access', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('Admin Dashboard')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Admin', level: 1 })).toBeInTheDocument();
       });
     });
   });
@@ -43,7 +42,7 @@ describe('AdminPage access', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('Users')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Users' })).toBeInTheDocument();
         expect(screen.getByText('Invite Codes')).toBeInTheDocument();
         expect(screen.getByText('Analytics')).toBeInTheDocument();
         expect(screen.queryByText('Avatars')).not.toBeInTheDocument();
@@ -55,7 +54,7 @@ describe('AdminPage access', () => {
       renderPage('users');
 
       await waitFor(() => {
-        const usersTab = screen.getByText('Users').closest('a');
+        const usersTab = screen.getByRole('link', { name: 'Users' });
         expect(usersTab).toHaveClass('is-active');
       });
     });

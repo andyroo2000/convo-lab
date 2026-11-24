@@ -53,7 +53,8 @@ const UserRow = ({ currentAdminUserId, onDelete, onSelect, user }: UserRowProps)
           <button
             type="button"
             onClick={() => onDelete(user)}
-            className="text-red-600 hover:text-red-800 transition-colors"
+            aria-label={`Delete ${getUserName(user)}`}
+            className="admin-danger-button text-red-600 hover:text-red-800 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -108,13 +109,14 @@ const UserDetails = ({ onClose, user }: UserDetailsProps) => {
       onDismiss={onClose}
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="admin-user-dialog bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-navy">User Details</h2>
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close user details"
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,11 +186,15 @@ const AdminUsersTabView = ({
     <>
       {error && <div className="retro-admin-v3-alert is-error mb-6">{error}</div>}
       <div className="retro-admin-v3-pane">
+        <div className="retro-admin-v3-pane-header mb-6">
+          <h2>Users</h2>
+        </div>
         <div className="retro-admin-v3-search-row mb-6">
-          <div className="relative flex-1 min-w-[20rem]">
+          <div className="admin-user-search relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
+              aria-label="Search users by name or email"
               placeholder="Search users by name or email..."
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.target.value)}
