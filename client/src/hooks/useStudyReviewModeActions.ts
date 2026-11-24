@@ -15,12 +15,44 @@ interface UseStudyReviewModeActionsOptions {
 }
 
 const useBeginLessonQuiz = (state: StudyReviewSessionState) => {
-  const { setCurrentIndex, setLessonPhase, setRevealed } = state;
+  const { setCurrentIndex, setLessonPhase, setRetriedBatchIds, setRevealed } = state;
   return useCallback(() => {
     setCurrentIndex(0);
     setRevealed(false);
+    setRetriedBatchIds(new Set());
     setLessonPhase('quiz');
-  }, [setCurrentIndex, setLessonPhase, setRevealed]);
+  }, [setCurrentIndex, setLessonPhase, setRetriedBatchIds, setRevealed]);
+};
+
+const useExitPracticeMode = (
+  state: StudyReviewSessionState,
+  resetStudyAudioAutoplay: () => void,
+  stopAllAudio: () => void
+) => {
+  const {
+    setCurrentIndex,
+    setPracticeCards,
+    setPracticeInitialCount,
+    setRevealed,
+    setSessionError,
+  } = state;
+  return useCallback(() => {
+    stopAllAudio();
+    resetStudyAudioAutoplay();
+    setPracticeCards(null);
+    setPracticeInitialCount(0);
+    setCurrentIndex(0);
+    setRevealed(false);
+    setSessionError(null);
+  }, [
+    resetStudyAudioAutoplay,
+    setCurrentIndex,
+    setPracticeCards,
+    setPracticeInitialCount,
+    setRevealed,
+    setSessionError,
+    stopAllAudio,
+  ]);
 };
 
 const usePracticeModeActions = (
@@ -36,6 +68,7 @@ const usePracticeModeActions = (
     setMasteryAnimation,
     setPracticeCards,
     setPracticeInitialCount,
+    setRetriedBatchIds,
     setRevealed,
     setSessionError,
     setShowSetDueControls,
@@ -47,6 +80,7 @@ const usePracticeModeActions = (
       resetStudyAudioAutoplay();
       resetUndo();
       setMasteryAnimation(null);
+      setRetriedBatchIds(new Set());
       setPracticeCards([...nextCards]);
       setPracticeInitialCount(nextCards.length);
       setCurrentIndex(0);
@@ -65,29 +99,14 @@ const usePracticeModeActions = (
       setMasteryAnimation,
       setPracticeCards,
       setPracticeInitialCount,
+      setRetriedBatchIds,
       setRevealed,
       setSessionError,
       setShowSetDueControls,
       stopAllAudio,
     ]
   );
-  const exitPracticeMode = useCallback(() => {
-    stopAllAudio();
-    resetStudyAudioAutoplay();
-    setPracticeCards(null);
-    setPracticeInitialCount(0);
-    setCurrentIndex(0);
-    setRevealed(false);
-    setSessionError(null);
-  }, [
-    resetStudyAudioAutoplay,
-    setCurrentIndex,
-    setPracticeCards,
-    setPracticeInitialCount,
-    setRevealed,
-    setSessionError,
-    stopAllAudio,
-  ]);
+  const exitPracticeMode = useExitPracticeMode(state, resetStudyAudioAutoplay, stopAllAudio);
   return { exitPracticeMode, startToughestPractice };
 };
 

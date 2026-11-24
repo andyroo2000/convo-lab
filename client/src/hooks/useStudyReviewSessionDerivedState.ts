@@ -3,7 +3,7 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import type { StudySessionResponse } from './useStudy';
 import { hasPersistedFailure } from './studyReviewSessionUtils';
-import { batchQueueCounts } from './studyBatchQueue';
+import batchQueueCounts from './studyBatchQueue';
 import {
   buildStudySessionWrapUp,
   type StudySessionReviewRecord,
@@ -15,6 +15,7 @@ interface UseStudyReviewSessionDerivedStateOptions {
   focusMode: boolean;
   practiceCards: StudyCardSummary[] | null;
   practiceInitialCount: number;
+  retriedBatchIds: ReadonlySet<string>;
   regenerateAudioError: unknown;
   session: StudySessionResponse | null;
   sessionCardCount: number;
@@ -57,6 +58,7 @@ export const deriveStudySessionCounts = (
   });
 
   counts.failedDue = Math.max(counts.failedDue, loadedFailedCount);
+  // The server counts ordinary due cards across pages and excludes retries.
   counts.reviewRemaining = Math.max(counts.reviewRemaining, overviewDueCount);
   return counts;
 };
@@ -198,8 +200,9 @@ const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerived
     options.sessionWasEnded
   );
   const sessionCounts = useMemo(() => {
-    if (options.practiceCards) return batchQueueCounts(options.practiceCards);
-    if (options.sessionKind === 'lessons') return batchQueueCounts(cards);
+    if (options.practiceCards)
+      return batchQueueCounts(options.practiceCards, options.retriedBatchIds);
+    if (options.sessionKind === 'lessons') return batchQueueCounts(cards, options.retriedBatchIds);
     return deriveStudySessionCounts(
       cards,
       options.answeredCardIds,
@@ -210,6 +213,7 @@ const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerived
     cards,
     options.answeredCardIds,
     options.practiceCards,
+    options.retriedBatchIds,
     options.sessionKind,
     options.session?.overview,
   ]);

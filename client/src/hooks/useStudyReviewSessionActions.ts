@@ -67,6 +67,7 @@ const useReviewGrading = (
     setLessonPhase: core.state.setLessonPhase,
     setMasteryAnimation: core.state.setMasteryAnimation,
     setPracticeCards: core.state.setPracticeCards,
+    setRetriedBatchIds: core.state.setRetriedBatchIds,
     setRevealed: core.state.setRevealed,
     setReviewConflictRecovered: core.state.setReviewConflictRecovered,
     setReviewRetryAvailable: core.state.setReviewRetryAvailable,
