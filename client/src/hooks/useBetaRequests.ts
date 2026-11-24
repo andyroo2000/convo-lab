@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   approveBetaRequest,
+  createBetaInvitation,
   getBetaRequests,
+  type BetaRequest,
   type BetaRequestFilter,
   type BetaRequestPage,
 } from '../lib/betaRequestsApi';
@@ -37,16 +39,31 @@ export default function useBetaRequests() {
       });
     return () => controller.abort();
   }, [filter, page, revision]);
-  const approve = async (id: string) => {
-    if (pending.current) return;
+  const sendInvitation = async (
+    id: string,
+    operation: () => Promise<BetaRequest>,
+    directInvite = false
+  ) => {
+    if (pending.current) return false;
     pending.current = true;
     setSending(id);
     setNotice('');
     try {
-      const sent = await approveBetaRequest(id);
+      const sent = await operation();
       setNotice(`Invitation sent to ${sent.email}.`);
+      if (directInvite) {
+        setNotice(`Invitation for ${sent.email} is in Invited.`);
+        setFilter('invited');
+        setPage(1);
+      }
+      return true;
     } catch (caught) {
       setNotice(message(caught, 'Could not send the invitation. Please retry.'));
+      if (directInvite) {
+        setFilter('pending');
+        setPage(1);
+      }
+      return false;
     } finally {
       pending.current = false;
       setSending(null);
@@ -67,7 +84,9 @@ export default function useBetaRequests() {
     error,
     notice,
     sending,
-    approve,
+    approve: (id: string) => sendInvitation(id, () => approveBetaRequest(id)),
+    invite: (email: string) =>
+      sendInvitation('direct-invite', () => createBetaInvitation(email), true),
     refresh: () => setRevision((value) => value + 1),
   };
 }

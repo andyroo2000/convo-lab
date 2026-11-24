@@ -23,3 +23,5 @@ export const getBetaRequests = (status: BetaRequestFilter, page: number, signal:
   requestJson<BetaRequestPage>(`${endpoint}?status=${status}&page=${page}`, { signal });
 export const approveBetaRequest = (id: string) =>
   requestJson<BetaRequest>(`${endpoint}/${encodeURIComponent(id)}/approve`, { method: 'POST' });
+export const createBetaInvitation = (email: string) =>
+  requestJson<BetaRequest>(endpoint, { method: 'POST', body: JSON.stringify({ email }) });

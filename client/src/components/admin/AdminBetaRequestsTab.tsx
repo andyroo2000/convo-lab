@@ -1,6 +1,7 @@
 import useBetaRequests from '../../hooks/useBetaRequests';
 import type { BetaRequestFilter } from '../../lib/betaRequestsApi';
 import BetaRequestCard from './BetaRequestCard';
+import InviteBetaTesterForm from './InviteBetaTesterForm';
 import './betaRequests.css';
 
 type RequestState = ReturnType<typeof useBetaRequests>;
@@ -69,6 +70,7 @@ const AdminBetaRequestsTab = () => {
           Refresh
         </button>
       </div>
+      <InviteBetaTesterForm busy={state.sending !== null} onInvite={state.invite} />
       <div className="beta-request-toolbar">
         <label htmlFor="beta-request-filter">
           Show
