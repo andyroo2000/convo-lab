@@ -164,7 +164,7 @@ describe('useStudyReviewSession', () => {
       label: 'server mastery label',
       fromLevel: 'guru',
       toLevel: 'guru',
-      passed: true,
+      grade: 'good',
     });
 
     await act(async () => {
@@ -223,7 +223,7 @@ describe('useStudyReviewSession', () => {
       label: '会社',
       fromLevel: 'master',
       toLevel: 'apprentice',
-      passed: false,
+      grade: 'again',
     });
   });
 

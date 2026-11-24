@@ -182,11 +182,13 @@ const StudyReviewActionButtons = ({
 };
 
 const hideFocusHeader = (reviewSession: StudyReviewSession) => {
+  if (reviewSession.masteryAnimation) return false;
   if (reviewSession.reviewSessionComplete) return true;
   return reviewSession.practiceComplete;
 };
 
 const showReviewActions = (reviewSession: StudyReviewSession) => {
+  if (reviewSession.masteryAnimation) return true;
   if (!reviewSession.revealed) return false;
   if (reviewSession.editing) return false;
   return !reviewSession.practiceMode;
@@ -243,12 +245,11 @@ const StudyMasteryFeedback = ({ reviewSession }: { reviewSession: StudyReviewSes
       key={masteryAnimation.id}
       fromLevel={masteryAnimation.fromLevel}
       toLevel={masteryAnimation.toLevel}
-      passed={masteryAnimation.passed}
       announcement={t(
         `masteryAnimation.${masteryReviewAnnouncementKind(
           masteryAnimation.fromLevel,
           masteryAnimation.toLevel,
-          masteryAnimation.passed
+          masteryAnimation.grade !== 'again'
         )}`,
         { item: masteryAnimation.label, level: masteryAnimation.toLevel }
       )}
@@ -347,7 +348,8 @@ const StudyFocusedCard = ({
       editing={reviewSession.editing}
       masteryAnimationActive={Boolean(reviewSession.masteryAnimation)}
       onDelete={onDelete}
-      selectedGrade={reviewSession.selectedGrade}
+      masteryFeedback={<StudyMasteryFeedback reviewSession={reviewSession} />}
+      selectedGrade={reviewSession.masteryAnimation?.grade ?? reviewSession.selectedGrade}
       onGrade={reviewSession.handleGrade}
       onRegenerateAudio={reviewSession.regenerateCurrentCardAudio}
       onRegenerateImage={reviewSession.regenerateCurrentCardImage}
@@ -369,7 +371,7 @@ const StudyFocusedCard = ({
           : reviewSession.updateCardErrorMessage
       }
       updatePending={reviewSession.updateCardMutation.isPending}
-      visible={showQuizSurface && !reviewSession.reviewSessionComplete}
+      visible={showQuizSurface && !hideFocusHeader(reviewSession)}
     />
   );
 };
@@ -411,6 +413,7 @@ const StudyDeleteConfirm = ({
 };
 
 const isGradeTrayVisible = (reviewSession: StudyReviewSession) => {
+  if (reviewSession.masteryAnimation) return true;
   if (!reviewSession.revealed) return false;
   if (reviewSession.editing) return false;
   return true;
@@ -471,14 +474,6 @@ const StudyFocusExperience = ({
                   runBackgroundTask={runBackgroundTask}
                 />
                 <StudyPracticeBanner reviewSession={reviewSession} />
-                {showQuizSurface && reviewSession.masteryAnimation ? (
-                  <div
-                    className="study-mastery-overlay mastery-feedback-lane"
-                    data-testid="mastery-feedback-lane"
-                  >
-                    <StudyMasteryFeedback reviewSession={reviewSession} />
-                  </div>
-                ) : null}
                 <StudyLessonContent
                   lessonPreview={lessonPreview}
                   reviewSession={reviewSession}

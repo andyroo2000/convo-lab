@@ -16,6 +16,7 @@ interface StudyReviewCardSurfaceProps {
   cardAuthoringCapabilities?: StudyClientCapabilities['cardAuthoring'];
   editing: boolean;
   masteryAnimationActive: boolean;
+  masteryFeedback: React.ReactNode;
   onDelete: () => void;
   onRegenerateImage: StudyReviewSession['regenerateCurrentCardImage'];
   selectedGrade: StudySessionGrade | null;
@@ -165,6 +166,7 @@ const isGradeDisabled = ({
 };
 
 const StudyGradeTray = ({
+  masteryFeedback,
   masteryAnimationActive,
   onGrade,
   selectedGrade,
@@ -176,6 +178,7 @@ const StudyGradeTray = ({
 }: Pick<
   StudyReviewCardSurfaceProps,
   | 'masteryAnimationActive'
+  | 'masteryFeedback'
   | 'onGrade'
   | 'selectedGrade'
   | 'reviewBusy'
@@ -191,6 +194,11 @@ const StudyGradeTray = ({
       data-testid="study-grade-tray"
       className="study-washi-grade-tray fixed inset-x-0 bottom-0 z-[70]"
     >
+      {masteryAnimationActive && (
+        <div className="study-mastery-label-position" data-testid="mastery-feedback-lane">
+          {masteryFeedback}
+        </div>
+      )}
       <div data-testid="study-grade-tray-inner" className="mx-auto max-w-3xl">
         <StudyGradeButtons
           selectedGrade={selectedGrade}

@@ -14,7 +14,7 @@ export interface StudyMasteryAnimation {
   label: string;
   fromLevel: StudyMasteryLevel;
   toLevel: StudyMasteryLevel;
-  passed: boolean;
+  grade: StudySessionGrade;
 }
 
 interface ReviewSubmissionBlockers {
@@ -97,7 +97,7 @@ export const createStudyMasteryAnimation = ({
     label: getStudyCardMasteryLabel(reviewedCard, 'This item'),
     fromLevel: normalizedPreviousLevel,
     toLevel: normalizedNextLevel,
-    passed: grade !== 'again',
+    grade,
   };
 };
 
