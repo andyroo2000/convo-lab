@@ -7,6 +7,7 @@ import { getStudyCardMasteryLabel } from '../components/study/studyCardUtils';
 import type { StudySessionGrade } from '../components/study/studySessionWrapUpModel';
 import type { StudyReviewRequest } from './useStudy';
 import { getCardsAfterReview } from './studyReviewSessionUtils';
+import { requeueForRetry } from './studyBatchQueue';
 
 export interface StudyMasteryAnimation {
   id: string;
@@ -48,14 +49,18 @@ export const getPracticeCardsAfterGrade = (
   if (!cards || cards.length === 0) return cards;
 
   const [reviewedCard, ...remaining] = cards;
-  return grade === 'again' ? [...remaining, reviewedCard] : remaining;
+  return grade === 'again' ? [...remaining, requeueForRetry(reviewedCard)] : remaining;
 };
 
 export const getLessonCardsAfterAgain = (
   cards: StudyCardSummary[],
   currentIndex: number,
   currentCard: StudyCardSummary
-) => [...cards.slice(currentIndex + 1), ...cards.slice(0, currentIndex), currentCard];
+) => [
+  ...cards.slice(currentIndex + 1),
+  ...cards.slice(0, currentIndex),
+  requeueForRetry(currentCard),
+];
 
 export const pendingReviewDoesNotMatch = (
   pendingRequest: Pick<StudyReviewRequest, 'cardId' | 'grade'> | null,

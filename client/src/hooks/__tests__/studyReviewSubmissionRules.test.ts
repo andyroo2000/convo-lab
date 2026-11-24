@@ -1,5 +1,6 @@
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 import { describe, expect, it } from 'vitest';
+import { batchQueueCounts } from '../studyBatchQueue';
 
 import { JsonRequestError } from '../../lib/apiClient';
 import StudyReviewIdentityMismatchError from '../../lib/studyReviewIdentityMismatch';
@@ -66,7 +67,9 @@ describe('review queue decisions', () => {
   const third = makeCard('third');
 
   it('rotates an again card to the back of a practice queue', () => {
-    expect(getPracticeCardsAfterGrade([first, second], 'again')).toEqual([second, first]);
+    const cards = getPracticeCardsAfterGrade([first, second], 'again')!;
+    expect(cards.map((card) => card.id)).toEqual([second.id, first.id]);
+    expect(batchQueueCounts(cards)).toMatchObject({ failedDue: 1, reviewRemaining: 1 });
   });
 
   it('removes a passed card from a practice queue', () => {
@@ -74,11 +77,9 @@ describe('review queue decisions', () => {
   });
 
   it('wraps a failed lesson card behind all other cards', () => {
-    expect(getLessonCardsAfterAgain([first, second, third], 1, second)).toEqual([
-      third,
-      first,
-      second,
-    ]);
+    const cards = getLessonCardsAfterAgain([first, second, third], 1, second);
+    expect(cards.map((card) => card.id)).toEqual([third.id, first.id, second.id]);
+    expect(batchQueueCounts(cards)).toMatchObject({ failedDue: 1, reviewRemaining: 2 });
   });
 
   it('drops a committed review when the response has no updated card', () => {

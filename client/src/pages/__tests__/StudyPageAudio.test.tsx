@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { StudyCardSummary, StudyOverview } from '@languageflow/shared/src/types';
 import userEvent from '@testing-library/user-event';
 
@@ -131,37 +131,24 @@ describe('StudyPage audio and motion', () => {
     expect(screen.getByText('Use Reveal answer.')).toBeInTheDocument();
   });
 
-  it('shares one recording and playback animation between the toolbar and the listening prompt', async () => {
+  it('moves replay from the listening prompt to the toolbar on reveal', async () => {
     configureAudioLedSession();
     await startReviewSession();
-    const replay = await screen.findByRole('button', { name: 'Replay' });
-    const prompt = screen.getByRole('button', { name: 'Replay prompt audio' });
+    const prompt = await screen.findByRole('button', { name: 'Replay prompt audio' });
     const audio = findAudioElement('Replay prompt audio')!;
-    const expectBothSpeakers = (playing: boolean) => {
-      [replay, prompt].forEach((button) =>
-        expect(button).toHaveAttribute('data-playing', String(playing))
-      );
-    };
-    expectBothSpeakers(false);
+    expect(screen.queryByRole('button', { name: 'Replay' })).not.toBeInTheDocument();
     fireEvent.playing(audio);
-    expectBothSpeakers(true);
+    expect(prompt).toHaveAttribute('data-playing', 'true');
     fireEvent.seeking(audio);
-    expectBothSpeakers(false);
-    Object.defineProperties(audio, {
-      paused: { configurable: true, value: false },
-      readyState: { value: HTMLMediaElement.HAVE_FUTURE_DATA },
-    });
-    fireEvent.seeked(audio);
-    expectBothSpeakers(true);
-    Object.defineProperty(audio, 'paused', { value: true });
-    fireEvent.seeked(audio);
-    expectBothSpeakers(false);
-    fireEvent.ended(audio);
-    expectBothSpeakers(false);
-    const plays = vi.mocked(HTMLMediaElement.prototype.play);
-    await userEvent.click(replay);
-    expect(plays.mock.contexts.at(-1)).toBe(audio);
-    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeVisible();
+    expect(prompt).toHaveAttribute('data-playing', 'false');
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    expect(prompt).not.toBeInTheDocument();
+    const replay = await screen.findByRole('button', { name: 'Play answer audio' });
+    expect(
+      within(screen.getByTestId('study-review-header')).getByRole('button', {
+        name: 'Play answer audio',
+      })
+    ).toBe(replay);
   });
 
   it('uses Space to reveal audio-led cards from the front side', async () => {

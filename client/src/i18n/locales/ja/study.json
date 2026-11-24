@@ -143,6 +143,7 @@
     "failed": "失敗",
     "queued": "待機中",
     "new": "新規",
+    "queueCounts": "再挑戦 {{failed}}枚、残り {{remaining}}枚",
     "counts": "失敗 {{failed}}、待機中 {{queued}}、新規 {{new}}"
   },
   "gradeButtons": {

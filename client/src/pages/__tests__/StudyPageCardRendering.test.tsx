@@ -250,7 +250,7 @@ describe('StudyPage card rendering', () => {
 
     expect(screen.queryByText('this should stay hidden')).not.toBeInTheDocument();
     expect(screen.getByAltText('Study prompt')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Play prompt audio' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play prompt audio' })).not.toBeInTheDocument();
   });
 
   it('renders image-front cards as image-only prompts', async () => {

@@ -464,8 +464,11 @@ describe('StudyPage overview and lessons', () => {
     expect(screen.getByText('Use Reveal answer or press Space.')).toBeInTheDocument();
     expect(screen.getByText('Use Reveal answer.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'End session' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /hear answer|play prompt audio/i })
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('study-review-metrics')).not.toHaveClass('border-b');
-    expect(screen.getByRole('group', { name: '0 failed, 1 queued, 0 new' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: '0 failed, 4 remaining' })).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
     expect(screen.queryByTestId('mastery-feedback-lane')).not.toBeInTheDocument();

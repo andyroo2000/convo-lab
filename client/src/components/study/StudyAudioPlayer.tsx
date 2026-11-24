@@ -11,7 +11,7 @@ import {
 import { Volume2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { StudyReplayHost } from './studyReplayContext';
+import { StudyReplayHost, StudyReplayMount } from './studyReplayContext';
 
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import { getAudioPreloadMode } from '../../lib/audioCache';
@@ -24,7 +24,7 @@ export interface AudioPlayerHandle {
 }
 
 interface StudyAudioPlayerProps {
-  listeningPrompt?: boolean;
+  promptKind?: 'listening' | 'other';
   filename?: string | null;
   label: string;
   renderMode?: 'default' | 'hidden';
@@ -42,7 +42,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
   (
     {
       filename,
-      listeningPrompt = false,
+      promptKind,
       label,
       renderMode = 'default',
       size = 'default',
@@ -55,6 +55,8 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
   ) => {
     const { t } = useTranslation('study');
     const replayHost = useContext(StudyReplayHost);
+    const inSession = useContext(StudyReplayMount) !== null;
+    const listeningPrompt = promptKind === 'listening';
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const playAttemptRef = useRef(0);
     const [playing, setPlaying] = useState(false);
@@ -193,7 +195,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       play().catch(() => {});
     };
 
-    const showControls = renderMode !== 'hidden';
+    const showControls = renderMode !== 'hidden' && !(inSession && promptKind === 'other');
     const showButton = showControls && (!showTimeline || timelineMode === 'desktop');
     const buttonClasses =
       timelineMode === 'desktop' ? 'flex justify-center md:hidden' : 'flex justify-center';
@@ -211,15 +213,16 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
     return (
       <div className={size === 'compact' ? 'space-y-2' : 'space-y-3'} data-testid={testId}>
         {replayHost &&
+          !promptKind &&
           showButton &&
           createPortal(
             <button
               type="button"
               className="study-toolbar-replay"
               onClick={handleClick}
-              aria-label={listeningPrompt ? t('reviewHeader.replay') : label}
+              aria-label={label}
               data-playing={playing}
-              data-testid={listeningPrompt ? undefined : testId && `${testId}-button`}
+              data-testid={testId && `${testId}-button`}
             >
               <span className="study-replay-tile">
                 <StudySpeakerIcon playing={playing} />

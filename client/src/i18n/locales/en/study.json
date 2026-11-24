@@ -143,6 +143,7 @@
     "failed": "Failed",
     "queued": "Queued",
     "new": "New",
+    "queueCounts": "{{failed}} failed, {{remaining}} remaining",
     "counts": "{{failed}} failed, {{queued}} queued, {{new}} new"
   },
   "gradeButtons": {

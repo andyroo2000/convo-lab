@@ -3,6 +3,7 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import type { StudySessionResponse } from './useStudy';
 import { hasPersistedFailure } from './studyReviewSessionUtils';
+import { batchQueueCounts } from './studyBatchQueue';
 import {
   buildStudySessionWrapUp,
   type StudySessionReviewRecord,
@@ -32,7 +33,8 @@ export interface StudySessionCounts {
 export const deriveStudySessionCounts = (
   cards: StudyCardSummary[],
   answeredCardIds: string[],
-  overviewFailedCount: number
+  overviewFailedCount: number,
+  overviewDueCount = 0
 ): StudySessionCounts => {
   const answeredSet = new Set(answeredCardIds);
   const counts: StudySessionCounts = {
@@ -55,6 +57,7 @@ export const deriveStudySessionCounts = (
   });
 
   counts.failedDue = Math.max(counts.failedDue, loadedFailedCount);
+  counts.reviewRemaining = Math.max(counts.reviewRemaining, overviewDueCount);
   return counts;
 };
 
@@ -191,15 +194,22 @@ const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerived
     reviewQueueExhausted,
     options.sessionWasEnded
   );
-  const sessionCounts = useMemo(
-    () =>
-      deriveStudySessionCounts(
-        cards,
-        options.answeredCardIds,
-        options.session?.overview.failedCount ?? 0
-      ),
-    [cards, options.answeredCardIds, options.session?.overview.failedCount]
-  );
+  const sessionCounts = useMemo(() => {
+    if (options.practiceCards) return batchQueueCounts(options.practiceCards);
+    if (options.sessionKind === 'lessons') return batchQueueCounts(cards);
+    return deriveStudySessionCounts(
+      cards,
+      options.answeredCardIds,
+      options.session?.overview.failedCount ?? 0,
+      options.session?.overview.dueCount ?? 0
+    );
+  }, [
+    cards,
+    options.answeredCardIds,
+    options.practiceCards,
+    options.sessionKind,
+    options.session?.overview,
+  ]);
   const sessionProgress = calculateStudySessionProgress(options);
   const updateCardErrorMessage = useMemo(
     () => getMutationErrorMessage(options.regenerateAudioError, options.updateCardError),
