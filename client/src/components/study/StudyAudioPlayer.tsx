@@ -143,6 +143,11 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
         setPlayingState(true);
         setErrorMessage(null);
       };
+      const handleSeeked = () => {
+        const canContinue =
+          !audio.paused && !audio.ended && audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+        setPlayingState(canContinue);
+      };
       const handleCanPlay = () => setErrorMessage(null);
       const handleError = () => {
         setPlayingState(false);
@@ -154,6 +159,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       audio.addEventListener('playing', handlePlay);
       audio.addEventListener('waiting', handlePause);
       audio.addEventListener('seeking', handlePause);
+      audio.addEventListener('seeked', handleSeeked);
       audio.addEventListener('canplay', handleCanPlay);
       audio.addEventListener('error', handleError);
 
@@ -172,6 +178,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
         audio.removeEventListener('playing', handlePlay);
         audio.removeEventListener('waiting', handlePause);
         audio.removeEventListener('seeking', handlePause);
+        audio.removeEventListener('seeked', handleSeeked);
         audio.removeEventListener('canplay', handleCanPlay);
         audio.removeEventListener('error', handleError);
       };

@@ -145,6 +145,17 @@ describe('StudyPage audio and motion', () => {
     expectBothSpeakers(false);
     fireEvent.playing(audio);
     expectBothSpeakers(true);
+    fireEvent.seeking(audio);
+    expectBothSpeakers(false);
+    Object.defineProperties(audio, {
+      paused: { configurable: true, value: false },
+      readyState: { value: HTMLMediaElement.HAVE_FUTURE_DATA },
+    });
+    fireEvent.seeked(audio);
+    expectBothSpeakers(true);
+    Object.defineProperty(audio, 'paused', { value: true });
+    fireEvent.seeked(audio);
+    expectBothSpeakers(false);
     fireEvent.ended(audio);
     expectBothSpeakers(false);
     const plays = vi.mocked(HTMLMediaElement.prototype.play);
