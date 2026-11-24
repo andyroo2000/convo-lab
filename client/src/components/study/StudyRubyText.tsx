@@ -1,9 +1,8 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useKnownKanjiContext } from '../../contexts/KnownKanjiContext';
-import { parseRubySegments } from './studyTextUtils';
-
 import { studyReadingSize } from './studyReadingSize';
+import { parseRubySegments } from './studyTextUtils';
 
 const HAN_CHARACTER_PATTERN = /\p{Unified_Ideograph}/u;
 
@@ -17,6 +16,112 @@ interface StudyRubyTextProps {
   testId?: string;
 }
 
+function measuredFontSize(element: HTMLElement, minimum: number): number | null {
+  const availableWidth = element.clientWidth;
+  const { style } = element;
+  const previousSize = style.fontSize;
+  style.fontSize = '';
+  const requiredWidth = element.scrollWidth;
+  const baseSize = Number.parseFloat(window.getComputedStyle(element).fontSize);
+  style.fontSize = previousSize;
+
+  if (availableWidth === 0 || requiredWidth <= availableWidth) return null;
+  const fittedSize = Math.max(minimum, Math.floor(baseSize * (availableWidth / requiredWidth)));
+  return fittedSize < baseSize ? fittedSize : null;
+}
+
+function observeTextWidth(element: HTMLElement, measure: () => void) {
+  const scheduleFrame =
+    typeof window.requestAnimationFrame === 'function'
+      ? window.requestAnimationFrame.bind(window)
+      : (callback: FrameRequestCallback) => window.setTimeout(() => callback(performance.now()), 0);
+  const cancelFrame =
+    typeof window.cancelAnimationFrame === 'function'
+      ? window.cancelAnimationFrame.bind(window)
+      : window.clearTimeout.bind(window);
+  let frameId: number | undefined;
+  const fit = () => {
+    if (frameId !== undefined) return;
+    frameId = scheduleFrame(() => {
+      frameId = undefined;
+      measure();
+    });
+  };
+
+  fit();
+
+  const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+  if (resizeObserver) {
+    resizeObserver.observe(element);
+  } else {
+    window.addEventListener('resize', fit);
+  }
+
+  return () => {
+    if (frameId !== undefined) cancelFrame(frameId);
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    } else {
+      window.removeEventListener('resize', fit);
+    }
+  };
+}
+
+function hasOnlyKnownKanji(word: string, knownKanji: ReadonlySet<string>) {
+  const kanji = Array.from(word).filter((character) => HAN_CHARACTER_PATTERN.test(character));
+  return kanji.length > 0 && kanji.every((character) => knownKanji.has(character));
+}
+
+interface StudyRubyReadingProps {
+  base: string;
+  reading: string;
+  hidden: boolean;
+  rtClassName?: string;
+  onReveal: () => void;
+}
+
+const StudyRubyReading = ({
+  base,
+  reading,
+  hidden,
+  rtClassName = '',
+  onReveal,
+}: StudyRubyReadingProps) => {
+  const ruby = (
+    <ruby className="study-ruby">
+      {base}
+      <rt
+        aria-hidden={hidden || undefined}
+        className={`${rtClassName} ${hidden ? 'opacity-0' : ''}`.trim()}
+      >
+        {reading}
+      </rt>
+    </ruby>
+  );
+  if (!hidden) return <span>{ruby}</span>;
+  return (
+    <span
+      className="cursor-pointer"
+      data-known-furigana-hidden
+      role="button"
+      tabIndex={0}
+      title="Reveal reading"
+      onClick={(event) => {
+        event.stopPropagation();
+        onReveal();
+      }}
+      onKeyDown={(event) => {
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onReveal();
+      }}
+    >
+      {ruby}
+    </span>
+  );
+};
+
 const StudyRubyText = ({
   autoFitSingleLine = false,
   as: Component = 'span',
@@ -27,12 +132,9 @@ const StudyRubyText = ({
   testId,
 }: StudyRubyTextProps) => {
   const elementRef = useRef<HTMLElement | null>(null);
-  const fitFontSizeRef = useRef<number | null>(null);
   const [fitFontSize, setFitFontSize] = useState<number | null>(null);
   const [revealedSegments, setRevealedSegments] = useState<ReadonlySet<string>>(new Set());
   const { active: knownKanjiActive, knownKanji } = useKnownKanjiContext();
-
-  fitFontSizeRef.current = fitFontSize;
 
   useEffect(() => {
     setRevealedSegments(new Set());
@@ -51,69 +153,9 @@ const StudyRubyText = ({
     const element = elementRef.current;
     if (!element) return undefined;
 
-    let frameId = 0;
-
-    const fit = () => {
-      const scheduleFrame =
-        typeof window.requestAnimationFrame === 'function'
-          ? window.requestAnimationFrame.bind(window)
-          : (callback: FrameRequestCallback) =>
-              window.setTimeout(() => {
-                callback(performance.now());
-              }, 0);
-      frameId = scheduleFrame(() => {
-        const currentElement = elementRef.current;
-        if (!currentElement) return;
-
-        const availableWidth = currentElement.clientWidth;
-        const previousInlineFontSize = currentElement.style.fontSize;
-        currentElement.style.fontSize = '';
-        const requiredWidthAtBase = currentElement.scrollWidth;
-        const baseFontSize = Number.parseFloat(window.getComputedStyle(currentElement).fontSize);
-        currentElement.style.fontSize = previousInlineFontSize;
-
-        if (
-          !availableWidth ||
-          !requiredWidthAtBase ||
-          !baseFontSize ||
-          requiredWidthAtBase <= availableWidth
-        ) {
-          if (fitFontSizeRef.current !== null) setFitFontSize(null);
-          return;
-        }
-
-        const fittedFontSize = Math.max(
-          minFontSizePx,
-          Math.floor(baseFontSize * (availableWidth / requiredWidthAtBase))
-        );
-        const nextFitFontSize = fittedFontSize < baseFontSize ? fittedFontSize : null;
-        if (fitFontSizeRef.current !== nextFitFontSize) {
-          setFitFontSize(nextFitFontSize);
-        }
-      });
-    };
-
-    fit();
-
-    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
-    if (resizeObserver) {
-      resizeObserver.observe(element);
-    } else {
-      window.addEventListener('resize', fit);
-    }
-
-    return () => {
-      const cancelFrame =
-        typeof window.cancelAnimationFrame === 'function'
-          ? window.cancelAnimationFrame.bind(window)
-          : window.clearTimeout.bind(window);
-      cancelFrame(frameId);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      } else {
-        window.removeEventListener('resize', fit);
-      }
-    };
+    return observeTextWidth(element, () =>
+      setFitFontSize(measuredFontSize(element, minFontSizePx))
+    );
   }, [autoFitSingleLine, minFontSizePx, text]);
 
   if (!text) {
@@ -138,47 +180,23 @@ const StudyRubyText = ({
         }
 
         const base = segment.base ?? '';
-        const kanji = Array.from(base).filter((character) => HAN_CHARACTER_PATTERN.test(character));
         const readingHidden =
           knownKanjiActive &&
-          kanji.length > 0 &&
-          kanji.every((character) => knownKanji.has(character)) &&
-          !revealedSegments.has(segment.key);
+          !revealedSegments.has(segment.key) &&
+          hasOnlyKnownKanji(base, knownKanji);
         const revealReading = () => {
-          if (!readingHidden) return;
           setRevealedSegments((current) => new Set(current).add(segment.key));
         };
 
         return (
-          <span
+          <StudyRubyReading
             key={segment.key}
-            className={readingHidden ? 'cursor-pointer' : undefined}
-            data-known-furigana-hidden={readingHidden || undefined}
-            onClick={(event) => {
-              if (!readingHidden) return;
-              event.stopPropagation();
-              revealReading();
-            }}
-            onKeyDown={(event) => {
-              if (!readingHidden || (event.key !== 'Enter' && event.key !== ' ')) return;
-              event.preventDefault();
-              event.stopPropagation();
-              revealReading();
-            }}
-            role={readingHidden ? 'button' : undefined}
-            tabIndex={readingHidden ? 0 : undefined}
-            title={readingHidden ? 'Reveal reading' : undefined}
-          >
-            <ruby className="study-ruby">
-              {base}
-              <rt
-                aria-hidden={readingHidden || undefined}
-                className={`${rtClassName ?? ''} ${readingHidden ? 'opacity-0' : ''}`.trim()}
-              >
-                {segment.reading ?? ''}
-              </rt>
-            </ruby>
-          </span>
+            base={base}
+            reading={segment.reading ?? ''}
+            hidden={readingHidden}
+            rtClassName={rtClassName}
+            onReveal={revealReading}
+          />
         );
       })}
     </Component>
