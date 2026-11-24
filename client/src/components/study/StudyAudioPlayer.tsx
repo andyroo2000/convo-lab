@@ -232,7 +232,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
             </button>,
             replayHost
           )}
-        {showButton && (!replayHost || listeningPrompt) ? (
+        {showButton && (!inSession || listeningPrompt) ? (
           <div className={buttonClasses}>
             <button
               type="button"
