@@ -107,10 +107,13 @@ const getMutationErrorMessage = (audioError: unknown, updateError: unknown) => {
   );
 };
 
+const failedQueueCount = (overview?: StudySessionResponse['overview']) =>
+  overview?.failedCount ?? overview?.failedDueCount ?? 0;
+
 const hasReviewQueueWork = (cards: StudyCardSummary[], session: StudySessionResponse | null) => {
   if (cards.length > 0) return true;
   if ((session?.overview.dueCount ?? 0) > 0) return true;
-  return (session?.overview.failedCount ?? 0) > 0;
+  return failedQueueCount(session?.overview) > 0;
 };
 
 const isReviewQueueExhausted = ({
@@ -200,7 +203,7 @@ const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerived
     return deriveStudySessionCounts(
       cards,
       options.answeredCardIds,
-      options.session?.overview.failedCount ?? 0,
+      failedQueueCount(options.session?.overview),
       options.session?.overview.dueCount ?? 0
     );
   }, [

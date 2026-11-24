@@ -445,6 +445,7 @@ describe('StudyPage overview and lessons', () => {
     startStudySessionMock.mockResolvedValue({
       overview: {
         dueCount: 4,
+        failedDueCount: 2,
         newCount: 6,
         learningCount: 2,
         reviewCount: 8,
@@ -468,7 +469,7 @@ describe('StudyPage overview and lessons', () => {
       screen.queryByRole('button', { name: /hear answer|play prompt audio/i })
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('study-review-metrics')).not.toHaveClass('border-b');
-    expect(screen.getByRole('group', { name: '0 failed, 4 remaining' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: '2 failed, 4 remaining' })).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('study-focus-shell');
     expect(screen.getByTestId('study-focus-shell')).toHaveClass('overflow-x-hidden');
     expect(screen.queryByTestId('mastery-feedback-lane')).not.toBeInTheDocument();
