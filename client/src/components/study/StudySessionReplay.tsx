@@ -25,7 +25,7 @@ const StudySessionReplay = ({
     <div ref={mount} className="study-replay-host">
       {hearAnswer && (
         <button type="button" onClick={reveal} className="study-toolbar-replay">
-          <span className="study-replay-disc">
+          <span className="study-replay-tile">
             <StudySpeakerIcon playing={false} />
           </span>
           {t('reviewHeader.hearAnswer')}

@@ -214,7 +214,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
               data-playing={playing}
               data-testid={listeningPrompt ? undefined : testId && `${testId}-button`}
             >
-              <span className="study-replay-disc">
+              <span className="study-replay-tile">
                 <StudySpeakerIcon playing={playing} />
               </span>
               <span>{t('reviewHeader.replay')}</span>
