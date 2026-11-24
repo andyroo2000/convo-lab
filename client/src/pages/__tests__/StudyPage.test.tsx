@@ -215,6 +215,10 @@ describe('StudyPage overview and lessons', () => {
       cards: [
         {
           ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudio: { url: '/answer.mp3', filename: 'answer.mp3', mediaKind: 'audio' },
+          },
           state: {
             ...baseCard.state,
             queueState: 'new',
@@ -251,6 +255,7 @@ describe('StudyPage overview and lessons', () => {
     expect(await screen.findByRole('group', { name: '1 failed, 0 remaining' })).toBeInTheDocument();
     expect(mutateAsyncMock).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    expect(screen.getByRole('button', { name: 'Play answer audio' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Good/ }));
 
     expect(
@@ -259,6 +264,7 @@ describe('StudyPage overview and lessons', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-card-scroll')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play answer audio' })).not.toBeInTheDocument();
     expect(screen.queryByText('Lesson complete')).not.toBeInTheDocument();
 
     // Simulate the animation completion callback; the real overlay ignores pointer input.

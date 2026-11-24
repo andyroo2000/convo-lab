@@ -154,7 +154,6 @@ const StudyReviewWrapUp = ({
     <StudySessionWrapUp
       summary={reviewSession.sessionWrapUp}
       caughtUp={reviewSession.reviewQueueExhausted}
-      onPractice={reviewSession.startToughestPractice}
       onDone={onFinishReview}
     />
   );
