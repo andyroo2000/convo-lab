@@ -28,15 +28,16 @@ const labels = {
 
 interface HighlightProps {
   segment: JournalSegment;
+  separate?: boolean;
 }
-const JournalNote = ({ segment }: HighlightProps) => (
+const JournalNote = ({ segment }: Pick<HighlightProps, 'segment'>) => (
   <>
     <JournalCorrection segment={segment} />
     <JournalExplanation segment={segment} />
   </>
 );
 
-const JournalHighlight = ({ segment }: HighlightProps) => {
+const JournalHighlight = ({ segment, separate = false }: HighlightProps) => {
   const { anchor, popup, open, position, pointer, show, hide, trigger } = useJournalActionPopover();
   const id = useId();
   const { textSize = defaultTypography.size } = useContext(JournalDeskContext);
@@ -51,7 +52,7 @@ const JournalHighlight = ({ segment }: HighlightProps) => {
       <button
         ref={anchor}
         type="button"
-        className={`${layout} rounded border-b-2 px-0.5 py-0.5 leading-normal text-left text-inherit [box-decoration-break:clone] ${journalHighlightStyles[segment.kind]}`}
+        className={`${layout} ${separate ? 'ml-[6px]' : ''} rounded border-b-2 px-0.5 py-0.5 leading-normal text-left text-inherit [box-decoration-break:clone] ${journalHighlightStyles[segment.kind]}`}
         aria-label={`${labels[segment.kind]}: ${editDescription(segment)}`}
         aria-controls={open ? id : undefined}
         aria-expanded={open}
