@@ -339,6 +339,7 @@ const MediaPromptAudio = ({
         ref={promptAudioRef}
         filename={media.audio?.filename}
         url={media.audioUrl}
+        listeningPrompt={!media.imageUrl}
         label={audioLed ? 'Replay prompt audio' : 'Play prompt audio'}
         testId="study-prompt-audio"
       />

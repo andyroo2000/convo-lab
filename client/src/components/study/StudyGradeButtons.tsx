@@ -1,29 +1,42 @@
 import { useTranslation } from 'react-i18next';
 
+import type { StudySessionGrade } from './studySessionWrapUpModel';
+
 interface StudyGradeButtonsProps {
   disabled?: boolean;
+  selectedGrade?: StudySessionGrade | null;
   onGrade: (grade: 'again' | 'hard' | 'good' | 'easy') => void;
 }
 
-const StudyGradeButtons = ({ disabled = false, onGrade }: StudyGradeButtonsProps) => {
+const StudyGradeButtons = ({
+  disabled = false,
+  selectedGrade,
+  onGrade,
+}: StudyGradeButtonsProps) => {
   const { t } = useTranslation('study');
 
   return (
-    <div className="study-washi-grades grid grid-cols-4 gap-2">
+    <div className="study-washi-grades">
       {(['again', 'hard', 'good', 'easy'] as const).map((grade, index) => (
         <button
           key={grade}
           type="button"
           onClick={() => onGrade(grade)}
-          disabled={disabled}
+          disabled={disabled || Boolean(selectedGrade)}
+          aria-pressed={selectedGrade === grade}
           aria-label={t(`gradeButtons.${grade}`)}
           data-grade={grade}
           className="study-washi-grade disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <p className="leading-tight">{t(`gradeButtons.${grade}`)}</p>
-          <p className="mt-1 hidden text-xs uppercase tracking-[0.18em] text-current/70">
-            {t('gradeButtons.key', { index: index + 1 })}
-          </p>
+          <span className="study-grade-pill">
+            {t(`gradeButtons.${grade}`)}
+            <span
+              aria-hidden="true"
+              className={selectedGrade === grade ? 'study-grade-check' : 'study-grade-key'}
+            >
+              {selectedGrade === grade ? '✓' : index + 1}
+            </span>
+          </span>
         </button>
       ))}
     </div>

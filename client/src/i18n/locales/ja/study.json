@@ -135,6 +135,9 @@
     "openBrowse": "ブラウズで開く"
   },
   "reviewHeader": {
+    "completed": "{{total}}枚中{{completed}}枚完了",
+    "replay": "再生",
+    "hearAnswer": "答えを聞く",
     "exit": "セッションを終了",
     "progress": "レビューセッションの進捗",
     "failed": "失敗",

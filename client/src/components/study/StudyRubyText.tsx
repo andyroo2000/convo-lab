@@ -3,6 +3,8 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useKnownKanjiContext } from '../../contexts/KnownKanjiContext';
 import { parseRubySegments } from './studyTextUtils';
 
+import { studyReadingSize } from './studyReadingSize';
+
 const HAN_CHARACTER_PATTERN = /\p{Unified_Ideograph}/u;
 
 interface StudyRubyTextProps {
@@ -124,6 +126,9 @@ const StudyRubyText = ({
     <Component
       ref={setElementRef}
       className={className}
+      data-reading-size={studyReadingSize(
+        segments.map((segment) => segment.base ?? segment.text).join('')
+      )}
       data-testid={testId}
       style={fitFontSize ? { fontSize: `${fitFontSize}px` } : undefined}
     >

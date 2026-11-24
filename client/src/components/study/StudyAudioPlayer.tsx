@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useContext,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -7,7 +8,10 @@ import {
   useState,
   type MouseEvent,
 } from 'react';
+import { Volume2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { StudyReplayHost } from './studyReplayContext';
 
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import { getAudioPreloadMode } from '../../lib/audioCache';
@@ -20,6 +24,7 @@ export interface AudioPlayerHandle {
 }
 
 interface StudyAudioPlayerProps {
+  listeningPrompt?: boolean;
   filename?: string | null;
   label: string;
   renderMode?: 'default' | 'hidden';
@@ -37,6 +42,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
   (
     {
       filename,
+      listeningPrompt = false,
       label,
       renderMode = 'default',
       size = 'default',
@@ -48,6 +54,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
     ref
   ) => {
     const { t } = useTranslation('study');
+    const replayHost = useContext(StudyReplayHost);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const playAttemptRef = useRef(0);
     const [playing, setPlaying] = useState(false);
@@ -60,6 +67,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
     }, []);
 
     const stop = useCallback(() => {
+      playAttemptRef.current += 1;
       const audio = audioRef.current;
       if (!audio) return;
       if (!audio.paused) {
@@ -100,7 +108,6 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
         // browsers like iOS Safari may reject play() until media is user-gesture eligible.
         await audio.play();
         if (playAttemptRef.current !== playAttempt) return false;
-        setPlayingState(true);
         return true;
       } catch (error) {
         if (playAttemptRef.current !== playAttempt) return false;
@@ -144,11 +151,14 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
 
       audio.addEventListener('ended', handleEnded);
       audio.addEventListener('pause', handlePause);
-      audio.addEventListener('play', handlePlay);
+      audio.addEventListener('playing', handlePlay);
+      audio.addEventListener('waiting', handlePause);
+      audio.addEventListener('seeking', handlePause);
       audio.addEventListener('canplay', handleCanPlay);
       audio.addEventListener('error', handleError);
 
       return () => {
+        playAttemptRef.current += 1;
         if (!audio.paused) {
           audio.pause();
         }
@@ -159,7 +169,9 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
         }
         audio.removeEventListener('ended', handleEnded);
         audio.removeEventListener('pause', handlePause);
-        audio.removeEventListener('play', handlePlay);
+        audio.removeEventListener('playing', handlePlay);
+        audio.removeEventListener('waiting', handlePause);
+        audio.removeEventListener('seeking', handlePause);
         audio.removeEventListener('canplay', handleCanPlay);
         audio.removeEventListener('error', handleError);
       };
@@ -191,7 +203,25 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
 
     return (
       <div className={size === 'compact' ? 'space-y-2' : 'space-y-3'} data-testid={testId}>
-        {showButton ? (
+        {replayHost &&
+          showButton &&
+          createPortal(
+            <button
+              type="button"
+              className="study-toolbar-replay"
+              onClick={handleClick}
+              aria-label={listeningPrompt ? t('reviewHeader.replay') : label}
+              data-playing={playing}
+              data-testid={listeningPrompt ? undefined : testId && `${testId}-button`}
+            >
+              <span className="study-replay-disc">
+                <StudySpeakerIcon playing={playing} />
+              </span>
+              <span>{t('reviewHeader.replay')}</span>
+            </button>,
+            replayHost
+          )}
+        {showButton && (!replayHost || listeningPrompt) ? (
           <div className={buttonClasses}>
             <button
               type="button"
@@ -207,7 +237,11 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
               } ${buttonSizeClasses}`}
             >
               <span className={`study-speaker-glyph ${iconSizeClasses}`}>
-                <StudySpeakerIcon playing={playing} />
+                {listeningPrompt ? (
+                  <StudySpeakerIcon playing={playing} />
+                ) : (
+                  <Volume2 aria-hidden="true" />
+                )}
               </span>
             </button>
           </div>

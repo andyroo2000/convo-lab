@@ -49,6 +49,7 @@ const buildStudyReviewSessionResult = (
   endReviewSession: lifecycle.endReviewSession,
   finishReviewSession: lifecycle.finishReviewSession,
   handleGrade: actions.handleGrade,
+  selectedGrade: actions.selectedGrade,
   retryPendingReview: actions.retryPendingReview,
   handleBuryForSession: actions.handleBuryForSession,
   handleCardAction: actions.handleCardAction,

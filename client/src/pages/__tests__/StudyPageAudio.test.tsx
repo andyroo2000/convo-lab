@@ -131,6 +131,28 @@ describe('StudyPage audio and motion', () => {
     expect(screen.getByText('Use Reveal answer.')).toBeInTheDocument();
   });
 
+  it('shares one recording and playback animation between the toolbar and the listening prompt', async () => {
+    configureAudioLedSession();
+    await startReviewSession();
+    const replay = await screen.findByRole('button', { name: 'Replay' });
+    const prompt = screen.getByRole('button', { name: 'Replay prompt audio' });
+    const audio = findAudioElement('Replay prompt audio')!;
+    const expectBothSpeakers = (playing: boolean) => {
+      [replay, prompt].forEach((button) =>
+        expect(button).toHaveAttribute('data-playing', String(playing))
+      );
+    };
+    expectBothSpeakers(false);
+    fireEvent.playing(audio);
+    expectBothSpeakers(true);
+    fireEvent.ended(audio);
+    expectBothSpeakers(false);
+    const plays = vi.mocked(HTMLMediaElement.prototype.play);
+    await userEvent.click(replay);
+    expect(plays.mock.contexts.at(-1)).toBe(audio);
+    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeVisible();
+  });
+
   it('uses Space to reveal audio-led cards from the front side', async () => {
     configureAudioLedSession();
     await startReviewSession();

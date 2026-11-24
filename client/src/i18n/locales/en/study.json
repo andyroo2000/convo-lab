@@ -135,6 +135,9 @@
     "openBrowse": "Open in Browse"
   },
   "reviewHeader": {
+    "completed": "{{completed}} of {{total}} complete",
+    "replay": "Replay",
+    "hearAnswer": "Hear answer",
     "exit": "End session",
     "progress": "Review session progress",
     "failed": "Failed",

@@ -28,18 +28,28 @@ function createDeferred<T>() {
 describe('StudyCardPreview audio', () => {
   beforeEach(mockStudyCardMedia);
 
-  it.each(['ended', 'pause', 'error'])('stops the speaker animation on %s', (event) => {
-    render(
-      <StudyCardFace side="back" layout="mobile-focus" inlineAnswerAudio card={withAnswerAudio()} />
-    );
-    const button = screen.getByRole('button', { name: 'Play answer audio' });
-    const audio = screen.getByTestId('study-answer-audio-element');
-    expect(button).toHaveAttribute('data-playing', 'false');
-    fireEvent.play(audio);
-    expect(button).toHaveAttribute('data-playing', 'true');
-    fireEvent(audio, new Event(event));
-    expect(button).toHaveAttribute('data-playing', 'false');
-  });
+  it.each(['ended', 'pause', 'waiting', 'seeking', 'error'])(
+    'stops the playback indicator on %s',
+    (event) => {
+      render(
+        <StudyCardFace
+          side="back"
+          layout="mobile-focus"
+          inlineAnswerAudio
+          card={withAnswerAudio()}
+        />
+      );
+      const button = screen.getByRole('button', { name: 'Play answer audio' });
+      const audio = screen.getByTestId('study-answer-audio-element');
+      expect(button).toHaveAttribute('data-playing', 'false');
+      fireEvent.play(audio);
+      expect(button).toHaveAttribute('data-playing', 'false');
+      fireEvent.playing(audio);
+      expect(button).toHaveAttribute('data-playing', 'true');
+      fireEvent(audio, new Event(event));
+      expect(button).toHaveAttribute('data-playing', 'false');
+    }
+  );
 
   it('derives the audio MIME type from the answer audio asset', () => {
     render(<StudyCardFace side="back" card={withAnswerAudio('answer.ogg')} />);
