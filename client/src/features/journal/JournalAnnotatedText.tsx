@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 import JournalPaper from './JournalPaper';
 import JournalHighlight from './JournalHighlight';
-import type { JournalFeedback } from './types';
+import type { JournalFeedback, JournalSegment } from './types';
+
+const highlighted = (segment?: JournalSegment) =>
+  segment?.kind === 'correction' || segment?.kind === 'optional';
 
 interface Props {
   sourceId: string;
@@ -13,7 +16,8 @@ const JournalAnnotatedText = ({ sourceId, feedback, heading }: Props) => (
     {feedback.segments.map((segment, index) => {
       // Notes are identified by their stable position in this saved analysis.
       const id = `${sourceId}:${index}`;
-      return <JournalHighlight key={id} segment={segment} />;
+      const separate = highlighted(segment) && highlighted(feedback.segments[index - 1]);
+      return <JournalHighlight key={id} segment={segment} separate={separate} />;
     })}
   </JournalPaper>
 );
