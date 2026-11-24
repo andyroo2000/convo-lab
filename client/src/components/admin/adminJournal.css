@@ -1,0 +1,418 @@
+@font-face {
+  font-family: 'Admin Crimson';
+  src: url('/journal-landing/CrimsonPro.woff2') format('woff2');
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+/* Journal paper and audio colors, scoped to the admin workspace. */
+.journal-admin {
+  --admin-paper: #fffdf5;
+  --admin-ink: #4b1800;
+  --admin-muted: #766552;
+  --admin-rule: #e1d9c6;
+  --admin-green: #355b43;
+  --admin-blue: #e4eef9;
+  --admin-blue-ink: #2e5271;
+  --admin-serif: 'Admin Crimson', 'Crimson Pro', Georgia, serif;
+  color: var(--admin-ink);
+  color-scheme: light;
+  font:
+    400 16px/1.5 Inter,
+    sans-serif;
+  padding-block: 4px 44px;
+}
+.retro-shell:has(.journal-admin) {
+  background: #efedde;
+}
+.journal-admin :is(h1, h2, h3) {
+  font-family: var(--admin-serif);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--admin-ink);
+  text-transform: none;
+}
+.journal-admin .admin-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0 0 26px;
+}
+.journal-admin .admin-heading h1 {
+  font-size: clamp(36px, 4vw, 48px);
+  line-height: 1.1;
+  margin: 0;
+}
+.journal-admin .admin-heading p {
+  font-size: 14px;
+  color: var(--admin-muted);
+}
+.journal-admin .retro-admin-v3-tabs {
+  flex-wrap: nowrap;
+  gap: 5px;
+  border: 0;
+  margin: 0;
+  padding: 5px 24px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: relative;
+  z-index: 1;
+}
+.journal-admin .retro-admin-v3-tabs::-webkit-scrollbar {
+  display: none;
+}
+.journal-admin .retro-admin-v3-tab {
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 12px 19px;
+  border: 1px solid #d5d9c7;
+  border-bottom: 0;
+  border-radius: 13px 13px 0 0;
+  background: #e9eddf;
+  color: #496447;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 140ms ease;
+}
+.journal-admin .retro-admin-v3-tab:hover {
+  background: #dfe8d5;
+}
+.journal-admin .retro-admin-v3-tab.is-active {
+  background: var(--admin-blue);
+  color: var(--admin-blue-ink);
+  border-color: #c0d1e5;
+  box-shadow: inset 0 3px #7194c1;
+}
+.journal-admin .retro-admin-v3-tab:focus-visible {
+  outline-offset: -5px;
+}
+.admin-sheet {
+  position: relative;
+  min-width: 0;
+  min-height: 360px;
+  padding: 32px 36px 42px 52px;
+  border: 1px solid var(--admin-rule);
+  border-top: 4px solid #b9cde3;
+  border-radius: 8px 8px 0 0;
+  background: var(--admin-paper);
+  box-shadow: 0 5px 18px #4b180006;
+}
+/* Decorative edges never clip controls, dialogs, or keyboard focus. */
+.admin-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 24px;
+  border-left: 1px solid #d9938870;
+  pointer-events: none;
+}
+.admin-sheet::after {
+  content: '';
+  position: absolute;
+  inset: auto -1px -10px;
+  height: 11px;
+  pointer-events: none;
+  background: var(--admin-paper);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 65%,
+    96% 100%,
+    90% 60%,
+    84% 90%,
+    78% 55%,
+    72% 85%,
+    66% 60%,
+    60% 100%,
+    54% 65%,
+    48% 95%,
+    42% 60%,
+    36% 85%,
+    30% 50%,
+    24% 95%,
+    18% 65%,
+    12% 90%,
+    6% 60%,
+    0 80%
+  );
+}
+.journal-admin .retro-admin-v3-pane-header,
+.journal-admin .retro-admin-v3-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.journal-admin :is(.retro-admin-v3-pane-header, .admin-panel-heading) h2,
+.journal-admin .retro-admin-v3-pane > h2 {
+  font-size: clamp(30px, 3vw, 40px);
+  line-height: 1.15;
+}
+.journal-admin :is(.retro-admin-v3-pane-header, .admin-panel-heading) p {
+  margin-top: 8px;
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+.journal-admin .admin-user-search {
+  min-width: min(100%, 260px);
+}
+.journal-admin .admin-user-search input {
+  width: 100%;
+}
+.journal-admin .retro-admin-v3-input {
+  background: #fffef9;
+  color: var(--admin-ink);
+  border: 1px solid #cec9b7;
+  border-radius: 9px;
+  min-height: 44px;
+  font-size: 15px;
+}
+.journal-admin .retro-admin-v3-input::placeholder {
+  color: #7e7266;
+}
+.journal-admin :is(input, textarea, select):focus-visible {
+  outline: 3px solid #668ee1;
+  outline-offset: 3px;
+}
+.journal-admin :is(.retro-admin-v3-btn-primary, .retro-admin-v3-btn-secondary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 1px solid var(--admin-green);
+  border-radius: 999px;
+  background: var(--admin-green);
+  color: #fff;
+  font:
+    500 14px/1.4 Inter,
+    sans-serif;
+}
+.journal-admin .retro-admin-v3-btn-secondary {
+  color: var(--admin-green);
+  border-color: #c8d1be;
+  background: var(--admin-paper);
+}
+.journal-admin .retro-admin-v3-btn-primary:hover:not(:disabled) {
+  background: #284a34;
+}
+.journal-admin .retro-admin-v3-btn-secondary:hover:not(:disabled) {
+  background: #edf2e7;
+}
+.journal-admin .retro-admin-v3-table-wrap {
+  border: 1px solid var(--admin-rule);
+  border-radius: 9px;
+  box-shadow: none;
+  background: var(--admin-paper);
+}
+.journal-admin .retro-admin-v3-table-wrap :is(thead, tbody) {
+  background: transparent;
+}
+.journal-admin .retro-admin-v3-table-wrap th {
+  background: #f0efe3;
+  color: #6d604d;
+  font-size: 13px;
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: normal;
+}
+.journal-admin .retro-admin-v3-table-wrap :is(tr, td, th, tbody) {
+  border-color: var(--admin-rule);
+}
+.journal-admin .retro-admin-v3-table-wrap tbody tr:hover {
+  background: #f5f3e7;
+}
+.journal-admin .text-navy {
+  color: var(--admin-ink);
+}
+.journal-admin :is(.text-gray-400, .text-gray-500, .text-gray-600) {
+  color: var(--admin-muted);
+}
+.journal-admin .admin-user-avatar {
+  background: #fff;
+  border: 1px solid #e2dccb;
+}
+.journal-admin .retro-admin-v3-badge {
+  background: #e9efdf;
+  color: var(--admin-green);
+  font-size: 12px;
+  font-weight: 500;
+}
+.journal-admin .retro-admin-v3-badge-admin {
+  background: var(--admin-blue);
+  color: var(--admin-blue-ink);
+}
+.journal-admin .retro-admin-v3-table-wrap button {
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.journal-admin .admin-danger-button {
+  color: #a9444e;
+}
+.journal-admin .beta-request-card {
+  margin: 0;
+  padding: 26px 0;
+  border: 0;
+  border-bottom: 1px solid var(--admin-rule);
+  border-radius: 0;
+  background: transparent;
+}
+.journal-admin .beta-request-card:last-of-type {
+  border-bottom: 0;
+}
+.journal-admin .beta-request-summary h3 {
+  font:
+    550 16px/1.5 Inter,
+    sans-serif;
+  letter-spacing: normal;
+}
+.journal-admin .beta-request-message {
+  font: 400 24px/1.45 var(--admin-serif);
+  max-width: 52rem;
+  margin: 20px 0;
+}
+.journal-admin .beta-request-date {
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.journal-admin .beta-request-toolbar {
+  font-size: 14px;
+  color: var(--admin-muted);
+  margin: 24px 0 4px;
+  justify-content: space-between;
+}
+.journal-admin .beta-request-toolbar select {
+  min-height: 44px;
+  background: var(--admin-blue);
+  color: var(--admin-blue-ink);
+  border-color: #bfd0e4;
+  border-radius: 24px;
+}
+.journal-admin .beta-request-devices span {
+  background: var(--admin-blue);
+  color: var(--admin-blue-ink);
+}
+.journal-admin .beta-requests > [role='status']:not(:empty) {
+  margin-block: 20px 0;
+  padding: 14px 18px;
+  background: #e9efdf;
+  border-radius: 9px;
+  color: var(--admin-green);
+}
+.journal-admin :is(.admin-panel, .retro-admin-v3-card, .admin-user-dialog) {
+  background: var(--admin-paper);
+  border: 1px solid var(--admin-rule);
+  box-shadow: none;
+  border-radius: 10px;
+}
+.journal-admin .admin-cost-summary {
+  background: var(--admin-blue);
+  border-color: #c0d1e5;
+}
+.journal-admin .admin-cost-summary :is(h3, strong) {
+  color: var(--admin-blue-ink);
+}
+.journal-admin .admin-metrics strong,
+.journal-admin .admin-writing-stats dd {
+  font-family: var(--admin-serif);
+}
+.journal-admin .admin-analytics-tabs {
+  border-color: var(--admin-rule);
+}
+.journal-admin .admin-analytics-tabs button {
+  font-family: var(--admin-serif);
+  font-size: 24px;
+}
+.journal-admin .admin-periods {
+  background: #fffef9;
+  flex-wrap: wrap;
+}
+.journal-admin .admin-periods button[aria-pressed='true'] {
+  background: var(--admin-blue);
+  color: var(--admin-blue-ink);
+}
+.journal-admin .retro-admin-v3-note {
+  background: var(--admin-blue);
+  border-color: #c0d1e5;
+}
+.journal-admin .retro-admin-v3-note p {
+  color: var(--admin-blue-ink);
+}
+.journal-admin .admin-feature-row {
+  border-color: var(--admin-rule);
+}
+.journal-admin .admin-feature-row input[role='switch']:checked {
+  background: var(--admin-green);
+}
+.journal-admin .admin-table-scroll :is(td, th) {
+  border-color: var(--admin-rule);
+}
+@media (max-width: 700px) {
+  .journal-admin .admin-heading {
+    margin-bottom: 20px;
+  }
+  .journal-admin .admin-heading p {
+    font-size: 13px;
+  }
+  .journal-admin .retro-admin-v3-tabs {
+    padding-inline: 0;
+  }
+  .journal-admin .retro-admin-v3-tab {
+    min-height: 46px;
+    padding: 10px 13px;
+    gap: 7px;
+  }
+  .admin-sheet {
+    padding: 24px 16px 30px;
+  }
+  .admin-sheet::before {
+    display: none;
+  }
+  .journal-admin .beta-request-message {
+    font-size: 22px;
+  }
+  .journal-admin .beta-request-summary {
+    gap: 12px;
+  }
+  .journal-admin .admin-user-search {
+    flex-basis: 100%;
+  }
+  .journal-admin .admin-metrics span {
+    max-width: 64%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journal-admin .retro-admin-v3-tab {
+    transition: none;
+  }
+}
+
+.journal-admin .retro-admin-v3-table-wrap .bg-green-100 {
+  background: #e9efdf;
+  color: var(--admin-green);
+}
+.journal-admin .retro-admin-v3-table-wrap .bg-gray-100 {
+  background: #efecdf;
+  color: var(--admin-muted);
+}
+
+.journal-admin .admin-user-dialog .btn-secondary {
+  font:
+    500 14px/1.4 Inter,
+    sans-serif;
+  min-height: 44px;
+  padding: 10px 20px;
+  background: var(--admin-paper);
+  border: 1px solid #c8d1be;
+  color: var(--admin-green);
+  border-radius: 999px;
+  box-shadow: none;
+  text-transform: none;
+}
