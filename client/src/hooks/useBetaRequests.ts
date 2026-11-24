@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { JsonRequestError } from '../lib/apiClient';
 import {
   approveBetaRequest,
   createBetaInvitation,
@@ -10,6 +11,8 @@ import {
 
 const message = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
+const isDeliveryFailure = (error: unknown) =>
+  error instanceof JsonRequestError && error.status === 503;
 
 export default function useBetaRequests() {
   const [filter, setFilter] = useState<BetaRequestFilter>('pending');
@@ -50,16 +53,19 @@ export default function useBetaRequests() {
     setNotice('');
     try {
       const sent = await operation();
-      setNotice(`Invitation sent to ${sent.email}.`);
+      setNotice(
+        directInvite
+          ? `Invitation for ${sent.email} is in Invited.`
+          : `Invitation sent to ${sent.email}.`
+      );
       if (directInvite) {
-        setNotice(`Invitation for ${sent.email} is in Invited.`);
         setFilter('invited');
         setPage(1);
       }
       return true;
     } catch (caught) {
       setNotice(message(caught, 'Could not send the invitation. Please retry.'));
-      if (directInvite) {
+      if (directInvite && isDeliveryFailure(caught)) {
         setFilter('pending');
         setPage(1);
       }
