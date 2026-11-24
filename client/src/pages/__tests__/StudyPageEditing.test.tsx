@@ -380,7 +380,7 @@ describe('StudyPage editing and session actions', () => {
     });
   });
 
-  it('shows the session wrap-up and practices toughest cards without new reviews', async () => {
+  it('shows the tutor summary after the last review', async () => {
     const cardBefore = {
       ...baseCard,
       state: {
@@ -446,15 +446,9 @@ describe('StudyPage editing and session actions', () => {
     expect(screen.getByText('First-pass recall')).toBeInTheDocument();
     expect(screen.queryByText(/Ranked using/)).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Practice 1' }));
-    expect(screen.getByText('Practice only')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Again' }));
-    expect(await screen.findByRole('group', { name: '1 failed, 0 remaining' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
-
-    expect(await screen.findByText('Practice complete')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'おつかれさまでした！' })).toBeInTheDocument();
+    expect(screen.queryByText('Toughest this session')).not.toBeInTheDocument();
+    expect(screen.queryByText('Newly stabilized')).not.toBeInTheDocument();
     expect(mutateAsyncMock).toHaveBeenCalledTimes(1);
   });
 
@@ -516,7 +510,7 @@ describe('StudyPage editing and session actions', () => {
     expect(screen.getByText('Here’s what you reviewed this session.')).toBeInTheDocument();
     expect(screen.queryByText('学校')).not.toBeInTheDocument();
     expect(
-      within(screen.getByTestId('study-session-wrap-up')).getByText('1', { selector: 'p' })
+      within(screen.getByTestId('study-session-wrap-up')).getByText('1', { selector: 'dd' })
     ).toBeInTheDocument();
   });
 

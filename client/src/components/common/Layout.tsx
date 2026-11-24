@@ -16,7 +16,6 @@ import './workspaceNavigation.css';
 import OnboardingModal from '../onboarding/OnboardingModal';
 import { SHOW_ONBOARDING_WELCOME } from '../../config';
 import { StudyActivityProvider } from '../../contexts/StudyActivityContext';
-import ActiveStudyTimer from '../study/ActiveStudyTimer';
 import MobileLearningDock from './MobileLearningDock';
 import type { User } from '../../types';
 
@@ -181,7 +180,6 @@ const LayoutBody = ({
       >
         <Outlet />
       </main>
-      <ActiveStudyTimer />
     </StudyActivityProvider>
     {showMobileLearningDock ? <MobileLearningDock /> : null}
   </>

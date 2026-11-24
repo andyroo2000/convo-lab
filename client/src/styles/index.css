@@ -525,25 +525,6 @@
     outline-offset: 0;
   }
 
-  .active-study-timer {
-    right: 0.75rem;
-    bottom: calc(5.35rem + env(safe-area-inset-bottom));
-    color: var(--retro-ink-strong);
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid rgba(17, 51, 92, 0.12);
-    border-radius: 1rem;
-    box-shadow: 0 8px 24px rgba(17, 51, 92, 0.12);
-    backdrop-filter: blur(14px);
-  }
-
-  @media (min-width: 640px) {
-    .active-study-timer {
-      top: 5.25rem;
-      right: 1rem;
-      bottom: auto;
-    }
-  }
-
   .retro-paper-panel {
     position: relative;
     isolation: isolate;
