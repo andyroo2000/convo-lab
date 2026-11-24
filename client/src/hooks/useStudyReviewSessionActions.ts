@@ -37,6 +37,7 @@ const useReviewGrading = (
   interactions: StudyReviewSessionInteractions
 ) =>
   useStudyReviewGrading({
+    acceptingGrades: core.state.focusMode && !core.state.editing,
     activeLessonCohortIdRef: core.state.activeLessonCohortIdRef,
     activePileIdRef: core.state.activePileIdRef,
     answeredCardIdsRef: core.state.answeredCardIdsRef,

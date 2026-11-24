@@ -58,29 +58,36 @@ export const deriveStudySessionCounts = (
   return counts;
 };
 
-export const calculateStudySessionProgress = ({
-  answeredCount,
-  cardCount,
-  remainingCardCount,
-  practiceComplete,
-  practiceInitialCount,
-  practiceMode,
-}: {
-  answeredCount: number;
-  cardCount: number;
-  remainingCardCount: number;
-  practiceComplete: boolean;
-  practiceInitialCount: number;
-  practiceMode: boolean;
-}) => {
-  if (practiceMode && practiceInitialCount > 0) {
-    return practiceComplete
-      ? 1
-      : Math.max(0, (practiceInitialCount - remainingCardCount) / practiceInitialCount);
-  }
+const batchProgress = (total: number, remaining: number) => ({
+  completed: Math.max(0, total - remaining),
+  total: Math.max(total, remaining),
+});
 
-  if (cardCount === 0) return 0;
-  return remainingCardCount === 0 ? 1 : Math.min(0.99, answeredCount / cardCount);
+export const calculateStudySessionProgress = (
+  options: Pick<
+    UseStudyReviewSessionDerivedStateOptions,
+    | 'answeredCardIds'
+    | 'practiceCards'
+    | 'practiceInitialCount'
+    | 'session'
+    | 'sessionCardCount'
+    | 'sessionKind'
+  >
+) => {
+  if (options.practiceCards) {
+    return batchProgress(options.practiceInitialCount, options.practiceCards.length);
+  }
+  const cards = options.session?.cards ?? [];
+  if (options.sessionKind === 'lessons') {
+    return batchProgress(options.sessionCardCount, cards.length);
+  }
+  // A failed card that is still due belongs on the remaining side of the bar.
+  const completedIds = new Set(options.answeredCardIds);
+  cards.forEach((card) => completedIds.delete(card.id));
+  const overview = options.session?.overview;
+  const due = (overview?.dueCount ?? 0) + (overview?.failedDueCount ?? 0);
+  const remaining = Math.max(due, cards.length);
+  return { completed: completedIds.size, total: completedIds.size + remaining };
 };
 
 const mutationErrorMessage = (error: unknown, fallback: string) => {
@@ -166,7 +173,7 @@ const usePracticePresentationState = ({
 
 const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerivedStateOptions) => {
   const practice = usePracticePresentationState(options);
-  const { cards, practiceComplete, practiceMode, presentedCards } = practice;
+  const { cards, practiceMode } = practice;
   const sessionWrapUp = useMemo(
     () => buildStudySessionWrapUp(options.sessionReviewRecords),
     [options.sessionReviewRecords]
@@ -193,14 +200,7 @@ const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerived
       ),
     [cards, options.answeredCardIds, options.session?.overview.failedCount]
   );
-  const sessionProgress = calculateStudySessionProgress({
-    answeredCount: options.answeredCardIds.length,
-    cardCount: options.sessionCardCount,
-    remainingCardCount: practiceMode ? presentedCards.length : cards.length,
-    practiceComplete,
-    practiceInitialCount: options.practiceInitialCount,
-    practiceMode,
-  });
+  const sessionProgress = calculateStudySessionProgress(options);
   const updateCardErrorMessage = useMemo(
     () => getMutationErrorMessage(options.regenerateAudioError, options.updateCardError),
     [options.regenerateAudioError, options.updateCardError]

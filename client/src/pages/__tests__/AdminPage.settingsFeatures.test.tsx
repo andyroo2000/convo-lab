@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { AUTH_SESSION_EXPIRED_EVENT } from '../../lib/authSession';
 
 import {
@@ -175,8 +175,9 @@ describe('AdminPage settingsFeatures', () => {
     fireEvent.click(dialoguesToggle);
     await waitFor(() => expect(resolvePatch).toBeDefined());
 
-    fireEvent.click(screen.getByRole('link', { name: 'Users' }));
-    fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    const sections = within(screen.getByLabelText('Admin sections'));
+    fireEvent.click(sections.getByText('Users', { selector: 'a' }));
+    fireEvent.click(sections.getByText('Settings', { selector: 'a' }));
 
     const refreshedDialoguesToggle = await screen.findByLabelText('Toggle Study and Flashcards');
     await waitFor(() => {

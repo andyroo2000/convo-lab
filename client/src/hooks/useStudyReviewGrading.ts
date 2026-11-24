@@ -7,6 +7,10 @@ import {
 } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
+import {
+  useStudyGradeConfirmation,
+  type StudyGradeConfirmation,
+} from './useStudyGradeConfirmation';
 import type { StudySessionGrade } from '../components/study/studySessionWrapUpModel';
 import {
   getLessonCardsAfterAgain,
@@ -29,6 +33,7 @@ type SubmissionDependencies = Omit<
 >;
 
 interface StudyReviewGradingOptions extends SubmissionDependencies {
+  acceptingGrades: boolean;
   cardStartedAtRef: MutableRefObject<number>;
   captureUndoSnapshot: () => StudyUndoSnapshot;
   currentCard: StudyCardSummary | null;
@@ -111,7 +116,18 @@ const submitReviewGrade = async (
   });
 };
 
-const gradeCurrentCard = async (options: StudyReviewGradingOptions, grade: StudySessionGrade) => {
+const afterGradeConfirmation = async (
+  confirmation: StudyGradeConfirmation | undefined,
+  apply: () => void
+) => {
+  if (!confirmation || (await confirmation.isCurrentAfterDelay())) apply();
+};
+
+const gradeCurrentCard = async (
+  options: StudyReviewGradingOptions,
+  grade: StudySessionGrade,
+  confirmation?: StudyGradeConfirmation
+) => {
   const { currentCard } = options;
   if (
     isReviewSubmissionBlocked({
@@ -128,14 +144,20 @@ const gradeCurrentCard = async (options: StudyReviewGradingOptions, grade: Study
   if (!currentCard) return;
 
   if (options.practiceMode) {
-    gradePracticeCard(options, currentCard, grade);
+    await afterGradeConfirmation(confirmation, () =>
+      gradePracticeCard(options, currentCard, grade)
+    );
     return;
   }
   if (options.sessionKind === 'lessons' && grade === 'again') {
-    repeatLessonCard(options, currentCard);
+    await afterGradeConfirmation(confirmation, () => repeatLessonCard(options, currentCard));
     return;
   }
-  await submitReviewGrade(options, currentCard, grade);
+  const submitReview = confirmation
+    ? (request: Parameters<typeof options.submitReview>[0]) =>
+        confirmation.holdResult(options.submitReview(request))
+    : options.submitReview;
+  await submitReviewGrade({ ...options, submitReview }, currentCard, grade);
 };
 
 const retryReviewGrade = async (options: StudyReviewGradingOptions) => {
@@ -149,13 +171,18 @@ const useStudyReviewGrading = (options: StudyReviewGradingOptions) => {
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
+  const { selectedGrade, confirm } = useStudyGradeConfirmation(
+    options.acceptingGrades,
+    options.currentCard?.id
+  );
   const handleGrade = useCallback(
-    (grade: StudySessionGrade) => gradeCurrentCard(optionsRef.current, grade),
-    []
+    (grade: StudySessionGrade) =>
+      confirm(grade, (confirmation) => gradeCurrentCard(optionsRef.current, grade, confirmation)),
+    [confirm]
   );
   const retryPendingReview = useCallback(() => retryReviewGrade(optionsRef.current), []);
 
-  return { handleGrade, retryPendingReview };
+  return { handleGrade, retryPendingReview, selectedGrade };
 };
 
 export default useStudyReviewGrading;

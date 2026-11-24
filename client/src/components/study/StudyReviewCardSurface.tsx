@@ -18,6 +18,7 @@ interface StudyReviewCardSurfaceProps {
   masteryAnimationActive: boolean;
   onDelete: () => void;
   onRegenerateImage: StudyReviewSession['regenerateCurrentCardImage'];
+  selectedGrade: StudySessionGrade | null;
   onGrade: (grade: StudySessionGrade) => Promise<void>;
   onRegenerateAudio: (payload: {
     answerAudioVoiceId: string | null;
@@ -166,6 +167,7 @@ const isGradeDisabled = ({
 const StudyGradeTray = ({
   masteryAnimationActive,
   onGrade,
+  selectedGrade,
   reviewBusy,
   runBackgroundTask,
   sessionLoading,
@@ -175,6 +177,7 @@ const StudyGradeTray = ({
   StudyReviewCardSurfaceProps,
   | 'masteryAnimationActive'
   | 'onGrade'
+  | 'selectedGrade'
   | 'reviewBusy'
   | 'runBackgroundTask'
   | 'sessionLoading'
@@ -190,6 +193,7 @@ const StudyGradeTray = ({
     >
       <div data-testid="study-grade-tray-inner" className="mx-auto max-w-3xl">
         <StudyGradeButtons
+          selectedGrade={selectedGrade}
           disabled={isGradeDisabled({
             masteryAnimationActive,
             reviewBusy,

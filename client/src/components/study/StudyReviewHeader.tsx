@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
-import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface StudyReviewHeaderProps {
-  progress: number;
+  progress: { completed: number; total: number };
   counts: {
     failedDue: number;
     reviewRemaining: number;
@@ -12,6 +11,7 @@ interface StudyReviewHeaderProps {
   actions?: ReactNode;
   onExit: () => void;
   exitLabel?: string;
+  exitDisabled?: boolean;
 }
 
 const StudyReviewHeader = ({
@@ -20,6 +20,7 @@ const StudyReviewHeader = ({
   actions,
   onExit,
   exitLabel,
+  exitDisabled,
 }: StudyReviewHeaderProps) => {
   const { t } = useTranslation('study');
   const metrics = [
@@ -38,8 +39,7 @@ const StudyReviewHeader = ({
 
   return (
     <header className="study-session-toolbar" data-testid="study-review-header">
-      <button type="button" onClick={onExit} className="study-session-exit">
-        <ChevronLeft size={18} aria-hidden="true" />
+      <button type="button" onClick={onExit} disabled={exitDisabled} className="study-session-exit">
         {exitLabel ?? t('reviewHeader.exit')}
       </button>
       <div className="sr-only" data-testid="study-review-metrics">
@@ -64,23 +64,23 @@ const StudyReviewHeader = ({
           ))}
         </div>
       </div>
-      <div
-        className="sr-only"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(progress * 100)}
-        aria-label={t('reviewHeader.progress')}
-      >
-        <div
-          className="h-full rounded-full bg-emerald-600 transition-[width] duration-300"
-          style={{ width: `${String(progress * 100)}%` }}
-        />
-      </div>
-      <span className="study-session-position" aria-hidden="true">
-        {Math.round(progress * 100)}%
-      </span>
       <div className="ml-auto">{actions}</div>
+      {progress.total > 0 && (
+        <div className="study-session-progress">
+          <div
+            className="study-session-progress-track"
+            role="progressbar"
+            aria-label={t('reviewHeader.progress')}
+            aria-valuemin={0}
+            aria-valuemax={progress.total}
+            aria-valuenow={progress.completed}
+            aria-valuetext={t('reviewHeader.completed', progress)}
+          >
+            <div style={{ width: `${String((100 * progress.completed) / progress.total)}%` }} />
+          </div>
+          <span aria-hidden="true">{t('reviewHeader.completed', progress)}</span>
+        </div>
+      )}
     </header>
   );
 };

@@ -250,7 +250,9 @@ describe('StudyPage overview and lessons', () => {
     await userEvent.click(screen.getByRole('button', { name: /Good/ }));
 
     expect(
-      within(screen.getByTestId('mastery-feedback-lane')).getByTestId('mastery-animation-stub')
+      within(await screen.findByTestId('mastery-feedback-lane')).getByTestId(
+        'mastery-animation-stub'
+      )
     ).toBeInTheDocument();
     expect(screen.getByTestId('study-focus-card-scroll')).toBeInTheDocument();
     expect(screen.queryByText('Lesson complete')).not.toBeInTheDocument();

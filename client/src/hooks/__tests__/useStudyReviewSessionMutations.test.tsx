@@ -267,7 +267,7 @@ describe('useStudyReviewSession mutations', () => {
     });
     act(() => result.current.setMasteryAnimation(null));
     expect(result.current.currentCard?.id).toBe(baseCardTwo.id);
-    expect(result.current.sessionProgress).toBeGreaterThan(0);
+    expect(result.current.sessionProgress).toEqual({ completed: 1, total: 2 });
 
     act(() => result.current.revealCurrentCard());
     await act(async () => {
@@ -277,7 +277,7 @@ describe('useStudyReviewSession mutations', () => {
     expect(result.current.currentCard?.id).toBe(replacementCard.id);
     expect(result.current.revealed).toBe(false);
     expect(result.current.sessionCounts.reviewRemaining).toBe(1);
-    expect(result.current.sessionProgress).toBe(0);
+    expect(result.current.sessionProgress).toEqual({ completed: 0, total: 1 });
     expect(result.current.reviewConflictRecovered).toBe(true);
   });
 

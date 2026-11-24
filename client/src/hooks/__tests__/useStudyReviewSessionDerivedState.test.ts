@@ -40,42 +40,32 @@ describe('deriveStudySessionCounts', () => {
 });
 
 describe('calculateStudySessionProgress', () => {
-  it('tracks practice completion from the initial practice queue', () => {
-    expect(
-      calculateStudySessionProgress({
-        answeredCount: 0,
-        cardCount: 10,
-        remainingCardCount: 3,
-        practiceComplete: false,
-        practiceInitialCount: 4,
-        practiceMode: true,
-      })
-    ).toBe(0.25);
+  const session = {
+    cards: [makeCard('again', 'learning')],
+    overview: { dueCount: 10, failedDueCount: 2 },
+  } as Parameters<typeof calculateStudySessionProgress>[0]['session'];
+  const options = {
+    session,
+    answeredCardIds: ['done', 'done', 'again'],
+    practiceCards: null,
+    sessionCardCount: 1,
+    sessionKind: 'reviews' as const,
+    practiceInitialCount: 0,
+  };
+  it('includes due cards beyond the loaded batch and counts each finished card once', () => {
+    expect(calculateStudySessionProgress(options)).toEqual({ completed: 1, total: 13 });
   });
-
-  it('caps an active review session below complete', () => {
+  it('uses the current lesson or practice queue size for those modes', () => {
     expect(
-      calculateStudySessionProgress({
-        answeredCount: 10,
-        cardCount: 10,
-        remainingCardCount: 1,
-        practiceComplete: false,
-        practiceInitialCount: 0,
-        practiceMode: false,
-      })
-    ).toBe(0.99);
+      calculateStudySessionProgress({ ...options, sessionKind: 'lessons', sessionCardCount: 4 })
+    ).toEqual({ completed: 3, total: 4 });
+    expect(
+      calculateStudySessionProgress({ ...options, practiceInitialCount: 2, practiceCards: [] })
+    ).toEqual({ completed: 2, total: 2 });
   });
-
-  it('marks an emptied review queue complete', () => {
+  it('starts at zero while there is no session', () => {
     expect(
-      calculateStudySessionProgress({
-        answeredCount: 10,
-        cardCount: 10,
-        remainingCardCount: 0,
-        practiceComplete: false,
-        practiceInitialCount: 0,
-        practiceMode: false,
-      })
-    ).toBe(1);
+      calculateStudySessionProgress({ ...options, session: null, answeredCardIds: [] })
+    ).toEqual({ completed: 0, total: 0 });
   });
 });

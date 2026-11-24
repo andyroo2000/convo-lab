@@ -76,7 +76,7 @@ describe('StudyPage editing and session actions', () => {
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
     });
-    expect(screen.getByText(/Nice work/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Nice work/i)).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'z', metaKey: true });
 
@@ -498,8 +498,11 @@ describe('StudyPage editing and session actions', () => {
     renderStudyPage();
     await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'End session' }));
+    const grade = screen.getByRole('button', { name: 'Good' });
+    await userEvent.click(grade);
+    expect(grade).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'End session' })).toBeEnabled());
+    await userEvent.click(screen.getByRole('button', { name: 'End session' }));
 
     expect(await screen.findByText('Nice work')).toBeInTheDocument();
     expect(screen.getByText('Here’s what you reviewed this session.')).toBeInTheDocument();

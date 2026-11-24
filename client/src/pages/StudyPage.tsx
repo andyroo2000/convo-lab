@@ -10,6 +10,8 @@ import StudyFocusSessionStatus, {
 import MasteryReviewAnimation from '../components/study/MasteryReviewAnimation';
 import { masteryReviewAnnouncementKind } from '../components/study/studyMastery';
 import StudyOverviewDashboard from '../components/study/StudyOverviewDashboard';
+import { StudyReplayHost, StudyReplayMount } from '../components/study/studyReplayContext';
+import StudySessionReplay from '../components/study/StudySessionReplay';
 import StudyReviewActions from '../components/study/StudyReviewActions';
 import StudyReviewCardSurface from '../components/study/StudyReviewCardSurface';
 import StudyReviewHeader from '../components/study/StudyReviewHeader';
@@ -190,6 +192,11 @@ const showReviewActions = (reviewSession: StudyReviewSession) => {
   return !reviewSession.practiceMode;
 };
 
+const isQuizSurfaceVisible = (reviewSession: StudyReviewSession) => {
+  if (reviewSession.lessonPhase === 'quiz') return true;
+  return reviewSession.masteryAnimation !== null;
+};
+
 const StudyFocusHeader = ({
   navigate,
   reviewSession,
@@ -206,14 +213,27 @@ const StudyFocusHeader = ({
       progress={reviewSession.sessionProgress}
       counts={reviewSession.sessionCounts}
       actions={
-        showReviewActions(reviewSession) ? (
-          <StudyReviewActionButtons
-            navigate={navigate}
-            reviewSession={reviewSession}
-            runBackgroundTask={runBackgroundTask}
-          />
-        ) : null
+        <div className="flex items-center">
+          {showReviewActions(reviewSession) ? (
+            <StudyReviewActionButtons
+              navigate={navigate}
+              reviewSession={reviewSession}
+              runBackgroundTask={runBackgroundTask}
+            />
+          ) : null}
+          {reviewSession.currentCard &&
+            isQuizSurfaceVisible(reviewSession) &&
+            !reviewSession.editing &&
+            !reviewSession.masteryAnimation && (
+              <StudySessionReplay
+                card={reviewSession.currentCard}
+                revealed={reviewSession.revealed}
+                reveal={reviewSession.revealCurrentCard}
+              />
+            )}
+        </div>
       }
+      exitDisabled={Boolean(reviewSession.selectedGrade)}
       onExit={reviewSession.endReviewSession}
       exitLabel={reviewSession.practiceMode ? t('practice.back') : undefined}
     />
@@ -333,6 +353,7 @@ const StudyFocusedCard = ({
       editing={reviewSession.editing}
       masteryAnimationActive={Boolean(reviewSession.masteryAnimation)}
       onDelete={onDelete}
+      selectedGrade={reviewSession.selectedGrade}
       onGrade={reviewSession.handleGrade}
       onRegenerateAudio={reviewSession.regenerateCurrentCardAudio}
       onRegenerateImage={reviewSession.regenerateCurrentCardImage}
@@ -406,11 +427,6 @@ const isDisplayedCardRevealed = (reviewSession: StudyReviewSession) => {
   return reviewSession.revealed;
 };
 
-const isQuizSurfaceVisible = (reviewSession: StudyReviewSession) => {
-  if (reviewSession.lessonPhase === 'quiz') return true;
-  return reviewSession.masteryAnimation !== null;
-};
-
 const StudyFocusExperience = ({
   capabilitiesQuery,
   isDeleteConfirmOpen,
@@ -430,6 +446,7 @@ const StudyFocusExperience = ({
   reviewSession: StudyReviewSession;
   runBackgroundTask: BackgroundTaskRunner;
 }) => {
+  const [replayHost, setReplayHost] = useState<HTMLDivElement | null>(null);
   const showGradeTray = isGradeTrayVisible(reviewSession);
   const displayedCard = reviewSession.masteryAnimation?.card ?? reviewSession.currentCard;
   const displayedCardIsRevealed = isDisplayedCardRevealed(reviewSession);
@@ -442,55 +459,59 @@ const StudyFocusExperience = ({
         className={`study-washi-backdrop ${sessionFinished ? 'study-washi-complete' : 'fixed inset-0 z-[60] overflow-hidden'}`}
         data-study-session-active={!sessionFinished}
       >
-        <section className="study-washi-viewport">
-          <div
-            data-testid="study-focus-shell"
-            className="study-washi-session study-focus-shell relative mx-auto flex min-h-0 max-w-7xl flex-col overflow-x-hidden"
-          >
-            <StudyCapabilitiesError
-              isError={capabilitiesQuery.isError}
-              isRetrying={capabilitiesQuery.isFetching}
-              onRetry={() => capabilitiesQuery.refetch().catch(() => undefined)}
-            />
-            <StudyFocusHeader
-              navigate={navigate}
-              reviewSession={reviewSession}
-              runBackgroundTask={runBackgroundTask}
-            />
-            <StudyPracticeBanner reviewSession={reviewSession} />
-            {showQuizSurface && reviewSession.masteryAnimation ? (
+        <StudyReplayMount.Provider value={setReplayHost}>
+          <StudyReplayHost.Provider value={replayHost}>
+            <section className="study-washi-viewport">
               <div
-                className="study-mastery-overlay mastery-feedback-lane"
-                data-testid="mastery-feedback-lane"
+                data-testid="study-focus-shell"
+                className="study-washi-session study-focus-shell relative mx-auto flex min-h-0 max-w-7xl flex-col overflow-x-hidden"
               >
-                <StudyMasteryFeedback reviewSession={reviewSession} />
+                <StudyCapabilitiesError
+                  isError={capabilitiesQuery.isError}
+                  isRetrying={capabilitiesQuery.isFetching}
+                  onRetry={() => capabilitiesQuery.refetch().catch(() => undefined)}
+                />
+                <StudyFocusHeader
+                  navigate={navigate}
+                  reviewSession={reviewSession}
+                  runBackgroundTask={runBackgroundTask}
+                />
+                <StudyPracticeBanner reviewSession={reviewSession} />
+                {showQuizSurface && reviewSession.masteryAnimation ? (
+                  <div
+                    className="study-mastery-overlay mastery-feedback-lane"
+                    data-testid="mastery-feedback-lane"
+                  >
+                    <StudyMasteryFeedback reviewSession={reviewSession} />
+                  </div>
+                ) : null}
+                <StudyLessonContent
+                  lessonPreview={lessonPreview}
+                  reviewSession={reviewSession}
+                  runBackgroundTask={runBackgroundTask}
+                />
+                <StudyFocusSessionStatus
+                  displayedCard={displayedCard}
+                  masteryAnimationActive={Boolean(reviewSession.masteryAnimation)}
+                  onFinishReview={reviewSession.finishReviewSession}
+                  reviewSession={reviewSession}
+                  runBackgroundTask={runBackgroundTask}
+                  showQuizSurface={showQuizSurface}
+                />
+                <StudyFocusedCard
+                  cardAuthoringCapabilities={capabilitiesQuery.data?.cardAuthoring}
+                  displayedCard={displayedCard}
+                  displayedCardIsRevealed={displayedCardIsRevealed}
+                  onDelete={onOpenDeleteConfirm}
+                  reviewSession={reviewSession}
+                  runBackgroundTask={runBackgroundTask}
+                  showGradeTray={showGradeTray}
+                  showQuizSurface={showQuizSurface}
+                />
               </div>
-            ) : null}
-            <StudyLessonContent
-              lessonPreview={lessonPreview}
-              reviewSession={reviewSession}
-              runBackgroundTask={runBackgroundTask}
-            />
-            <StudyFocusSessionStatus
-              displayedCard={displayedCard}
-              masteryAnimationActive={Boolean(reviewSession.masteryAnimation)}
-              onFinishReview={reviewSession.finishReviewSession}
-              reviewSession={reviewSession}
-              runBackgroundTask={runBackgroundTask}
-              showQuizSurface={showQuizSurface}
-            />
-            <StudyFocusedCard
-              cardAuthoringCapabilities={capabilitiesQuery.data?.cardAuthoring}
-              displayedCard={displayedCard}
-              displayedCardIsRevealed={displayedCardIsRevealed}
-              onDelete={onOpenDeleteConfirm}
-              reviewSession={reviewSession}
-              runBackgroundTask={runBackgroundTask}
-              showGradeTray={showGradeTray}
-              showQuizSurface={showQuizSurface}
-            />
-          </div>
-        </section>
+            </section>
+          </StudyReplayHost.Provider>
+        </StudyReplayMount.Provider>
       </div>
       <StudyDeleteConfirm
         isOpen={isDeleteConfirmOpen}
