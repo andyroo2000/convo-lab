@@ -453,7 +453,7 @@ const StudyFocusExperience = ({
         className={`study-washi-backdrop ${sessionFinished ? 'study-washi-complete' : 'fixed inset-0 z-[60] overflow-hidden'}`}
         data-study-session-active={!sessionFinished}
       >
-        <StudyReplayMount.Provider value={setReplayHost}>
+        <StudyReplayMount.Provider value={showQuizSurface ? setReplayHost : null}>
           <StudyReplayHost.Provider value={replayHost}>
             <section className="study-washi-viewport">
               <div
