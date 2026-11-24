@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { pendingBetaInvite, clearBetaInvite } from '../lib/betaInvite';
 import JournalAuthShell from '../components/common/JournalAuthShell';
 import { authApi } from '../lib/authApi';
 
 const ClaimInvitePage = () => {
   const { t } = useTranslation('auth');
-  const [inviteCode, setInviteCode] = useState('');
+  const [inviteCode, setInviteCode] = useState(pendingBetaInvite);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +29,7 @@ const ClaimInvitePage = () => {
       }
 
       // Successfully claimed invite, reload page to update auth context
+      clearBetaInvite();
       window.location.href = '/app/journal';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

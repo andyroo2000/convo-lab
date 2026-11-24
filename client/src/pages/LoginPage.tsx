@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { inviteFromSearch, rememberBetaInvite, clearBetaInvite } from '../lib/betaInvite';
 import JournalAuthShell from '../components/common/JournalAuthShell';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../lib/authApi';
@@ -200,7 +201,7 @@ const SubmitButton = ({ isLogin, loading }: SubmitButtonProps) => {
   );
 };
 
-const GoogleAuth = ({ isLogin }: AuthModeProps) => {
+const GoogleAuth = ({ isLogin, inviteCode }: AuthModeProps & { inviteCode: string }) => {
   const { t } = useTranslation(['auth']);
   const mode = isLogin ? 'login' : 'signup';
 
@@ -213,6 +214,7 @@ const GoogleAuth = ({ isLogin }: AuthModeProps) => {
       </div>
       <a
         href={authApi.googleStart}
+        onClick={() => rememberBetaInvite(inviteCode)}
         className="journal-auth-google-btn"
         data-testid="auth-google-link"
       >
@@ -241,16 +243,16 @@ const GoogleAuth = ({ isLogin }: AuthModeProps) => {
 };
 
 const LoginPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const [isLogin, setIsLogin] = useState(() => !inviteFromSearch(searchParams));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
+  const [inviteCode, setInviteCode] = useState(() => inviteFromSearch(searchParams));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, signup } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -261,6 +263,7 @@ const LoginPage = () => {
       if (isLogin) await login(email, password);
       else await signup(email, password, name, inviteCode);
 
+      clearBetaInvite();
       navigate(searchParams.get('returnUrl') || '/app/journal');
     } catch (caughtError) {
       setError(getErrorMessage(caughtError, isLogin));
@@ -294,7 +297,7 @@ const LoginPage = () => {
         )}
         <SubmitButton isLogin={isLogin} loading={loading} />
       </form>
-      <GoogleAuth isLogin={isLogin} />
+      <GoogleAuth isLogin={isLogin} inviteCode={inviteCode} />
     </JournalAuthShell>
   );
 };

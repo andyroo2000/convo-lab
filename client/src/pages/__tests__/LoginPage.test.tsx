@@ -46,8 +46,22 @@ function submitCredentials(email: string, password: string) {
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     mockLogin.mockResolvedValue(undefined);
     mockSignup.mockResolvedValue(undefined);
+  });
+
+  it('opens signup with the emailed invitation and carries it through Google sign-in', () => {
+    renderWithRouter('/login?inviteCode=WELCOME8');
+    expect(screen.getByTestId('auth-input-invite-code')).toHaveValue('WELCOME8');
+    expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Create an account');
+    fireEvent.click(screen.getByTestId('auth-google-link'));
+    expect(sessionStorage.getItem('convolab.beta-invite')).toBe('WELCOME8');
+  });
+
+  it('ignores malformed invitation query values', () => {
+    renderWithRouter('/login?inviteCode=%3Cscript%3E');
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 
   describe('Rendering', () => {
