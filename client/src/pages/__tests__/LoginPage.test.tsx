@@ -97,7 +97,7 @@ describe('LoginPage', () => {
 
       expect(screen.getByTestId('auth-google-link')).toHaveAttribute(
         'href',
-        '/api/convolab/browser/auth/google'
+        '/api/convolab/browser/auth/google?returnUrl=%2Fapp%2Fjournal'
       );
     });
 
@@ -149,13 +149,13 @@ describe('LoginPage', () => {
       });
     });
 
-    it('should navigate to study after successful login', async () => {
+    it('should navigate to Journal after successful login', async () => {
       renderWithRouter();
 
       submitCredentials('test@example.com', 'password123');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/journal');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/journal', { replace: true });
       });
     });
 
@@ -216,14 +216,14 @@ describe('LoginPage', () => {
       });
     });
 
-    it('should navigate to study after successful signup', async () => {
+    it('should navigate to Journal after successful signup', async () => {
       renderWithRouter();
 
       fillSignupDetails('John', 'INVITE');
       submitCredentials('john@example.com', 'password');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/journal');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/journal', { replace: true });
       });
     });
 
@@ -252,7 +252,7 @@ describe('LoginPage', () => {
       submitCredentials('test@example.com', 'password123');
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/journal/cards');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/journal/cards', { replace: true });
       });
     });
   });

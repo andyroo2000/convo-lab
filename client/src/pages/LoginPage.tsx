@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { inviteFromSearch, rememberBetaInvite, clearBetaInvite } from '../lib/betaInvite';
 import JournalAuthShell from '../components/common/JournalAuthShell';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../lib/authApi';
+import { safeAuthReturnUrl } from '../lib/authReturnUrl';
 
 interface AuthModeProps {
   isLogin: boolean;
@@ -201,7 +202,11 @@ const SubmitButton = ({ isLogin, loading }: SubmitButtonProps) => {
   );
 };
 
-const GoogleAuth = ({ isLogin, inviteCode }: AuthModeProps & { inviteCode: string }) => {
+const GoogleAuth = ({
+  isLogin,
+  inviteCode,
+  returnUrl,
+}: AuthModeProps & { inviteCode: string; returnUrl: string }) => {
   const { t } = useTranslation(['auth']);
   const mode = isLogin ? 'login' : 'signup';
 
@@ -213,7 +218,7 @@ const GoogleAuth = ({ isLogin, inviteCode }: AuthModeProps & { inviteCode: strin
         <div className="journal-auth-divider-line" />
       </div>
       <a
-        href={authApi.googleStart}
+        href={`${authApi.googleStart}?${new URLSearchParams({ returnUrl })}`}
         onClick={() => rememberBetaInvite(inviteCode)}
         className="journal-auth-google-btn"
         data-testid="auth-google-link"
@@ -242,7 +247,7 @@ const GoogleAuth = ({ isLogin, inviteCode }: AuthModeProps & { inviteCode: strin
   );
 };
 
-const LoginPage = () => {
+const LoginForm = ({ returnUrl }: { returnUrl: string }) => {
   const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(() => !inviteFromSearch(searchParams));
   const [email, setEmail] = useState('');
@@ -264,7 +269,7 @@ const LoginPage = () => {
       else await signup(email, password, name, inviteCode);
 
       clearBetaInvite();
-      navigate(searchParams.get('returnUrl') || '/app/journal');
+      navigate(returnUrl, { replace: true });
     } catch (caughtError) {
       setError(getErrorMessage(caughtError, isLogin));
     } finally {
@@ -297,9 +302,19 @@ const LoginPage = () => {
         )}
         <SubmitButton isLogin={isLogin} loading={loading} />
       </form>
-      <GoogleAuth isLogin={isLogin} inviteCode={inviteCode} />
+      <GoogleAuth isLogin={isLogin} inviteCode={inviteCode} returnUrl={returnUrl} />
     </JournalAuthShell>
   );
+};
+
+const LoginPage = () => {
+  const { t } = useTranslation('common');
+  const { user, loading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const returnUrl = safeAuthReturnUrl(searchParams.get('returnUrl'));
+  if (loading) return <p role="status">{t('loading')}</p>;
+  if (user) return <Navigate to={returnUrl} replace />;
+  return <LoginForm returnUrl={returnUrl} />;
 };
 
 export default LoginPage;

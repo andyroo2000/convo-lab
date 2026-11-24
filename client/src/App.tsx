@@ -312,6 +312,7 @@ const renderProtectedRoutes = () => (
     <Route path="credits" element={<CreditsPage />} />
     <Route path="admin" element={<AdminPage />} />
     <Route path="admin/:tab" element={<AdminPage />} />
+    <Route path="*" element={<NotFoundPage />} />
     {renderStudyRoutes()}
     <Route element={<SectionFeatureBoundary feature="flashcardsEnabled" />}>
       <Route path="playback/:episodeId" element={<PlaybackPage />} />
