@@ -38,7 +38,6 @@ vi.mock('../hooks/useDemo', () => ({ useIsDemo: () => false }));
 vi.mock('../features/readings/useReadings', () => ({ default: () => ({ data: [] }) }));
 vi.mock('../pages/LandingPage', () => ({ default: () => <h1>Journal landing</h1> }));
 vi.mock('../pages/LoginPage', () => ({ default: () => <h1>Sign in</h1> }));
-vi.mock('../components/common/PWAInstallPrompt', () => ({ default: () => null }));
 vi.mock('../components/study/StudyFeatureBoundary', () => ({ default: () => <Outlet /> }));
 vi.mock('../pages/ToolsPage', () => ({ default: () => <h1>Public tools</h1> }));
 vi.mock('../components/common/ToolsPublicLayout', () => ({ default: () => <Outlet /> }));

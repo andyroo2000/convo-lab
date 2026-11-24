@@ -10,7 +10,6 @@ import Layout from './components/common/Layout';
 import SectionFeatureBoundary from './components/common/SectionFeatureBoundary';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
-import PWAInstallPrompt from './components/common/PWAInstallPrompt';
 import StudyFeatureBoundary from './components/study/StudyFeatureBoundary';
 import StudyImpersonationBoundary from './components/study/StudyImpersonationBoundary';
 import StudyRouteErrorBoundary from './components/study/StudyRouteErrorBoundary';
@@ -337,7 +336,6 @@ const App = () => (
         <AuthProvider>
           <LocaleProvider>
             <AudioPreviewProvider>
-              <PWAInstallPrompt />
               <Suspense fallback={<PageLoader />}>
                 <SettingsModalRoutes>
                   {renderPublicRoutes()}
