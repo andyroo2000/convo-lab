@@ -13,6 +13,7 @@ import {
 const {
   cardActionMutateAsyncMock,
   deleteStudyCardMock,
+  masteryAnimationFinishesImmediately,
   mutateAsyncMock,
   regenerateStudyAnswerAudioMock,
   startStudyIntroductionCohortLessonMock,
@@ -381,6 +382,7 @@ describe('StudyPage editing and session actions', () => {
   });
 
   it('shows the tutor summary after the last review', async () => {
+    masteryAnimationFinishesImmediately.current = false;
     const cardBefore = {
       ...baseCard,
       state: {
@@ -415,6 +417,7 @@ describe('StudyPage editing and session actions', () => {
       reviewLogId: 'review-wrap-up',
       card: {
         ...cardBefore,
+        masteryLevel: 'guru',
         state: {
           ...cardBefore.state,
           dueAt: '2026-09-02T12:00:00.000Z',
@@ -442,6 +445,14 @@ describe('StudyPage editing and session actions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Good' }));
 
+    const feedback = await screen.findByTestId('mastery-feedback-lane');
+    const tray = screen.getByTestId('study-grade-tray');
+    expect(tray).toContainElement(feedback);
+    expect(within(tray).getByRole('button', { name: 'Good' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    fireEvent.click(within(feedback).getByTestId('mastery-animation-stub'));
     expect(await screen.findByText('Nice work')).toBeInTheDocument();
     expect(screen.getByText('First-pass recall')).toBeInTheDocument();
     expect(screen.queryByText(/Ranked using/)).not.toBeInTheDocument();

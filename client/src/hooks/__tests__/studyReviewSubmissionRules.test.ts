@@ -122,7 +122,7 @@ describe('review result presentation', () => {
       label: 'after',
       fromLevel: 'apprentice',
       toLevel: 'guru',
-      passed: true,
+      grade: 'good',
     });
   });
 });

@@ -137,20 +137,66 @@
   text-align: left;
   font-size: 16px;
 }
-.study-washi-session .study-mastery-overlay {
+.study-mastery-label-position {
   position: absolute;
-  top: 58px;
-  left: 16px;
-  right: 16px;
-  z-index: 25;
-  flex: none;
-  border-radius: 16px;
-  background: #f3eddf;
-  box-shadow: 0 4px 20px #22382120;
+  inset-inline: 0;
+  bottom: 100%;
+  text-align: center;
   pointer-events: none;
 }
-.study-mastery-overlay .mastery-promotion-animation {
-  pointer-events: none;
+.study-mastery-label {
+  display: inline-block;
+  font:
+    600 1.3rem/1.2 'Crimson Pro',
+    Georgia,
+    serif;
+  text-transform: capitalize;
+  animation-duration: var(--mastery-duration);
+  animation-fill-mode: both;
+  animation-timing-function: ease-in-out;
+}
+.study-mastery-promotion {
+  color: #356b40;
+  animation-name: study-mastery-rise;
+}
+.study-mastery-demotion {
+  color: #a13e37;
+  animation-name: study-mastery-fade;
+}
+@keyframes study-mastery-rise {
+  0%,
+  53% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-28px);
+  }
+}
+@keyframes study-mastery-fade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  18%,
+  76% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .study-mastery-promotion {
+    animation-name: study-mastery-stationary;
+  }
+}
+@keyframes study-mastery-stationary {
+  0%,
+  53% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 .study-washi-scroll {
   padding: 12px 24px 90px;
