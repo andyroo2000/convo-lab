@@ -6,6 +6,7 @@ import { getBetaRequests, approveBetaRequest } from '../../../lib/betaRequestsAp
 vi.mock('../../../lib/betaRequestsApi', () => ({
   getBetaRequests: vi.fn(),
   approveBetaRequest: vi.fn(),
+  createBetaInvitation: vi.fn(),
 }));
 const record = {
   id: 'request-1',

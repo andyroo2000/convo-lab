@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
+import { JsonRequestError } from '../lib/apiClient';
 import {
   approveBetaRequest,
+  createBetaInvitation,
   getBetaRequests,
+  type BetaRequest,
   type BetaRequestFilter,
   type BetaRequestPage,
 } from '../lib/betaRequestsApi';
 
 const message = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
+const isDeliveryFailure = (error: unknown) =>
+  error instanceof JsonRequestError && error.status === 503;
 
 export default function useBetaRequests() {
   const [filter, setFilter] = useState<BetaRequestFilter>('pending');
@@ -37,16 +42,34 @@ export default function useBetaRequests() {
       });
     return () => controller.abort();
   }, [filter, page, revision]);
-  const approve = async (id: string) => {
-    if (pending.current) return;
+  const sendInvitation = async (
+    id: string,
+    operation: () => Promise<BetaRequest>,
+    directInvite = false
+  ) => {
+    if (pending.current) return false;
     pending.current = true;
     setSending(id);
     setNotice('');
     try {
-      const sent = await approveBetaRequest(id);
-      setNotice(`Invitation sent to ${sent.email}.`);
+      const sent = await operation();
+      setNotice(
+        directInvite
+          ? `Invitation for ${sent.email} is in Invited.`
+          : `Invitation sent to ${sent.email}.`
+      );
+      if (directInvite) {
+        setFilter('invited');
+        setPage(1);
+      }
+      return true;
     } catch (caught) {
       setNotice(message(caught, 'Could not send the invitation. Please retry.'));
+      if (directInvite && isDeliveryFailure(caught)) {
+        setFilter('pending');
+        setPage(1);
+      }
+      return false;
     } finally {
       pending.current = false;
       setSending(null);
@@ -67,7 +90,9 @@ export default function useBetaRequests() {
     error,
     notice,
     sending,
-    approve,
+    approve: (id: string) => sendInvitation(id, () => approveBetaRequest(id)),
+    invite: (email: string) =>
+      sendInvitation('direct-invite', () => createBetaInvitation(email), true),
     refresh: () => setRevision((value) => value + 1),
   };
 }
