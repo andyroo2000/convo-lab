@@ -308,10 +308,11 @@ const LoginForm = ({ returnUrl }: { returnUrl: string }) => {
 };
 
 const LoginPage = () => {
+  const { t } = useTranslation('common');
   const { user, loading } = useAuth();
   const [searchParams] = useSearchParams();
   const returnUrl = safeAuthReturnUrl(searchParams.get('returnUrl'));
-  if (loading) return <p role="status">Loading…</p>;
+  if (loading) return <p role="status">{t('loading')}</p>;
   if (user) return <Navigate to={returnUrl} replace />;
   return <LoginForm returnUrl={returnUrl} />;
 };

@@ -42,7 +42,7 @@ describe('login routing', () => {
   it('waits for the session check before showing the sign-in form', () => {
     auth.loading = true;
     renderLogin();
-    expect(screen.getByRole('status')).toHaveTextContent('Loading');
+    expect(screen.getByRole('status')).toBeVisible();
     expect(screen.queryByTestId('auth-input-password')).not.toBeInTheDocument();
   });
 
