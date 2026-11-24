@@ -137,21 +137,15 @@
   "reviewHeader": {
     "completed": "{{completed}} of {{total}} complete",
     "replay": "Replay",
-    "hearAnswer": "Hear answer",
     "exit": "End session",
     "progress": "Review session progress",
-    "failed": "Failed",
-    "queued": "Queued",
-    "new": "New",
-    "queueCounts": "{{failed}} failed, {{remaining}} remaining",
-    "counts": "{{failed}} failed, {{queued}} queued, {{new}} new"
+    "queueCounts": "{{failed}} failed, {{remaining}} remaining"
   },
   "gradeButtons": {
     "again": "Again",
     "hard": "Hard",
     "good": "Good",
-    "easy": "Easy",
-    "key": "Key {{index}}"
+    "easy": "Easy"
   },
   "overview": {
     "cards": "Cards",

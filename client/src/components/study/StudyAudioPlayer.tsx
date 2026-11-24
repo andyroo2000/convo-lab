@@ -24,6 +24,7 @@ export interface AudioPlayerHandle {
 }
 
 interface StudyAudioPlayerProps {
+  // Only front-face players declare a prompt kind. Answer replay lives in the session header.
   promptKind?: 'listening' | 'other';
   filename?: string | null;
   label: string;

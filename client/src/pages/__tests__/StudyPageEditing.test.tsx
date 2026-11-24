@@ -83,6 +83,7 @@ describe('StudyPage editing and session actions', () => {
     await waitFor(() => {
       expect(undoStudyReviewMock).toHaveBeenCalledWith('review-1');
     });
+    expect(screen.getByRole('group', { name: '0 failed, 1 remaining' })).toBeInTheDocument();
     expect(screen.getByText('company')).toBeInTheDocument();
     expect(screen.queryByText(/Nice work/i)).not.toBeInTheDocument();
   });
@@ -448,6 +449,9 @@ describe('StudyPage editing and session actions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Practice 1' }));
     expect(screen.getByText('Practice only')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Again' }));
+    expect(await screen.findByRole('group', { name: '1 failed, 0 remaining' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: 'Good' }));
 
     expect(await screen.findByText('Practice complete')).toBeInTheDocument();
@@ -468,7 +472,7 @@ describe('StudyPage editing and session actions', () => {
     };
     startStudySessionMock.mockResolvedValueOnce({
       overview: {
-        dueCount: 2,
+        dueCount: 27,
         failedCount: 0,
         newCount: 0,
         learningCount: 0,
@@ -485,7 +489,7 @@ describe('StudyPage editing and session actions', () => {
         state: { ...baseCard.state, dueAt: '2026-09-25T12:00:00.000Z' },
       },
       overview: {
-        dueCount: 1,
+        dueCount: 26,
         failedCount: 0,
         newCount: 0,
         learningCount: 0,
@@ -498,10 +502,14 @@ describe('StudyPage editing and session actions', () => {
     renderStudyPage();
     await userEvent.click(screen.getByRole('button', { name: 'Start review' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    expect(screen.getByRole('group', { name: '0 failed, 27 remaining' })).toBeInTheDocument();
     const grade = screen.getByRole('button', { name: 'Good' });
     await userEvent.click(grade);
     expect(grade).toHaveAttribute('aria-pressed', 'true');
     await waitFor(() => expect(screen.getByRole('button', { name: 'End session' })).toBeEnabled());
+    expect(
+      await screen.findByRole('group', { name: '0 failed, 26 remaining' })
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'End session' }));
 
     expect(await screen.findByText('Nice work')).toBeInTheDocument();

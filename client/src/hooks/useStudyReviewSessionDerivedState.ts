@@ -77,7 +77,9 @@ export const calculateStudySessionProgress = (
     | 'session'
     | 'sessionCardCount'
     | 'sessionKind'
-  >
+    | 'sessionReviewRecords'
+  >,
+  counts: StudySessionCounts
 ) => {
   if (options.practiceCards) {
     return batchProgress(options.practiceInitialCount, options.practiceCards.length);
@@ -86,12 +88,13 @@ export const calculateStudySessionProgress = (
   if (options.sessionKind === 'lessons') {
     return batchProgress(options.sessionCardCount, cards.length);
   }
-  // A failed card that is still due belongs on the remaining side of the bar.
   const completedIds = new Set(options.answeredCardIds);
+  options.sessionReviewRecords.forEach(({ grade, cardBefore }) => {
+    if (grade === 'again') completedIds.delete(cardBefore.id);
+    else completedIds.add(cardBefore.id);
+  });
   cards.forEach((card) => completedIds.delete(card.id));
-  const overview = options.session?.overview;
-  const due = (overview?.dueCount ?? 0) + (overview?.failedDueCount ?? 0);
-  const remaining = Math.max(due, cards.length);
+  const remaining = counts.failedDue + counts.reviewRemaining + counts.newRemaining;
   return { completed: completedIds.size, total: completedIds.size + remaining };
 };
 
@@ -109,6 +112,7 @@ const getMutationErrorMessage = (audioError: unknown, updateError: unknown) => {
   );
 };
 
+// Older overviews report only currently due retries. Newer ones include delayed retries.
 const failedQueueCount = (overview?: StudySessionResponse['overview']) =>
   overview?.failedCount ?? overview?.failedDueCount ?? 0;
 
@@ -179,6 +183,46 @@ const usePracticePresentationState = ({
   };
 };
 
+const useStudySessionProgress = (
+  options: UseStudyReviewSessionDerivedStateOptions,
+  sessionCounts: StudySessionCounts
+) => {
+  const {
+    answeredCardIds,
+    practiceCards,
+    practiceInitialCount,
+    session,
+    sessionCardCount,
+    sessionKind,
+    sessionReviewRecords,
+  } = options;
+  return useMemo(
+    () =>
+      calculateStudySessionProgress(
+        {
+          answeredCardIds,
+          practiceCards,
+          practiceInitialCount,
+          session,
+          sessionCardCount,
+          sessionKind,
+          sessionReviewRecords,
+        },
+        sessionCounts
+      ),
+    [
+      answeredCardIds,
+      practiceCards,
+      practiceInitialCount,
+      session,
+      sessionCardCount,
+      sessionKind,
+      sessionReviewRecords,
+      sessionCounts,
+    ]
+  );
+};
+
 const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerivedStateOptions) => {
   const practice = usePracticePresentationState(options);
   const { cards, practiceMode } = practice;
@@ -217,7 +261,7 @@ const useStudyReviewSessionDerivedState = (options: UseStudyReviewSessionDerived
     options.sessionKind,
     options.session?.overview,
   ]);
-  const sessionProgress = calculateStudySessionProgress(options);
+  const sessionProgress = useStudySessionProgress(options, sessionCounts);
   const updateCardErrorMessage = useMemo(
     () => getMutationErrorMessage(options.regenerateAudioError, options.updateCardError),
     [options.regenerateAudioError, options.updateCardError]

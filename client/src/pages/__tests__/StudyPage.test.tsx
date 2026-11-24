@@ -247,6 +247,10 @@ describe('StudyPage overview and lessons', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Start lesson' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Start quiz' }));
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Again' }));
+    expect(await screen.findByRole('group', { name: '1 failed, 0 remaining' })).toBeInTheDocument();
+    expect(mutateAsyncMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(screen.getByRole('button', { name: /Good/ }));
 
     expect(

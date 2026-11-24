@@ -33,6 +33,7 @@ const useExitPracticeMode = (
     setCurrentIndex,
     setPracticeCards,
     setPracticeInitialCount,
+    setRetriedBatchIds,
     setRevealed,
     setSessionError,
   } = state;
@@ -40,6 +41,7 @@ const useExitPracticeMode = (
     stopAllAudio();
     resetStudyAudioAutoplay();
     setPracticeCards(null);
+    setRetriedBatchIds(new Set());
     setPracticeInitialCount(0);
     setCurrentIndex(0);
     setRevealed(false);
@@ -49,6 +51,7 @@ const useExitPracticeMode = (
     setCurrentIndex,
     setPracticeCards,
     setPracticeInitialCount,
+    setRetriedBatchIds,
     setRevealed,
     setSessionError,
     stopAllAudio,
