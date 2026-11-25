@@ -8,6 +8,20 @@ const estimateReviewMinutes = (reviewCount: number) => {
   return Math.max(1, Math.ceil((reviewCount * REVIEW_ESTIMATE_SECONDS_PER_CARD) / 60));
 };
 
+function durationUnit(value: number, unit: string, locale: string) {
+  return new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: 'long' }).format(value);
+}
+
+export function reviewEstimateLabel(minutes: number, locale: string) {
+  if (minutes < 60) {
+    return { key: 'overview.reviewDuration', duration: durationUnit(minutes, 'minute', locale) };
+  }
+  const hours = Math.round(minutes / 30) / 2;
+  if (hours === 1) return { key: 'overview.reviewHour' };
+  if (hours === 1.5) return { key: 'overview.reviewHourAndHalf' };
+  return { key: 'overview.reviewDuration', duration: durationUnit(hours, 'hour', locale) };
+}
+
 export const calendarDayLabel = (startsAt: Date, locale: string, now = new Date()) => {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const eventDay = new Date(startsAt.getFullYear(), startsAt.getMonth(), startsAt.getDate());

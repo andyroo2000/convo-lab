@@ -2,7 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import estimateReviewMinutes, { calendarDayLabel } from '../../../utils/studyTodayPresentation';
+import estimateReviewMinutes, {
+  calendarDayLabel,
+  reviewEstimateLabel,
+} from '../../../utils/studyTodayPresentation';
 import StudyOverviewDashboard from '../StudyOverviewDashboard';
 
 vi.mock('../../../hooks/useStudyPiles', () => ({
@@ -53,6 +56,14 @@ describe('StudyOverviewDashboard', () => {
     expect(estimateReviewMinutes(0)).toBeNull();
   });
 
+  it('formats short estimates in minutes and rounds longer estimates to half hours', () => {
+    expect(reviewEstimateLabel(1, 'en').duration).toBe('1 minute');
+    expect(reviewEstimateLabel(59, 'en').duration).toBe('59 minutes');
+    expect(reviewEstimateLabel(60, 'en').key).toBe('overview.reviewHour');
+    expect(reviewEstimateLabel(100, 'en').key).toBe('overview.reviewHourAndHalf');
+    expect(reviewEstimateLabel(105, 'en').duration).toBe('2 hours');
+  });
+
   it('labels calendar lessons across day boundaries', () => {
     const now = new Date(2026, 7, 24, 12);
 
@@ -69,7 +80,7 @@ describe('StudyOverviewDashboard', () => {
       <MemoryRouter>
         <StudyOverviewDashboard
           overview={overview}
-          reviewAvailableCount={14}
+          reviewAvailableCount={259}
           loading={false}
           error={null}
           onBeginReview={onBeginReview}
@@ -80,12 +91,12 @@ describe('StudyOverviewDashboard', () => {
     );
 
     expect(screen.getByRole('region', { name: 'Daily Audio' })).toBeVisible();
-    expect(screen.getByText('About 6 min')).toBeVisible();
+    expect(screen.getByText('About an hour and a half')).toBeVisible();
     expect(screen.queryByRole('link', { name: /WaniKani/ })).toBeNull();
     expect(screen.queryByText('Item spread')).toBeNull();
     const reviewsButton = screen.getByRole('button', { name: 'Start review' });
     const lessonsButton = screen.getByRole('button', { name: 'Start lesson' });
-    expect(reviewsButton).toHaveAccessibleDescription('14 cards due About 6 min');
+    expect(reviewsButton).toHaveAccessibleDescription('259 cards due About an hour and a half');
     expect(screen.getByRole('link', { name: /View queue/ })).toHaveAttribute(
       'href',
       '/app/study/cards'
