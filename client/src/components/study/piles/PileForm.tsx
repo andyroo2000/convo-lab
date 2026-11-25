@@ -76,7 +76,7 @@ const PileForm = ({ pileId, item, position = 0, onDone }: Props) => {
       <button
         type="submit"
         disabled={mutation.isPending || !title.trim()}
-        className="min-h-11 rounded bg-navy px-4 font-semibold text-white disabled:opacity-50"
+        className="min-h-11 rounded-full bg-[#386749] px-4 font-semibold text-white disabled:opacity-50"
       >
         {t(item ? 'piles.save' : 'piles.add')}
       </button>

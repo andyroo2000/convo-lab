@@ -11,6 +11,13 @@
   font-family: Inter, sans-serif;
 }
 .study-notebook {
+  --leaf-green: #376646;
+  --leaf-green-soft: #819b85;
+  --pile-detail: #53655c;
+  --pile-cover: #d8e5cd;
+  --pile-vellum: #e5edf4;
+  --pile-tab: #efecdf;
+  --pile-edge: #dfe5de;
   max-width: 66rem;
   margin: auto;
   color: var(--leaf-ink);

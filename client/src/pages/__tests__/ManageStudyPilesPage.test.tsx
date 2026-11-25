@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ManageStudyPilesPage from '../ManageStudyPilesPage';
@@ -55,6 +55,7 @@ describe('Manage piles', () => {
     await waitFor(() =>
       expect(saveStudyPile).toHaveBeenCalledWith('genki', { is_active: false }, undefined)
     );
+    fireEvent.click(screen.getByRole('button', { name: /Saved for later/ }));
     await waitFor(() =>
       expect(
         screen.getByRole('checkbox', { name: 'Include Genki II in new cards' })
@@ -63,6 +64,34 @@ describe('Manage piles', () => {
     expect(
       screen.getByRole('checkbox', { name: 'Include Chapter 20 in new cards', hidden: true })
     ).toBeChecked();
+  });
+
+  it('shows the selected shelf and discloses the source counts', async () => {
+    renderPage();
+    const saved = await screen.findByRole('button', { name: 'Saved for later (1)' });
+    fireEvent.click(saved);
+    expect(saved).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Quartet I')).toBeVisible();
+    const summary = screen.getAllByText('3 ready')[0];
+    fireEvent.click(summary);
+    expect(screen.getByText('12 remaining · 7 introduced')).toBeVisible();
+  });
+
+  it('adds a source after the existing books and returns to its saved shelf', async () => {
+    vi.mocked(saveStudyPile).mockImplementation(async (id, attributes) => {
+      catalog.piles.push({ ...book, ...attributes, id, is_active: false, chapters: [] });
+    });
+    renderPage();
+    const summary = await screen.findByText('Add a book or source');
+    fireEvent.click(summary);
+    const details = screen.getByRole('group', { name: 'Add a book or source' });
+    const form = within(details);
+    const title = await form.findByRole('textbox');
+    expect(form.getByRole('spinbutton')).toHaveValue(21);
+    fireEvent.change(title, { target: { value: 'Listening notes' } });
+    fireEvent.click(form.getByRole('button', { name: 'Add' }));
+    expect(await screen.findByText('Listening notes')).toBeVisible();
+    expect(details).not.toHaveAttribute('open');
   });
 
   it('changes an individual chapter and keeps the book enabled', async () => {

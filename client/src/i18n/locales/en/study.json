@@ -44,8 +44,7 @@
     "newCards_other": "new cards",
     "startReview": "Start review",
     "startLesson": "Start lesson",
-    "browse": "Browse cards",
-    "choosePile": "Choose a pile"
+    "browse": "Browse cards"
   },
   "title": "Study",
   "disabled": "Study is currently disabled for this environment.",
@@ -598,7 +597,12 @@
     "back": "Back to study"
   },
   "time": {
-    "tabs": { "rhythm": "Rhythm", "recap": "Recap", "mastery": "Mastery", "entries": "Entries" },
+    "tabs": {
+      "rhythm": "Rhythm",
+      "recap": "Recap",
+      "mastery": "Mastery",
+      "entries": "Entries"
+    },
     "weekTotal": "Week total",
     "bestDay": "Best day",
     "logTime": "Log time",
@@ -880,10 +884,12 @@
     "audioFailed": "Audio playback failed. Try again."
   },
   "piles": {
+    "countDetails": "{{remaining}} remaining · {{learned}} introduced",
+    "pageTitle": "Study piles",
+    "viewQueue": "View queue",
     "shelf": "Choose a pile",
     "manage": "Manage piles",
-    "shelfHint": "Pick a book for your next new cards. Reviews always stay together.",
-    "usualMix": "My usual mix",
+    "shelfHint": "Start a lesson from a single pile instead of your usual queue.",
     "learnSoon": "Learn soon",
     "uncategorized": "Uncategorized",
     "ready": "{{count}} ready",
@@ -899,10 +905,8 @@
     "parked": "Off",
     "edit": "Edit title and order",
     "chapters": "Chapters ({{count}})",
-    "chapterHint": "Only enabled chapters supply new cards, in order. Turning a book off keeps these choices. Cards still need to meet their unlock requirements.",
     "addChapter": "Add chapter",
     "back": "Back to study",
-    "manageHint": "Choose which books and chapters supply new cards. Pausing a pile never pauses reviews. Lower order numbers come first in the Standard queue.",
     "activeBooks": "On your shelf",
     "parkedBooks": "Saved for later",
     "empty": "No books here yet.",

@@ -1,3 +1,4 @@
+import { Book } from 'lucide-react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSaveStudyPile } from '../../../hooks/useStudyPiles';
@@ -15,14 +16,21 @@ const PileRow = ({ item, pileId }: { item: StudyPileChapter; pileId?: string }) 
     <div className="py-3">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="break-words font-bold text-navy">{item.title}</h3>
-          <p className="text-sm text-gray-600">
-            {t('piles.counts', {
-              ready: item.ready_count,
-              remaining: item.new_count,
-              learned: item.introduced_count,
-            })}
-          </p>
+          <h3 className="flex items-center gap-2 break-words font-[family-name:var(--leaf-serif)] text-xl">
+            {!pileId && (
+              <Book
+                aria-hidden="true"
+                className="size-8 shrink-0 rounded bg-[var(--pile-cover)] p-1.5"
+              />
+            )}
+            {item.title}
+          </h3>
+          <details className="text-sm text-[var(--pile-detail)]">
+            <summary className="min-h-11 cursor-pointer py-3">
+              {t('piles.ready', { count: item.ready_count })}
+            </summary>
+            {t('piles.countDetails', { remaining: item.new_count, learned: item.introduced_count })}
+          </details>
         </div>
         <label
           htmlFor={toggleId}
@@ -41,7 +49,7 @@ const PileRow = ({ item, pileId }: { item: StudyPileChapter; pileId?: string }) 
                 attributes: { is_active: event.target.checked },
               })
             }
-            className="size-5 accent-navy"
+            className="size-5 accent-[var(--leaf-green)]"
           />
           {t(isActive ? 'piles.active' : 'piles.parked')}
         </label>
@@ -52,7 +60,7 @@ const PileRow = ({ item, pileId }: { item: StudyPileChapter; pileId?: string }) 
         </p>
       )}
       <details className="mt-2">
-        <summary className="min-h-11 cursor-pointer py-3 text-sm text-gray-600">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm text-[color:var(--pile-detail)]">
           {t('piles.edit')}
         </summary>
         <PileForm key={`${item.title}-${item.position}`} item={item} pileId={pileId} />
