@@ -55,6 +55,7 @@ describe('Manage piles', () => {
     await waitFor(() =>
       expect(saveStudyPile).toHaveBeenCalledWith('genki', { is_active: false }, undefined)
     );
+    fireEvent.click(screen.getByRole('button', { name: /Saved for later/ }));
     await waitFor(() =>
       expect(
         screen.getByRole('checkbox', { name: 'Include Genki II in new cards' })

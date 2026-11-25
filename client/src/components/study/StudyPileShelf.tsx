@@ -39,17 +39,16 @@ const StudyPileShelf = ({ onBeginLesson, disabled }: Props) => {
   const query = useStudyPiles();
   const choices = shelfChoices(query.data, t);
   return (
-    <section
-      aria-label={t('piles.shelf')}
-      className="rounded-xl border border-navy/15 bg-cream p-5"
-    >
+    <section aria-label={t('piles.shelf')} className="text-[var(--leaf-ink)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-navy">{t('piles.shelf')}</h2>
-        <Link className="min-h-11 py-3 font-semibold text-navy underline" to="/app/study/piles">
+        <h2 className="font-[family-name:var(--leaf-serif)] text-2xl font-semibold">
+          {t('piles.shelf')}
+        </h2>
+        <Link className="min-h-11 py-3 leaf-link underline" to="/app/study/piles">
           {t('piles.manage')}
         </Link>
       </div>
-      <p className="mb-4 text-sm text-gray-600">{t('piles.shelfHint')}</p>
+      <p className="mb-3 text-sm text-[#53655c]">{t('piles.shelfHint')}</p>
       {query.isLoading && <p role="status">{t('piles.loading')}</p>}
       {query.isError && (
         <button
@@ -63,18 +62,25 @@ const StudyPileShelf = ({ onBeginLesson, disabled }: Props) => {
         </button>
       )}
       {query.data && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-3">
           {choices.map(({ id, title, count, icon: Icon }) => (
             <button
               key={id}
               type="button"
               disabled={disabled || count === 0 || query.isError}
               onClick={() => onBeginLesson(id)}
-              className="min-h-32 rounded-lg border border-navy/20 border-l-8 bg-white p-4 text-left shadow-sm transition hover:bg-cyan/10 focus-visible:outline-cyan disabled:opacity-50"
+              className="flex min-h-16 items-center gap-3 rounded-md border border-[var(--leaf-line)] p-3 text-left enabled:hover:bg-[#e5edf4] disabled:opacity-55"
             >
-              <Icon aria-hidden="true" className="mb-3 size-5 text-navy" />
-              <span className="block font-bold text-navy">{title}</span>
-              <span className="text-sm text-gray-600">{t('piles.ready', { count })}</span>
+              <Icon
+                aria-hidden="true"
+                className="size-8 shrink-0 border-r border-[var(--leaf-line)] pr-2 text-[#52765b]"
+              />
+              <span className="min-w-0">
+                <span className="block break-words font-[family-name:var(--leaf-serif)] text-xl font-semibold">
+                  {title}
+                </span>
+                <span className="text-sm text-gray-600">{t('piles.ready', { count })}</span>
+              </span>
             </button>
           ))}
         </div>

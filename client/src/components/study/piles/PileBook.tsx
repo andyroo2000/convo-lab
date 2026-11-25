@@ -7,14 +7,13 @@ const PileBook = ({ pile }: { pile: StudyPile }) => {
   const { t } = useTranslation('study');
   const nextPosition = Math.max(-1, ...pile.chapters.map((chapter) => chapter.position)) + 1;
   return (
-    <article className="rounded-xl border border-navy/15 bg-white px-5 shadow-sm">
+    <article className="py-2">
       <PileRow item={pile} />
-      <details className="border-t border-gray-200 pb-4">
-        <summary className="min-h-11 cursor-pointer py-3 font-semibold text-navy">
+      <details className="rounded-md bg-[#e5edf4] px-3 pb-1">
+        <summary className="min-h-11 cursor-pointer py-3 font-semibold">
           {t('piles.chapters', { count: pile.chapters.length })}
         </summary>
-        <p className="mb-3 text-sm text-gray-600">{t('piles.chapterHint')}</p>
-        <div className="divide-y divide-gray-200 border-l-4 border-cyan pl-4">
+        <div className="pl-2">
           {pile.chapters.map((chapter) => (
             <PileRow key={chapter.id} item={chapter} pileId={pile.id} />
           ))}

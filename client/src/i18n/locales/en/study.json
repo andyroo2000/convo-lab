@@ -880,9 +880,12 @@
     "audioFailed": "Audio playback failed. Try again."
   },
   "piles": {
+    "countDetails": "{{remaining}} remaining · {{learned}} introduced",
+    "pageTitle": "Study piles",
+    "viewQueue": "View queue",
     "shelf": "Choose a pile",
     "manage": "Manage piles",
-    "shelfHint": "Pick a book for your next new cards. Reviews always stay together.",
+    "shelfHint": "Start a lesson from a single pile instead of your usual queue.",
     "usualMix": "My usual mix",
     "learnSoon": "Learn soon",
     "uncategorized": "Uncategorized",

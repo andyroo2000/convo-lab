@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { Link } from 'react-router-dom';
 import type { StudyOverview } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
@@ -33,32 +33,38 @@ const ReviewLeaf = ({
   const { t } = useTranslation('study');
   const minutes = estimateReviewMinutes(count);
   return (
-    <section className="study-leaf">
-      <h2>{t('notebook.review')}</h2>
-      <p id={`${desc}-count`} className="study-count">
-        <strong>{count}</strong> {t('notebook.due', { count })}
-      </p>
-      <p id={`${desc}-estimate`} className="study-detail">
-        {minutes
-          ? t('overview.reviewMinutes', { count: minutes })
-          : t('overview.reviewAllCaughtUp')}
-      </p>
-      <button
-        className="study-action primary-leaf"
-        type="button"
-        onClick={start}
-        aria-describedby={[
-          `${desc}-count`,
-          `${desc}-estimate`,
-          ...(empty ? [`${desc}-empty`] : []),
-        ].join(' ')}
-        disabled={disabled}
-      >
-        {t('notebook.startReview')}
-      </button>
-      <Link className="leaf-link" to="/app/study/browse">
-        {t('notebook.browse')} ›
-      </Link>
+    <section className="rounded-xl border border-[var(--leaf-line)] bg-[var(--leaf-paper)] p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="font-[family-name:var(--leaf-serif)] text-3xl">{t('notebook.review')}</h2>
+          <p id={`${desc}-count`} className="study-count">
+            <strong>{count}</strong> {t('notebook.due', { count })}
+          </p>
+          <p id={`${desc}-estimate`} className="study-detail">
+            {minutes
+              ? t('overview.reviewMinutes', { count: minutes })
+              : t('overview.reviewAllCaughtUp')}
+          </p>
+        </div>
+        <div className="grid justify-items-center">
+          <button
+            className="study-action primary-leaf"
+            type="button"
+            onClick={start}
+            aria-describedby={[
+              `${desc}-count`,
+              `${desc}-estimate`,
+              ...(empty ? [`${desc}-empty`] : []),
+            ].join(' ')}
+            disabled={disabled}
+          >
+            {t('notebook.startReview')}
+          </button>
+          <Link className="leaf-link" to="/app/study/browse">
+            {t('notebook.browse')} ›
+          </Link>
+        </div>
+      </div>
     </section>
   );
 };
@@ -75,7 +81,6 @@ const StudyOverviewDashboard = ({
   isStartingSession,
 }: StudyOverviewDashboardProps) => {
   const { t, i18n } = useTranslation('study');
-  const [choosingPile, setChoosingPile] = useState(false);
   const lessons = availableLessons(overview);
   const desc = useId();
   const empty = !reviewAvailableCount && !loading;
@@ -91,7 +96,7 @@ const StudyOverviewDashboard = ({
           }).format(new Date())}
         </time>
       </header>
-      <div className="study-spread">
+      <div className="grid gap-4">
         <ReviewLeaf
           count={reviewAvailableCount}
           desc={desc}
@@ -99,33 +104,29 @@ const StudyOverviewDashboard = ({
           disabled={isStartingSession || empty}
           start={onBeginReview}
         />
-        <section className="study-leaf">
-          <h2>{t('notebook.learn')}</h2>
-          <p className="study-count">
-            <strong>{lessons}</strong> {t('notebook.newCards', { count: lessons })}
-          </p>
-          <p className="study-detail">{t('piles.usualMix')}</p>
-          <button
-            className="study-action"
-            type="button"
-            onClick={() => onBeginLesson()}
-            disabled={isStartingSession || !lessons}
-          >
-            {t('notebook.startLesson')}
-          </button>
-          <button
-            className="leaf-link"
-            type="button"
-            aria-expanded={choosingPile}
-            onClick={() => setChoosingPile(!choosingPile)}
-          >
-            {t('notebook.choosePile')} ›
-          </button>
+        <section className="rounded-xl border border-[var(--leaf-line)] border-t-4 border-t-[#819b85] bg-[var(--leaf-paper)] p-5">
+          <h2 className="font-[family-name:var(--leaf-serif)] text-3xl">{t('notebook.learn')}</h2>
+          <div className="my-3 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--leaf-line)] pb-2">
+            <div>
+              <p className="study-count">
+                <strong>{lessons}</strong> {t('notebook.newCards', { count: lessons })}
+              </p>
+              <Link className="leaf-link" to="/app/study/cards">
+                {t('piles.viewQueue')} ›
+              </Link>
+            </div>
+            <button
+              className="study-action primary-leaf"
+              type="button"
+              onClick={() => onBeginLesson()}
+              disabled={isStartingSession || !lessons}
+            >
+              {t('notebook.startLesson')}
+            </button>
+          </div>
+          <StudyPileShelf onBeginLesson={onBeginLesson} disabled={isStartingSession} />
         </section>
       </div>
-      {choosingPile && (
-        <StudyPileShelf onBeginLesson={onBeginLesson} disabled={isStartingSession} />
-      )}
       {empty && <p id={`${desc}-empty`}>{t(lessons ? 'overview.noReviews' : 'overview.empty')}</p>}
       {loading && <p role="status">{t('overview.loading')}</p>}
       {error && <p role="alert">{error.message}</p>}

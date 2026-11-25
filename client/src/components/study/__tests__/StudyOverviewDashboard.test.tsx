@@ -86,6 +86,11 @@ describe('StudyOverviewDashboard', () => {
     const reviewsButton = screen.getByRole('button', { name: 'Start review' });
     const lessonsButton = screen.getByRole('button', { name: 'Start lesson' });
     expect(reviewsButton).toHaveAccessibleDescription('14 cards due About 6 min');
+    expect(screen.getByRole('link', { name: /View queue/ })).toHaveAttribute(
+      'href',
+      '/app/study/cards'
+    );
+    expect(screen.getByRole('link', { name: 'Manage piles' })).toBeVisible();
     fireEvent.click(reviewsButton);
     fireEvent.click(lessonsButton);
     expect(onBeginReview).toHaveBeenCalledOnce();
