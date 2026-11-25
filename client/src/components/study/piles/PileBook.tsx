@@ -9,7 +9,7 @@ const PileBook = ({ pile }: { pile: StudyPile }) => {
   return (
     <article className="py-2">
       <PileRow item={pile} />
-      <details className="rounded-md bg-[#e5edf4] px-3 pb-1">
+      <details className="rounded-md bg-[var(--pile-vellum)] px-3 pb-1">
         <summary className="min-h-11 cursor-pointer py-3 font-semibold">
           {t('piles.chapters', { count: pile.chapters.length })}
         </summary>

@@ -44,8 +44,7 @@
     "newCards_other": "枚の新しいカード",
     "startReview": "復習を始める",
     "startLesson": "レッスンを始める",
-    "browse": "カードを見る",
-    "choosePile": "パイルを選ぶ"
+    "browse": "カードを見る"
   },
   "title": "学習",
   "disabled": "この環境では学習機能が無効になっています。",
@@ -574,7 +573,12 @@
     "back": "学習に戻る"
   },
   "time": {
-    "tabs": { "rhythm": "リズム", "recap": "振り返り", "mastery": "習熟度", "entries": "記録" },
+    "tabs": {
+      "rhythm": "リズム",
+      "recap": "振り返り",
+      "mastery": "習熟度",
+      "entries": "記録"
+    },
     "weekTotal": "週の合計",
     "bestDay": "最も学習した日",
     "logTime": "時間を記録",
@@ -857,12 +861,11 @@
   },
   "piles": {
     "countDetails": "残り {{remaining}} 枚 · 導入済み {{learned}} 枚",
-    "pageTitle": "学習の山",
+    "pageTitle": "学習パイル",
     "viewQueue": "キューを見る",
     "shelf": "パイルを選ぶ",
     "manage": "パイル管理",
-    "shelfHint": "いつものキューの代わりに、一つの山からレッスンを始めます。",
-    "usualMix": "いつもの配分",
+    "shelfHint": "いつものキューの代わりに、一つのパイルからレッスンを始めます。",
     "learnSoon": "早めに学ぶ",
     "uncategorized": "未分類",
     "ready": "学習可能：{{count}}枚",
@@ -878,10 +881,8 @@
     "parked": "オフ",
     "edit": "タイトルと順序を編集",
     "chapters": "章（{{count}}）",
-    "chapterHint": "オンの章から順に新しいカードを出します。本をオフにしても章の設定は保持されます。カードの解放条件も適用されます。",
     "addChapter": "章を追加",
     "back": "学習に戻る",
-    "manageHint": "新しいカードを出す本と章を選びます。オフにしても復習は続きます。標準キューでは順序の数字が小さいものから出題されます。",
     "activeBooks": "本棚",
     "parkedBooks": "あとで学ぶ",
     "empty": "まだ本がありません。",

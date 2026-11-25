@@ -104,7 +104,7 @@ const StudyOverviewDashboard = ({
           disabled={isStartingSession || empty}
           start={onBeginReview}
         />
-        <section className="rounded-xl border border-[var(--leaf-line)] border-t-4 border-t-[#819b85] bg-[var(--leaf-paper)] p-5">
+        <section className="rounded-xl border border-[var(--leaf-line)] border-t-4 border-t-[var(--leaf-green-soft)] bg-[var(--leaf-paper)] p-5">
           <h2 className="font-[family-name:var(--leaf-serif)] text-3xl">{t('notebook.learn')}</h2>
           <div className="my-3 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--leaf-line)] pb-2">
             <div>

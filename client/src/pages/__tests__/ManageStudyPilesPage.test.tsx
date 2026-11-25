@@ -66,6 +66,17 @@ describe('Manage piles', () => {
     ).toBeChecked();
   });
 
+  it('shows the selected shelf and discloses the source counts', async () => {
+    renderPage();
+    const saved = await screen.findByRole('button', { name: 'Saved for later (1)' });
+    fireEvent.click(saved);
+    expect(saved).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Quartet I')).toBeVisible();
+    const summary = screen.getAllByText('3 ready')[0];
+    fireEvent.click(summary);
+    expect(screen.getByText('12 remaining · 7 introduced')).toBeVisible();
+  });
+
   it('changes an individual chapter and keeps the book enabled', async () => {
     vi.mocked(saveStudyPile).mockImplementation(async (_id, attributes) => {
       Object.assign(catalog.piles[0].chapters[0], attributes);

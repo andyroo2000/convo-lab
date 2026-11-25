@@ -48,7 +48,7 @@ const StudyPileShelf = ({ onBeginLesson, disabled }: Props) => {
           {t('piles.manage')}
         </Link>
       </div>
-      <p className="mb-3 text-sm text-[#53655c]">{t('piles.shelfHint')}</p>
+      <p className="mb-3 text-sm text-[var(--pile-detail)]">{t('piles.shelfHint')}</p>
       {query.isLoading && <p role="status">{t('piles.loading')}</p>}
       {query.isError && (
         <button
@@ -69,17 +69,19 @@ const StudyPileShelf = ({ onBeginLesson, disabled }: Props) => {
               type="button"
               disabled={disabled || count === 0 || query.isError}
               onClick={() => onBeginLesson(id)}
-              className="flex min-h-16 items-center gap-3 rounded-md border border-[var(--leaf-line)] p-3 text-left enabled:hover:bg-[#e5edf4] disabled:opacity-55"
+              className="flex min-h-16 items-center gap-3 rounded-md border border-[var(--leaf-line)] p-3 text-left enabled:hover:bg-[var(--pile-vellum)] disabled:opacity-55"
             >
               <Icon
                 aria-hidden="true"
-                className="size-8 shrink-0 border-r border-[var(--leaf-line)] pr-2 text-[#52765b]"
+                className="size-8 shrink-0 border-r border-[var(--leaf-line)] pr-2 text-[var(--leaf-green)]"
               />
               <span className="min-w-0">
                 <span className="block break-words font-[family-name:var(--leaf-serif)] text-xl font-semibold">
                   {title}
                 </span>
-                <span className="text-sm text-gray-600">{t('piles.ready', { count })}</span>
+                <span className="text-sm text-[color:var(--pile-detail)]">
+                  {t('piles.ready', { count })}
+                </span>
               </span>
             </button>
           ))}
