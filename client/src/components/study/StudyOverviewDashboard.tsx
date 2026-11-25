@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { Link } from 'react-router-dom';
 import type { StudyOverview } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
-import estimateReviewMinutes from '../../utils/studyTodayPresentation';
+import estimateReviewMinutes, { reviewEstimateLabel } from '../../utils/studyTodayPresentation';
 import DailyAudioPracticePage from '../../pages/DailyAudioPracticePage';
 import StudyPileShelf from './StudyPileShelf';
 import './studyNotebook.css';
@@ -30,10 +30,11 @@ const ReviewLeaf = ({
   disabled: boolean;
   start: () => void;
 }) => {
-  const { t } = useTranslation('study');
+  const { t, i18n } = useTranslation('study');
   const minutes = estimateReviewMinutes(count);
+  const estimate = minutes && reviewEstimateLabel(minutes, i18n.language);
   return (
-    <section className="rounded-xl border border-[var(--leaf-line)] bg-[var(--leaf-paper)] p-5">
+    <section className="rounded-xl border border-[var(--leaf-line)] border-t-4 border-t-[var(--leaf-green-soft)] bg-[var(--leaf-paper)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-[family-name:var(--leaf-serif)] text-3xl">{t('notebook.review')}</h2>
@@ -41,8 +42,8 @@ const ReviewLeaf = ({
             <strong>{count}</strong> {t('notebook.due', { count })}
           </p>
           <p id={`${desc}-estimate`} className="study-detail">
-            {minutes
-              ? t('overview.reviewMinutes', { count: minutes })
+            {estimate
+              ? t(estimate.key, { duration: estimate.duration })
               : t('overview.reviewAllCaughtUp')}
           </p>
         </div>
@@ -80,7 +81,7 @@ const StudyOverviewDashboard = ({
   onBeginLesson,
   isStartingSession,
 }: StudyOverviewDashboardProps) => {
-  const { t, i18n } = useTranslation('study');
+  const { t } = useTranslation('study');
   const lessons = availableLessons(overview);
   const desc = useId();
   const empty = !reviewAvailableCount && !loading;
@@ -88,13 +89,6 @@ const StudyOverviewDashboard = ({
     <div className="study-notebook">
       <header className="study-dateline">
         <h1>{t('notebook.title')}</h1>
-        <time>
-          {new Intl.DateTimeFormat(i18n.language, {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-          }).format(new Date())}
-        </time>
       </header>
       <div className="grid gap-4">
         <ReviewLeaf
