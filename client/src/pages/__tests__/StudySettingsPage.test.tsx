@@ -122,7 +122,7 @@ describe('StudySettingsPage', () => {
   it('renders study controls without the card queue', () => {
     renderPage();
 
-    expect(screen.getByRole('heading', { name: /study settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /daily new cards/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/new cards per day/i)).toHaveValue(20);
     expect(screen.queryByTestId('study-new-queue-row')).not.toBeInTheDocument();
   });

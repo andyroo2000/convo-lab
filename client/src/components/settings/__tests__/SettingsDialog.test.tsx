@@ -26,6 +26,8 @@ vi.mock('../../study/GoogleCalendarConnectionCard', () => ({
   },
 }));
 
+vi.mock('../../../pages/StudySettingsPage', () => ({ default: () => <p>Daily new cards</p> }));
+
 const JournalDraft = () => {
   const [draft, setDraft] = useState('');
   const location = useLocation();
@@ -125,6 +127,21 @@ describe('Journal settings modal', () => {
       expect(screen.queryByRole('button', { name: 'Edit profile' })).not.toBeInTheDocument();
     }
   );
+
+  it('opens Study preferences within the current dialog', async () => {
+    setup(true);
+    const dialog = await openSettings();
+    fireEvent.click(screen.getByRole('button', { name: 'Study preferences' }));
+    expect(dialog).toContainElement(screen.getByText('Daily new cards'));
+  });
+
+  it('opens the Study chapter from its direct URL', () => {
+    setup(true, '/app/settings/study');
+    expect(screen.getByRole('button', { name: 'Study preferences' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
 
   it('removes Calendar when the Study feature is revoked', async () => {
     const client = setup(true, '/app/settings/integrations');

@@ -284,3 +284,41 @@ body:has(.journal-settings-dialog[open]) {
 .journal-settings-dialog summary {
   color: #11335c;
 }
+.journal-study-preferences .app-form-control {
+  max-width: 100%;
+  min-height: 44px;
+  border: 1px solid #cbd2ba;
+  border-radius: 8px;
+  background: #fffef9;
+  color: #294b3a;
+  font: inherit;
+  box-shadow: none;
+}
+.journal-study-preferences .app-button-primary,
+.journal-study-preferences .app-button-secondary {
+  min-height: 44px;
+  border-radius: 22px;
+  padding: 8px 18px;
+  font: inherit;
+  box-shadow: none;
+}
+.journal-study-preferences .app-button-primary {
+  background: #386548;
+  color: white;
+}
+
+.journal-calendar-sync .calendar-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 6px 16px;
+  border: 1px solid #b6c5ad;
+  border-radius: 24px;
+  color: #36583e;
+  font-family: inherit;
+}
+.journal-calendar-sync .calendar-action-primary {
+  background: #386548;
+  color: white;
+}

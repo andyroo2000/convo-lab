@@ -29,7 +29,7 @@ const UserMenuItems = ({
       ? [
           {
             id: 'study-preferences',
-            path: '/app/study/settings',
+            path: '/app/settings/study',
             label: t('study:notebook.preferences'),
             icon: SlidersHorizontal,
           },
