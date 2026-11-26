@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { StudyNewCardLaneWeights } from '@languageflow/shared/src/types';
 
@@ -221,22 +220,10 @@ type SettingsModel = ReturnType<typeof useStudySettingsPageModel>;
 
 const SettingsDisabled = ({ model }: { model: SettingsModel }) => (
   <section className="card app-surface max-w-3xl">
-    <h1 className="mb-4 text-2xl font-bold text-navy sm:text-3xl">{model.t('settings.title')}</h1>
+    <h1 className="mb-4 text-2xl font-bold text-inherit sm:text-3xl">
+      {model.t('settings.title')}
+    </h1>
     <p className="text-gray-600">{model.t('disabled')}</p>
-  </section>
-);
-
-const SettingsHeader = ({ model }: { model: SettingsModel }) => (
-  <section className="card app-surface px-4 py-5 sm:px-6">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-bold text-navy sm:text-3xl">{model.t('settings.title')}</h1>
-        <p className="mt-1 text-sm text-gray-600 sm:text-base">{model.t('settings.description')}</p>
-      </div>
-      <Link to="/app/study" className="app-button-secondary">
-        {model.t('settings.back')}
-      </Link>
-    </div>
   </section>
 );
 
@@ -252,7 +239,7 @@ const KnownKanjiStatus = ({ model }: { model: SettingsModel }) => (
     ) : null}
     {model.knownKanjiQuery.data ? (
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-        <p className="font-semibold text-navy">
+        <p className="font-semibold text-inherit">
           {model.t('settings.knownKanjiCount', {
             count: model.knownKanjiQuery.data.kanji.length,
           })}
@@ -298,7 +285,9 @@ const WaniKaniConnectedControls = ({ model }: { model: SettingsModel }) => (
 const WaniKaniConnectForm = ({ model }: { model: SettingsModel }) => (
   <form className="space-y-3" onSubmit={model.connectWaniKani}>
     <label className="block" htmlFor="wanikani-api-token">
-      <span className="text-sm font-semibold text-navy">{model.t('settings.wanikaniToken')}</span>
+      <span className="text-sm font-semibold text-inherit">
+        {model.t('settings.wanikaniToken')}
+      </span>
       <input
         id="wanikani-api-token"
         type="password"
@@ -331,7 +320,7 @@ const WaniKaniControls = ({ model }: { model: SettingsModel }) =>
 
 const ManualKanjiControls = ({ model }: { model: SettingsModel }) => (
   <div className="border-t border-gray-200 pt-5">
-    <h3 className="font-semibold text-navy">{model.t('settings.manualKanjiTitle')}</h3>
+    <h3 className="font-semibold text-inherit">{model.t('settings.manualKanjiTitle')}</h3>
     <p className="mt-1 text-sm text-gray-500">{model.t('settings.manualKanjiDescription')}</p>
     <form className="mt-3 flex items-end gap-3" onSubmit={model.addManualKanji}>
       <label htmlFor="manual-known-kanji">
@@ -357,7 +346,7 @@ const ManualKanjiControls = ({ model }: { model: SettingsModel }) => (
         {model.knownKanjiQuery.data.manualKanji.map((kanji) => (
           <li
             key={kanji}
-            className="flex items-center gap-2 rounded-full bg-cream px-3 py-1.5 text-navy"
+            className="flex items-center gap-2 rounded-full bg-cream px-3 py-1.5 text-inherit"
           >
             <span className="text-lg">{kanji}</span>
             <button
@@ -376,9 +365,9 @@ const ManualKanjiControls = ({ model }: { model: SettingsModel }) => (
 );
 
 const KanjiKnowledgeSettings = ({ model }: { model: SettingsModel }) => (
-  <section className="card app-surface space-y-5 p-4 sm:p-6">
+  <section className="space-y-4 border-t border-[#dddfd1] pt-4">
     <div>
-      <h2 className="text-2xl font-semibold text-navy">
+      <h2 className="font-[inherit] text-xl font-semibold">
         {model.t('settings.kanjiKnowledgeTitle')}
       </h2>
       <p className="text-sm text-gray-500">{model.t('settings.kanjiKnowledgeDescription')}</p>
@@ -393,19 +382,19 @@ const LaneWeightsFields = ({ model }: { model: SettingsModel }) => {
   if (!model.laneWeights) return null;
   const { laneWeights } = model;
   return (
-    <fieldset className="w-full basis-full rounded-lg border border-gray-200 bg-gray-50/70 p-4">
-      <legend className="px-2 text-sm font-semibold text-navy">
+    <fieldset className="w-full basis-full rounded-lg border border-gray-200 bg-[#f5f5ec] p-4">
+      <legend className="px-2 text-sm font-semibold text-inherit">
         {model.t('settings.laneBalanceTitle')}
       </legend>
       <p className="mb-4 text-sm text-gray-500">{model.t('settings.laneBalanceDescription')}</p>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 min-[550px]:grid-cols-3">
         {LANE_FIELDS.map(([lane, label]) => (
           <label
             key={lane}
             htmlFor={`study-lane-weight-${lane}`}
             className="rounded-lg border border-gray-200 bg-white p-3"
           >
-            <span className="flex items-center justify-between gap-2 text-sm font-semibold text-navy">
+            <span className="flex items-center justify-between gap-2 text-sm font-semibold text-inherit">
               {model.t(label)}
               <span className="font-normal text-gray-500">
                 {model.t('settings.laneShare', {
@@ -434,10 +423,11 @@ const LaneWeightsFields = ({ model }: { model: SettingsModel }) => {
 
 const DailySettingsFields = ({ model }: { model: SettingsModel }) => (
   <>
-    <label className="block" htmlFor="study-new-cards-per-day">
-      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-        {model.t('settings.newCardsPerDay')}
-      </span>
+    <label
+      className="flex w-full items-center justify-between gap-3"
+      htmlFor="study-new-cards-per-day"
+    >
+      <span className="text-base font-medium">{model.t('settings.newCardsPerDay')}</span>
       <input
         id="study-new-cards-per-day"
         type="number"
@@ -449,13 +439,14 @@ const DailySettingsFields = ({ model }: { model: SettingsModel }) => (
           model.clearSaveFeedback();
           model.setNewCardsPerDay(Number(event.target.value));
         }}
-        className="app-form-control mt-2 w-36"
+        className="app-form-control w-24"
       />
     </label>
-    <label className="block" htmlFor="study-lesson-batch-size">
-      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-        {model.t('settings.lessonBatchSize')}
-      </span>
+    <label
+      className="flex w-full items-center justify-between gap-3"
+      htmlFor="study-lesson-batch-size"
+    >
+      <span className="text-base font-medium">{model.t('settings.lessonBatchSize')}</span>
       <input
         id="study-lesson-batch-size"
         type="number"
@@ -467,16 +458,18 @@ const DailySettingsFields = ({ model }: { model: SettingsModel }) => (
           model.clearSaveFeedback();
           model.setLessonBatchSize(Number(event.target.value));
         }}
-        className="app-form-control mt-2 w-36"
+        className="app-form-control w-24"
       />
     </label>
   </>
 );
 
 const DailyStudySettings = ({ model }: { model: SettingsModel }) => (
-  <section className="card app-surface space-y-4 p-4 sm:p-6">
+  <section className="space-y-4">
     <div>
-      <h2 className="text-2xl font-semibold text-navy">{model.t('settings.dailyLimitTitle')}</h2>
+      <h2 className="font-[inherit] text-xl font-semibold">
+        {model.t('settings.dailyLimitTitle')}
+      </h2>
       <p className="text-sm text-gray-500">{model.t('settings.dailyLimitDescription')}</p>
     </div>
     {model.settingsQuery.error ? (
@@ -512,15 +505,14 @@ const StudySettingsPage = () => {
   const model = useStudySettingsPageModel();
   if (!model.enabled) return <SettingsDisabled model={model} />;
   return (
-    <div className="mx-auto max-w-5xl space-y-4 sm:space-y-6">
-      <SettingsHeader model={model} />
+    <div className="journal-study-preferences space-y-5">
       <StudyCapabilitiesError
         isError={model.capabilitiesQuery.isError}
         isRetrying={model.capabilitiesQuery.isFetching}
         onRetry={() => model.capabilitiesQuery.refetch().catch(() => undefined)}
       />
-      <KanjiKnowledgeSettings model={model} />
       <DailyStudySettings model={model} />
+      <KanjiKnowledgeSettings model={model} />
     </div>
   );
 };

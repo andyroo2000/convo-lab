@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarCheck2, CalendarDays, RefreshCw, ShieldCheck } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -122,17 +122,9 @@ const syncViewState = (connection: ConnectionQuery, calendarSync: SyncMutation):
 const ConnectionHeader = () => {
   const { t } = useTranslation(['study']);
   return (
-    <div className="border-b border-navy/10 bg-gradient-to-r from-blue-50 to-white p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="retro-caps text-coral">{t('time.calendarConnection.eyebrow')}</p>
-          <h2 id="calendar-connection-title" className="retro-headline text-3xl text-navy">
-            {t('time.calendarConnection.title')}
-          </h2>
-        </div>
-        <CalendarDays className="h-9 w-9 text-blue-600" aria-hidden="true" />
-      </div>
-    </div>
+    <h3 id="calendar-connection-title" className="font-[inherit] text-2xl font-medium">
+      {t('time.calendarConnection.title')}
+    </h3>
   );
 };
 
@@ -170,7 +162,7 @@ const ConnectionQueryStatus = ({ connection }: { connection: ConnectionQuery }) 
       <p role="alert" className="text-red-700">
         {t('time.calendarConnection.loadError')}
       </p>
-      <button type="button" className="btn-outline" onClick={() => connection.refetch()}>
+      <button type="button" className="calendar-action" onClick={() => connection.refetch()}>
         {t('time.calendarConnection.retry')}
       </button>
     </div>
@@ -180,14 +172,17 @@ const ConnectionQueryStatus = ({ connection }: { connection: ConnectionQuery }) 
 const DisconnectedContent = () => {
   const { t } = useTranslation(['study']);
   return (
-    <div className="grid items-center gap-5 md:grid-cols-[1fr_auto]">
+    <div className="grid justify-items-start gap-3">
       <div>
-        <p className="font-bold text-navy">{t('time.calendarConnection.disconnected')}</p>
+        <p className="font-medium text-inherit">{t('time.calendarConnection.disconnected')}</p>
         <p className="mt-1 max-w-2xl text-sm text-gray-600">
           {t('time.calendarConnection.description')}
         </p>
       </div>
-      <a href={googleCalendarConnectPath} className="btn-primary text-center">
+      <a
+        href={googleCalendarConnectPath}
+        className="calendar-action calendar-action-primary text-center"
+      >
         {t('time.calendarConnection.connect')}
       </a>
     </div>
@@ -206,33 +201,29 @@ const ConnectionDetails = ({ data, sync }: { data: ConnectionData; sync: SyncVie
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-1 text-sm font-bold text-white">
-          <CalendarCheck2 className="h-4 w-4" aria-hidden="true" />
+        <span className="rounded-full bg-[#edf1e6] px-3 py-1 text-base text-[#36583e]">
           {t('time.calendarConnection.connected')}
         </span>
-        <span className="break-all font-bold text-navy">
+        <span className="break-all font-medium text-inherit">
           {data.accountEmail || t('time.calendarConnection.accountUnavailable')}
         </span>
       </div>
-      <dl className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
-          <dt className="retro-caps text-gray-500">{t('time.calendarConnection.lastSync')}</dt>
-          <dd className="mt-1 text-sm font-bold text-navy">
+      <dl className="divide-y divide-[#dddfd1]">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 py-2">
+          <dt className="text-base text-[#63705e]">{t('time.calendarConnection.lastSync')}</dt>
+          <dd className="mt-1 text-sm font-medium text-inherit">
             {formatLastSync(data.lastSyncedAt, t('time.calendarConnection.notSynced'))}
           </dd>
         </div>
-        <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
-          <dt className="retro-caps text-gray-500">{t('time.calendarConnection.syncStatus')}</dt>
-          <dd className="mt-1 text-sm font-bold text-navy" aria-live="polite">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 py-2">
+          <dt className="text-base text-[#63705e]">{t('time.calendarConnection.syncStatus')}</dt>
+          <dd className="mt-1 text-sm font-medium text-inherit" aria-live="polite">
             {t(sync.statusTextKey)}
           </dd>
         </div>
-        <div className="rounded-xl border border-navy/10 bg-white/70 p-4">
-          <dt className="retro-caps text-gray-500">{t('time.calendarConnection.access')}</dt>
-          <dd className="mt-1 flex items-start gap-2 text-sm font-bold text-navy">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-            {access}
-          </dd>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 py-2">
+          <dt className="text-base text-[#63705e]">{t('time.calendarConnection.access')}</dt>
+          <dd className="mt-1 flex items-start gap-2 text-sm font-medium text-inherit">{access}</dd>
         </div>
       </dl>
     </>
@@ -299,7 +290,7 @@ const ConnectedActions = ({
       {!sync.reconnectRequired ? (
         <button
           type="button"
-          className="btn-primary inline-flex min-h-11 items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="calendar-action calendar-action-primary inline-flex min-h-11 items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={triggerSync}
           disabled={sync.isActive}
         >
@@ -309,7 +300,7 @@ const ConnectedActions = ({
       ) : null}
       <button
         type="button"
-        className="btn-outline min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
+        className="calendar-action min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
         onClick={openSettings}
         disabled={sync.isActive}
       >
@@ -317,7 +308,7 @@ const ConnectedActions = ({
       </button>
       <button
         type="button"
-        className="btn-outline min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
+        className="calendar-action min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
         onClick={openDisconnect}
         disabled={sync.isActive}
       >
@@ -469,11 +460,11 @@ const GoogleCalendarConnectionCard = () => {
 
   return (
     <section
-      className="retro-paper-panel overflow-hidden"
+      className="journal-calendar-sync space-y-3 border-t border-[#dddfd1] pt-5"
       aria-labelledby="calendar-connection-title"
     >
       <ConnectionHeader />
-      <div className="space-y-5 p-6">
+      <div className="space-y-4">
         <CallbackNotice state={callbackResult.state} reason={callbackResult.reason} />
         <ConnectionQueryStatus connection={connection} />
         <ConnectionContent

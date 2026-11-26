@@ -60,15 +60,10 @@ vi.mock('../../hooks/useStudyBackgroundTask', () => ({
       task?: Promise<unknown> | (() => Promise<unknown> | unknown),
       options?: { onError?: (message: string) => void }
     ) => {
-      if (typeof task === 'function') {
-        Promise.resolve(task()).catch((error) => {
-          options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
-        });
-      } else {
-        Promise.resolve(task).catch((error) => {
-          options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
-        });
-      }
+      const result = typeof task === 'function' ? task() : task;
+      Promise.resolve(result).catch((error) => {
+        options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
+      });
     },
 }));
 
@@ -122,7 +117,7 @@ describe('StudySettingsPage', () => {
   it('renders study controls without the card queue', () => {
     renderPage();
 
-    expect(screen.getByRole('heading', { name: /study settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /daily new cards/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/new cards per day/i)).toHaveValue(20);
     expect(screen.queryByTestId('study-new-queue-row')).not.toBeInTheDocument();
   });

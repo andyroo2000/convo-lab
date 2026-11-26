@@ -1,15 +1,6 @@
 import { useState, type ReactNode, type RefObject } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import {
-  BookOpen,
-  ChevronDown,
-  ChevronRight,
-  Link2,
-  LockKeyhole,
-  LogOut,
-  Trash2,
-  UserRound,
-} from 'lucide-react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SettingsDialogHeader, { type SettingsEditor } from './SettingsDialogHeader';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,6 +11,7 @@ import useJournalModal from '../../features/journal/useJournalModal';
 import SettingsPage, { type SettingsTab } from '../../pages/SettingsPage';
 import GoogleCalendarConnectionCard from '../study/GoogleCalendarConnectionCard';
 import WaniKaniConnectionCard from './WaniKaniConnectionCard';
+import StudyPreferences from '../../pages/StudySettingsPage';
 import './settings.css';
 
 const isEditor = (tab?: string): tab is SettingsEditor =>
@@ -29,14 +21,12 @@ type ChapterKey = 'account' | 'study' | 'connections';
 const Chapter = ({
   chapterKey,
   title,
-  icon,
   open,
   onToggle,
   children,
 }: {
   chapterKey: ChapterKey;
   title: string;
-  icon?: ReactNode;
   open: boolean;
   onToggle: () => void;
   children: ReactNode;
@@ -46,7 +36,6 @@ const Chapter = ({
     <section className="journal-settings-chapter">
       <h2>
         <button type="button" aria-expanded={open} aria-controls={id} onClick={onToggle}>
-          {icon}
           <span>{title}</span>
           <ChevronDown aria-hidden="true" className={open ? 'is-open' : ''} />
         </button>
@@ -78,21 +67,20 @@ const SettingsAccountActions = ({ onEdit }: { onEdit: (tab: SettingsEditor) => v
   const { t } = useTranslation('settings');
   const { logout } = useAuth();
   const actions = [
-    { label: 'editProfile', icon: UserRound, perform: () => onEdit('profile') },
-    { label: 'changePassword', icon: LockKeyhole, perform: () => onEdit('security') },
-    { label: 'signOut', icon: LogOut, perform: logout },
-    { label: 'deleteAccount', icon: Trash2, perform: () => onEdit('danger') },
+    { label: 'editProfile', perform: () => onEdit('profile') },
+    { label: 'changePassword', perform: () => onEdit('security') },
+    { label: 'signOut', perform: logout },
+    { label: 'deleteAccount', perform: () => onEdit('danger') },
   ];
   return (
     <div className="journal-settings-actions">
-      {actions.map(({ label, icon: Icon, perform }) => (
+      {actions.map(({ label, perform }) => (
         <button
           key={label}
           type="button"
           className={label === 'deleteAccount' ? 'is-danger' : undefined}
           onClick={perform}
         >
-          <Icon aria-hidden="true" />
           <span>{t(`modal.actions.${label}`)}</span>
           <ChevronRight aria-hidden="true" className="journal-settings-action-chevron" />
         </button>
@@ -101,14 +89,17 @@ const SettingsAccountActions = ({ onEdit }: { onEdit: (tab: SettingsEditor) => v
   );
 };
 
+function initialChapter(tab?: string): ChapterKey {
+  if (tab === 'study') return 'study';
+  return tab === 'integrations' ? 'connections' : 'account';
+}
+
 const SettingsContents = ({ onEdit }: { onEdit: (tab: SettingsEditor) => void }) => {
   const { t } = useTranslation('settings');
   const { isFeatureEnabled } = useFeatureFlags();
   const studyEnabled = isFeatureEnabled('flashcardsEnabled');
   const { tab } = useParams();
-  const [expanded, setExpanded] = useState<ChapterKey | null>(
-    tab === 'integrations' ? 'connections' : 'account'
-  );
+  const [expanded, setExpanded] = useState<ChapterKey | null>(initialChapter(tab));
   const chapterProps = (chapterKey: ChapterKey) => ({
     chapterKey,
     title: t(`modal.chapters.${chapterKey}`),
@@ -122,13 +113,11 @@ const SettingsContents = ({ onEdit }: { onEdit: (tab: SettingsEditor) => void })
         <SettingsAccountActions onEdit={onEdit} />
       </Chapter>
       {studyEnabled && (
-        <Chapter {...chapterProps('study')} icon={<BookOpen aria-hidden="true" />}>
-          <Link className="journal-settings-link" to="/app/study/settings">
-            {t('modal.studyPreferencesLink')} <span aria-hidden="true">→</span>
-          </Link>
+        <Chapter {...chapterProps('study')}>
+          <StudyPreferences />
         </Chapter>
       )}
-      <Chapter {...chapterProps('connections')} icon={<Link2 aria-hidden="true" />}>
+      <Chapter {...chapterProps('connections')}>
         <WaniKaniConnectionCard />
         {studyEnabled && <GoogleCalendarConnectionCard />}
       </Chapter>
@@ -142,7 +131,10 @@ function useSettingsDismissal(ref: RefObject<HTMLDialogElement>, nestedOverlay: 
   const close = () => {
     if (nestedOverlay || ref.current?.querySelector('[role=dialog]')) return;
     if (location.state?.backgroundLocation) navigate(-1);
-    else navigate('/app/journal', { replace: true });
+    else
+      navigate(location.pathname === '/app/settings/study' ? '/app/study' : '/app/journal', {
+        replace: true,
+      });
   };
   return close;
 }

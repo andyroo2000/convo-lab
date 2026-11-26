@@ -66,7 +66,7 @@ const UserMenu = ({
   const navigate = useNavigate();
   const location = useLocation();
   const navigateFromMenu = (path: string) => {
-    if (path === '/app/settings') {
+    if (path === '/app/settings' || path === '/app/settings/study') {
       menuRef.current?.querySelector('button')?.focus();
       navigate(path, { state: { backgroundLocation: location } });
       return;
