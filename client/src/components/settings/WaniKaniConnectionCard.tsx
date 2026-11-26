@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ConnectedBadge, LastSyncRow } from './ConnectionStatus';
 import {
   useConnectWaniKani,
   useDisconnectWaniKani,
@@ -57,16 +58,17 @@ const ConnectedWaniKani = ({ model }: { model: ConnectionModel }) => {
   const lastSynced = connection.data?.wanikani.lastSyncedAt;
   return (
     <>
-      <p>{t('settings.wanikaniConnected')}</p>
-      <p className="retro-settings-helper">
-        {lastSynced
-          ? t('settings.wanikaniLastSynced', { value: new Date(lastSynced).toLocaleString() })
-          : t('settings.wanikaniNeverSynced')}
-      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <ConnectedBadge />
+        <span className="text-[#63705e]">{t('settings.viaApiKey')}</span>
+      </div>
+      <dl>
+        <LastSyncRow timestamp={lastSynced ?? null} />
+      </dl>
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
-          className="retro-settings-btn-secondary"
+          className="calendar-action calendar-action-primary disabled:opacity-50"
           disabled={busy}
           onClick={model.sync}
         >
@@ -74,7 +76,7 @@ const ConnectedWaniKani = ({ model }: { model: ConnectionModel }) => {
         </button>
         <button
           type="button"
-          className="retro-settings-btn-secondary"
+          className="calendar-action disabled:opacity-50"
           disabled={busy}
           onClick={model.disconnect}
         >

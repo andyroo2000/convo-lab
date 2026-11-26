@@ -71,6 +71,9 @@ it('offers sync and disconnect for an existing connection and reports disconnect
   state.query.data = { wanikani: { connected: true, lastSyncedAt: null } };
   state.disconnect.mockRejectedValue(new Error('Disconnect unavailable'));
   render(<WaniKaniConnectionCard />);
+  expect(screen.getByText('Connected')).toBeVisible();
+  expect(screen.getByText('via API key')).toBeVisible();
+  expect(screen.getByText('Last sync')).toBeVisible();
   expect(screen.queryByLabelText('WaniKani API token')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Sync now' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Disconnect' })).toBeEnabled());

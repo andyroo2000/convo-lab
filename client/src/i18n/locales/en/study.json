@@ -270,6 +270,7 @@
     "kanjiKnowledgeLoading": "Loading known kanji…",
     "kanjiKnowledgeFailed": "Failed to load known kanji.",
     "knownKanjiCount": "{{count}} kanji currently hide furigana",
+    "viaApiKey": "via API key",
     "wanikaniConnected": "WaniKani connected",
     "wanikaniLastSynced": "Last synced {{value}}",
     "wanikaniNeverSynced": "Not synced yet",

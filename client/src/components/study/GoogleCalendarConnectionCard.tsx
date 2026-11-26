@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ConnectedBadge, LastSyncRow } from '../settings/ConnectionStatus';
 
 import ConfirmModal from '../common/ConfirmModal';
 import GoogleCalendarSettingsDialog from './GoogleCalendarSettingsDialog';
@@ -35,12 +36,6 @@ function scopeLabel(scope: string, t: (key: string) => string) {
     return t('time.calendarConnection.scopeCalendar');
   }
   return t('time.calendarConnection.scopeOther');
-}
-
-function formatLastSync(value: string | null, fallback: string) {
-  if (!value) return fallback;
-  const timestamp = Date.parse(value);
-  return Number.isNaN(timestamp) ? fallback : new Date(timestamp).toLocaleString();
 }
 
 function isReconnectError(error: unknown) {
@@ -201,20 +196,13 @@ const ConnectionDetails = ({ data, sync }: { data: ConnectionData; sync: SyncVie
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-[#edf1e6] px-3 py-1 text-base text-[#36583e]">
-          {t('time.calendarConnection.connected')}
-        </span>
+        <ConnectedBadge />
         <span className="break-all font-medium text-inherit">
           {data.accountEmail || t('time.calendarConnection.accountUnavailable')}
         </span>
       </div>
       <dl className="divide-y divide-[#dddfd1]">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 py-2">
-          <dt className="text-base text-[#63705e]">{t('time.calendarConnection.lastSync')}</dt>
-          <dd className="mt-1 text-sm font-medium text-inherit">
-            {formatLastSync(data.lastSyncedAt, t('time.calendarConnection.notSynced'))}
-          </dd>
-        </div>
+        <LastSyncRow timestamp={data.lastSyncedAt} />
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 py-2">
           <dt className="text-base text-[#63705e]">{t('time.calendarConnection.syncStatus')}</dt>
           <dd className="mt-1 text-sm font-medium text-inherit" aria-live="polite">
