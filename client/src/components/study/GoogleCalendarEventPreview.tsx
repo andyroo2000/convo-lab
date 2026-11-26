@@ -19,6 +19,18 @@ function dateTime(value: string, locale: string) {
     : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
+function keyedPreviewMatches(preview: GoogleCalendarPreview | undefined) {
+  const matchKeyCounts = new Map<string, number>();
+  return (
+    preview?.matches.map((match) => {
+      const signature = [match.calendarId, match.startsAt, match.endsAt, match.title].join('\0');
+      const occurrence = matchKeyCounts.get(signature) ?? 0;
+      matchKeyCounts.set(signature, occurrence + 1);
+      return { key: `${signature}\0${occurrence}`, match };
+    }) ?? []
+  );
+}
+
 const GoogleCalendarEventPreview = ({
   preview,
   isLoading,
@@ -33,25 +45,23 @@ const GoogleCalendarEventPreview = ({
   let actionLabel = tp('action');
   if (isLoading) actionLabel = tp('loading');
   else if (preview || isError) actionLabel = tp('refresh');
-  const matchKeyCounts = new Map<string, number>();
-  const keyedMatches =
-    preview?.matches.map((match) => {
-      const signature = [match.calendarId, match.startsAt, match.endsAt, match.title].join('\0');
-      const occurrence = matchKeyCounts.get(signature) ?? 0;
-      matchKeyCounts.set(signature, occurrence + 1);
-      return { key: `${signature}\0${occurrence}`, match };
-    }) ?? [];
+  const keyedMatches = keyedPreviewMatches(preview);
 
   return (
-    <section aria-labelledby="calendar-preview-title" className="mt-7 border-t border-navy/10 pt-6">
-      <p className="retro-caps text-coral">{tp('eyebrow')}</p>
-      <h3 id="calendar-preview-title" className="mt-1 text-xl font-black text-navy">
+    <section
+      aria-labelledby="calendar-preview-title"
+      className="mt-7 border-t border-[#dddfd1] pt-6"
+    >
+      <h3
+        id="calendar-preview-title"
+        className="mt-1 font-[inherit] text-xl font-semibold text-[#294b3a]"
+      >
         {tp('title')}
       </h3>
       <p className="mt-2 text-sm text-gray-600">{tp('description')}</p>
       <button
         type="button"
-        className="btn-outline mt-4 min-h-11 w-full justify-center disabled:opacity-50"
+        className="calendar-action mt-4 min-h-11 w-full justify-center disabled:opacity-50"
         onClick={onPreview}
         disabled={disabled || isLoading}
       >
@@ -75,7 +85,7 @@ const GoogleCalendarEventPreview = ({
           </p>
           <button
             type="button"
-            className="btn-outline mt-3 min-h-11 disabled:opacity-50"
+            className="calendar-action mt-3 min-h-11 disabled:opacity-50"
             onClick={onPreview}
             disabled={disabled || isLoading}
           >
@@ -85,7 +95,7 @@ const GoogleCalendarEventPreview = ({
       ) : null}
       {preview ? (
         <div className="mt-4" aria-live="polite">
-          <p className="rounded-xl bg-blue-50 p-3 text-sm text-navy">
+          <p className="rounded-xl bg-[#edf1e6] p-3 text-sm text-[#294b3a]">
             {tp('range', {
               start: dateTime(preview.startsAt, locale),
               end: dateTime(preview.endsAt, locale),
@@ -98,17 +108,17 @@ const GoogleCalendarEventPreview = ({
             </p>
           ) : null}
           {preview.matches.length === 0 ? (
-            <div className="mt-3 rounded-2xl border border-dashed border-navy/20 bg-white/60 p-5 text-center">
-              <p className="font-bold text-navy">{tp('emptyTitle')}</p>
+            <div className="mt-3 rounded-2xl border border-dashed border-[#bdcab7] bg-white/60 p-5 text-center">
+              <p className="font-bold text-[#294b3a]">{tp('emptyTitle')}</p>
               <p className="mt-1 text-sm text-gray-600">{tp('emptyBody')}</p>
             </div>
           ) : (
             <ul className="mt-3 space-y-3" aria-label={tp('matchesLabel')}>
               {keyedMatches.map(({ key, match }) => (
-                <li key={key} className="rounded-2xl border border-navy/10 bg-white p-4">
+                <li key={key} className="rounded-2xl border border-[#dddfd1] bg-white p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="break-words font-black text-navy">{match.title}</p>
+                      <p className="break-words font-black text-[#294b3a]">{match.title}</p>
                       <p className="mt-1 break-words text-sm text-gray-600">{match.calendarName}</p>
                     </div>
                     {match.alreadySynced ? (
@@ -123,7 +133,7 @@ const GoogleCalendarEventPreview = ({
                     )}
                   </div>
                   <p
-                    className="mt-3 text-sm font-bold text-navy"
+                    className="mt-3 text-sm font-bold text-[#294b3a]"
                     aria-label={tp('eventTime', {
                       start: dateTime(match.startsAt, locale),
                       end: dateTime(match.endsAt, locale),

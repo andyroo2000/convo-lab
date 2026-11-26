@@ -226,12 +226,14 @@ const GoogleCalendarSettingsDialog = ({
         aria-modal="true"
         aria-labelledby="calendar-settings-title"
         aria-describedby="calendar-settings-description"
-        className="flex max-h-[92dvh] w-full flex-col rounded-t-3xl bg-cream shadow-2xl sm:max-w-xl sm:rounded-3xl"
+        className="flex max-h-[92dvh] w-full flex-col rounded-t-3xl bg-[#fffdf7] shadow-2xl sm:max-w-xl sm:rounded-3xl"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-navy/10 p-5 sm:p-6">
+        <header className="flex items-start justify-between gap-4 border-b border-[#dddfd1] p-5 sm:p-6">
           <div>
-            <p className="retro-caps text-coral">{tc('settingsEyebrow')}</p>
-            <h2 id="calendar-settings-title" className="retro-headline text-3xl text-navy">
+            <h2
+              id="calendar-settings-title"
+              className="font-[inherit] text-3xl font-medium text-[#294b3a]"
+            >
               {tc('settingsTitle')}
             </h2>
             <p id="calendar-settings-description" className="mt-2 text-sm text-gray-600">
@@ -243,14 +245,14 @@ const GoogleCalendarSettingsDialog = ({
             type="button"
             onClick={close}
             aria-label={tc('closeSettings')}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-navy/15 bg-white text-navy transition hover:bg-blue-50 disabled:opacity-50"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#bdcab7] bg-white text-[#294b3a] transition hover:bg-[#edf1e6] disabled:opacity-50"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </header>
         <div className="min-h-44 flex-1 overflow-y-auto p-5 sm:p-6">
           {!settings ? (
-            <p role="status" className="mb-5 rounded-xl bg-blue-50 p-4 text-sm text-navy">
+            <p role="status" className="mb-5 rounded-xl bg-[#edf1e6] p-4 text-sm text-[#294b3a]">
               {tc('settingsSetup')}
             </p>
           ) : null}
@@ -265,19 +267,19 @@ const GoogleCalendarSettingsDialog = ({
               <p role="alert" className="text-sm text-red-800">
                 {tc('calendarsError')}
               </p>
-              <button type="button" className="btn-outline" onClick={() => calendars.refetch()}>
+              <button type="button" className="calendar-action" onClick={() => calendars.refetch()}>
                 {tc('retry')}
               </button>
             </div>
           ) : null}
           {calendars.isSuccess && calendars.data.calendars.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-navy/20 bg-white/60 p-6 text-center">
-              <CalendarDays className="mx-auto h-8 w-8 text-blue-600" aria-hidden="true" />
-              <p className="mt-3 font-bold text-navy">{tc('calendarsEmptyTitle')}</p>
+            <div className="rounded-2xl border border-dashed border-[#bdcab7] bg-white/60 p-6 text-center">
+              <CalendarDays className="mx-auto h-8 w-8 text-[#386548]" aria-hidden="true" />
+              <p className="mt-3 font-bold text-[#294b3a]">{tc('calendarsEmptyTitle')}</p>
               <p className="mt-1 text-sm text-gray-600">{tc('calendarsEmptyBody')}</p>
               <button
                 type="button"
-                className="btn-outline mt-4"
+                className="calendar-action mt-4"
                 onClick={() => calendars.refetch()}
               >
                 {tc('retry')}
@@ -286,13 +288,13 @@ const GoogleCalendarSettingsDialog = ({
           ) : null}
           {calendars.isSuccess && calendars.data.calendars.length > 0 ? (
             <fieldset>
-              <legend className="retro-caps text-gray-500">{tc('calendarListLabel')}</legend>
+              <legend className="text-base font-semibold">{tc('calendarListLabel')}</legend>
               <div className="mt-3 space-y-3">
                 {calendars.data.calendars.map((calendar, index) => (
                   <label
                     key={calendar.id}
                     htmlFor={`google-calendar-option-${index}`}
-                    className="flex min-h-14 cursor-pointer items-center gap-4 rounded-2xl border border-navy/10 bg-white px-4 py-3 transition hover:border-blue-300 hover:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
+                    className="flex min-h-14 cursor-pointer items-center gap-4 rounded-2xl border border-[#dddfd1] bg-white px-4 py-3 transition hover:border-[#adc1a2] hover:bg-[#edf1e6] has-[:checked]:border-[#65865e] has-[:checked]:bg-[#edf1e6]"
                   >
                     <input
                       id={`google-calendar-option-${index}`}
@@ -302,13 +304,13 @@ const GoogleCalendarSettingsDialog = ({
                         isBusy || (selectionLimitReached && !selectedIds.includes(calendar.id))
                       }
                       onChange={() => toggleCalendar(calendar.id)}
-                      className="h-5 w-5 shrink-0 accent-blue-600"
+                      className="h-5 w-5 shrink-0 accent-[#386548]"
                     />
-                    <span className="min-w-0 flex-1 font-bold text-navy">
+                    <span className="min-w-0 flex-1 font-bold text-[#294b3a]">
                       {calendar.name || tc('untitledCalendar')}
                     </span>
                     {calendar.primary ? (
-                      <span className="rounded-full bg-navy px-2.5 py-1 text-xs font-bold text-white">
+                      <span className="rounded-full bg-[#386548] px-2.5 py-1 text-xs font-bold text-white">
                         {tc('primaryCalendar')}
                       </span>
                     ) : null}
@@ -319,7 +321,7 @@ const GoogleCalendarSettingsDialog = ({
           ) : null}
           {missingIds.length > 0 ? (
             <div className="mt-4 space-y-3">
-              <p className="retro-caps text-gray-500">{tc('unavailableCalendarsLabel')}</p>
+              <p className="text-base font-semibold">{tc('unavailableCalendarsLabel')}</p>
               {missingIds.map((calendarId, index) => (
                 <label
                   key={calendarId}
@@ -332,9 +334,11 @@ const GoogleCalendarSettingsDialog = ({
                     checked
                     disabled={isBusy}
                     onChange={() => toggleCalendar(calendarId)}
-                    className="h-5 w-5 shrink-0 accent-blue-600"
+                    className="h-5 w-5 shrink-0 accent-[#386548]"
                   />
-                  <span className="min-w-0 flex-1 break-all font-bold text-navy">{calendarId}</span>
+                  <span className="min-w-0 flex-1 break-all font-bold text-[#294b3a]">
+                    {calendarId}
+                  </span>
                   <span className="text-xs">{tc('unavailableCalendar')}</span>
                 </label>
               ))}
@@ -357,8 +361,8 @@ const GoogleCalendarSettingsDialog = ({
               {tc('calendarRequired')}
             </p>
           ) : null}
-          <fieldset className="mt-7 border-t border-navy/10 pt-6">
-            <legend className="retro-caps text-gray-500">{tc('titleTermsLabel')}</legend>
+          <fieldset className="mt-7 border-t border-[#dddfd1] pt-6">
+            <legend className="text-base font-semibold">{tc('titleTermsLabel')}</legend>
             <p className="mt-2 text-sm text-gray-600">{tc('titleTermsDescription')}</p>
             <div className="mt-4 space-y-3">
               {titleTermDrafts.map((draft, index) => (
@@ -384,7 +388,7 @@ const GoogleCalendarSettingsDialog = ({
                         GOOGLE_CALENDAR_SETTINGS_LIMITS.termCodePoints
                     }
                     placeholder={tc('titleTermPlaceholder')}
-                    className="min-h-11 min-w-0 flex-1 rounded-xl border border-navy/15 bg-white px-3 text-base text-navy outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                    className="min-h-11 min-w-0 flex-1 rounded-xl border border-[#bdcab7] bg-white px-3 text-base text-[#294b3a] outline-none focus:border-[#65865e] focus:ring-2 focus:ring-[#adc1a2] disabled:opacity-60"
                   />
                   <button
                     type="button"
@@ -398,7 +402,7 @@ const GoogleCalendarSettingsDialog = ({
                     aria-label={t('time.calendarConnection.removeTitleTerm', {
                       term: trimGoogleCalendarInput(draft.value) || index + 1,
                     })}
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-navy/15 bg-white text-navy hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#bdcab7] bg-white text-[#294b3a] hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
@@ -412,7 +416,7 @@ const GoogleCalendarSettingsDialog = ({
                 preview.reset();
                 setTitleTermDrafts((current) => [...current, { id: allocateTermId(), value: '' }]);
               }}
-              className="btn-outline mt-4 min-h-11 disabled:opacity-50"
+              className="calendar-action mt-4 min-h-11 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
               {tc('addTitleTerm')}
@@ -452,7 +456,7 @@ const GoogleCalendarSettingsDialog = ({
           ) : null}
           <label
             htmlFor="google-calendar-automatic-tracking"
-            className="mt-5 flex min-h-14 cursor-pointer items-start gap-4 rounded-2xl border border-navy/10 bg-white px-4 py-3 transition hover:border-blue-300 hover:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
+            className="mt-5 flex min-h-14 cursor-pointer items-start gap-4 rounded-2xl border border-[#dddfd1] bg-white px-4 py-3 transition hover:border-[#adc1a2] hover:bg-[#edf1e6] has-[:checked]:border-[#65865e] has-[:checked]:bg-[#edf1e6]"
           >
             <input
               id="google-calendar-automatic-tracking"
@@ -460,10 +464,10 @@ const GoogleCalendarSettingsDialog = ({
               checked={syncEnabled}
               disabled={isBusy}
               onChange={(event) => setSyncEnabled(event.target.checked)}
-              className="mt-0.5 h-5 w-5 shrink-0 accent-blue-600"
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[#386548]"
             />
             <span>
-              <span className="block font-bold text-navy">{tc('automaticTracking')}</span>
+              <span className="block font-bold text-[#294b3a]">{tc('automaticTracking')}</span>
               <span className="mt-1 block text-sm text-gray-600">
                 {tc('automaticTrackingDescription')}
               </span>
@@ -482,13 +486,13 @@ const GoogleCalendarSettingsDialog = ({
             </p>
           ) : null}
         </div>
-        <footer className="grid grid-cols-2 gap-3 border-t border-navy/10 bg-white/60 p-5 sm:p-6">
-          <button type="button" className="btn-outline min-h-11" onClick={close}>
+        <footer className="grid grid-cols-2 gap-3 border-t border-[#dddfd1] bg-white/60 p-5 sm:p-6">
+          <button type="button" className="calendar-action min-h-11" onClick={close}>
             {t('time.edit.cancel')}
           </button>
           <button
             type="button"
-            className="btn-primary min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
+            className="calendar-action calendar-action-primary min-h-11 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={submit}
             disabled={saveDisabled}
             aria-describedby={saveDescriptionId}

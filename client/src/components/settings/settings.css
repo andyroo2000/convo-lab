@@ -307,7 +307,7 @@ body:has(.journal-settings-dialog[open]) {
   color: white;
 }
 
-.journal-calendar-sync .calendar-action {
+.calendar-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -318,7 +318,7 @@ body:has(.journal-settings-dialog[open]) {
   color: #36583e;
   font-family: inherit;
 }
-.journal-calendar-sync .calendar-action-primary {
+.calendar-action-primary {
   background: #386548;
   color: white;
 }
