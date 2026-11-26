@@ -60,15 +60,10 @@ vi.mock('../../hooks/useStudyBackgroundTask', () => ({
       task?: Promise<unknown> | (() => Promise<unknown> | unknown),
       options?: { onError?: (message: string) => void }
     ) => {
-      if (typeof task === 'function') {
-        Promise.resolve(task()).catch((error) => {
-          options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
-        });
-      } else {
-        Promise.resolve(task).catch((error) => {
-          options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
-        });
-      }
+      const result = typeof task === 'function' ? task() : task;
+      Promise.resolve(result).catch((error) => {
+        options?.onError?.(error instanceof Error ? error.message : 'Request failed.');
+      });
     },
 }));
 
