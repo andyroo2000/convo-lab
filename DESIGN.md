@@ -1,589 +1,194 @@
 # ConvoLab Design System
 
-This document defines the design principles, visual language, and implementation guidelines for ConvoLab.
+The current design reference is the signed-in **Journal and Study** experience at
+[convo-lab.com](https://convo-lab.com). Use their green workspace header, cream
+paper surfaces, serif headings and controls, and restrained green and blue
+accents when building new ConvoLab interfaces.
+
+This guide replaces the former Bold Editorial design system. The old five-color
+content taxonomy, cyan/navy retro shell, Archivo Black headlines, Oswald labels,
+heavy borders, and offset block shadows are not the default for new work.
+Legacy rules still exist in the repository; their presence does not make them
+the current brand.
+
+## Reference order
+
+1. Inspect the relevant signed-in Journal and Study screens on the live site.
+2. Read their route-specific styles and components from an up-to-date checkout
+   of the default branch.
+3. Use this guide to carry that system into new screens and companion tools.
+
+Do not infer the current design from the beginning of styles/index.css,
+tailwind.config.js, an older local checkout, or the iOS theme alone. Route
+styles override legacy globals. The public landing page has its own presentation
+and is not the reference for application controls.
+
+### Implementation sources
+
+| Surface | Source |
+| --- | --- |
+| Wordmark, fonts, green header, authentication | [journalBrand.css](client/src/components/common/journalBrand.css), [JournalBrand.tsx](client/src/components/common/JournalBrand.tsx) |
+| Workspace switcher and navigation | [workspaceNavigation.css](client/src/components/common/workspaceNavigation.css), [Layout.tsx](client/src/components/common/Layout.tsx) |
+| Journal toolbar, menus, drawer and audio | [journalDesk.css](client/src/features/journal/journalDesk.css) |
+| Journal sheets and ruled writing surface | [journalPaper.css](client/src/features/journal/journalPaper.css) |
+| Journal dialogs and appearance choices | [journalEntryDialogs.css](client/src/features/journal/journalEntryDialogs.css), [journalAppearance.css](client/src/features/journal/journalAppearance.css) |
+| Study overview and Daily Audio | [studyNotebook.css](client/src/components/study/studyNotebook.css) |
+| Focused study session | [studyWashi.css](client/src/components/study/studyWashi.css) |
+| Public landing page, a separate surface | [landing.css](client/src/features/landing/landing.css) |
+
+## Visual principles
+
+- Make the writing, study content, and next action easy to read.
+- Use warm paper surfaces, thin rules, rounded panels, and subtle shadows.
+- Use green for navigation and primary study actions; reserve blue-gray for
+  audio and related supporting panels.
+- Keep interface copy specific. Use labels such as “Planning notes,” “Next
+  step,” “Add feature idea,” and “Report bug or fix.” Omit decorative slogans,
+  generic motivational copy, and repeated explanations of the page's purpose.
+- Preserve visible keyboard focus, accessible labels, clear selected states,
+  and at least 44px targets for primary controls.
+
+## Colors by role
+
+These values describe the current surfaces, not interchangeable global colors.
+
+| Role | Value | Current use |
+| --- | --- | --- |
+| Workspace green | #60b048 | Journal and Study header |
+| Header edge | #407c35 | Dark green left edge; Journal action/selection accents |
+| Wordmark yellow | #fff29c | CONVO-LAB on the green header |
+| Header navigation | #ffffff | Workspace label and controls |
+| Study ink | #25483b | Study headings and main text |
+| Study secondary ink | #53655c | Supporting descriptions |
+| Journal writing ink | #4b1800 | Journal text on paper |
+| Study session ink | #242424 | Focused study cards |
+| Study paper | #fffdf4 | Overview cards |
+| Journal paper | #fffdf5 | Sheets, toolbar and menus |
+| Journal dialog paper | #fffdf7 | Dialog backgrounds |
+| Washi backdrop | #f3eddf | Focused study session |
+| Study rules | #c9cfc0 | Thin card borders and separators |
+| Primary study action | #386749 | Filled pill buttons with white text |
+| Muted green accent | #819b85 | Study surface accents |
+| Soft selection | #e7edcf / #edf3e6 | Workspace menu / Journal selections |
+| Audio paper | #e8eff0 | Daily Audio panel |
+| Audio ink | #294b55 | Audio headings and text |
+| Audio rule | #abc7cc | Audio panel border |
+| Audio action | #386577 | Filled audio controls |
+| Destructive action | #9e443d | Journal deletion controls |
+| Destructive tint | #faeae5 | Destructive hover/feedback surface |
+
+Journal narration additionally uses pale blue #e5eefb, border #d0dfef,
+and playback accent #6796ec. Keep those local to their audio context rather
+than reverting the whole application to the previous periwinkle palette.
+
+For a companion tracker, use the Study paper, ink, and button roles. Keep type
+and status labels explicit; color must not be their only distinguishing cue.
+
+## Typography and wordmark
+
+| Role | Typeface | Treatment |
+| --- | --- | --- |
+| CONVO-LAB wordmark | Anton, weight 400 | Uppercase, hyphenated; yellow on green |
+| Japanese wordmark | Journal Kana | コンボ・ラボ; shown in the full brand lockup |
+| Full brand section label | Barlow Condensed, weight 800 | Spaced uppercase label, e.g. JOURNAL |
+| App headings and serif controls | Crimson Pro | Usually weight 500–550; sentence case |
+| Interface body and metadata | Inter | Readable regular/medium weights |
+| Japanese serif fallback | Noto Serif JP, then Georgia/serif | Used with study serif content |
+| Journal writing | Learner's selected font | Respect appearance settings; do not force the logo or heading font |
+
+The shared compact workspace header displays CONVO-LAB without the Japanese
+line. Its wordmark is 36px on desktop, 30px below 640px, and 26px below 380px.
+The public landing page's “Journal by ConvoLab” wordmark is a separate treatment.
+
+Study page headings use Crimson Pro at clamp(2.2rem, 5vw, 3rem), line-height 1,
+weight 550, and letter-spacing -0.035em. Section headings are approximately
+1.85rem, line-height 1.15. Study action labels use 1.1rem Crimson Pro, weight 550.
 
-## Design Philosophy
+Use Inter for supporting interface text, typically 16px body and 14px metadata.
+Journal menus and workspace controls use roughly 18–20px Crimson Pro.
+Inputs should remain at least 16px. Do not shrink Japanese content to match
+compact English metadata.
 
-ConvoLab embraces a **bold, editorial design language** inspired by confident print magazines. We reject timid, desaturated corporate aesthetics in favor of vibrant colors, strong visual hierarchy, and clear information architecture.
+### Font assets
 
-### Core Principles
+Reuse the bundled assets and their licenses:
 
-1. **Be Bold, Not Safe**
-   - Use saturated colors with confidence
-   - Solid color blocks over gradients
-   - Strong contrast and clear hierarchy
-   - Large, readable text sizes
+- client/public/fonts/Anton-Regular.woff2
+- client/public/fonts/BarlowCondensed-ExtraBold.woff2
+- client/public/fonts/Inter-Variable.woff2
+- client/public/fonts/JournalKana.woff2
+- client/public/fonts/Nunito-Variable.woff2 when the relevant component calls for it
+- client/public/journal-landing/CrimsonPro.woff2
 
-2. **Clarity Over Cleverness**
-   - Immediate visual feedback for user actions
-   - Contextual messaging near the point of interaction
-   - Clear content type identification through color coding
-   - No hidden functionality or ambiguous states
+Font license files sit alongside these assets. Keep them with copied fonts.
+Use font-display: swap and sensible fallbacks. Do not replace these with
+Archivo Black or Oswald when extending the current application.
 
-3. **Magazine Editorial Aesthetic**
-   - Think Kinfolk, Monocle, or hurryupandhavefun.com
-   - Bold color sidebars as visual anchors
-   - Generous whitespace and breathing room
-   - Typography that commands attention
+## Surfaces and controls
 
-4. **Minimize Friction**
-   - Auto-save wherever possible
-   - Inline feedback instead of distant toasts
-   - Remove unnecessary navigation steps
-   - No "Back to X" links on creation flows
+### Workspace navigation
 
-## Color Palette
+Use the shared green header and compact wordmark. Workspace switching and
+account actions belong in the header; active controls are quietly highlighted.
+The switcher uses a cream panel with rounded corners and soft green selection.
+Maintain the existing responsive behavior instead of introducing a saturated
+sidebar for every content category.
 
-ConvoLab uses **5 core brand colors** plus neutrals. Each color has semantic meaning tied to content types.
+### Journal
 
-### Brand Colors
-
-```css
-/* Periwinkle - Dialogues & Conversations */
---periwinkle: #6b7fd7;
---periwinkle-light: #e8ebfc;
---periwinkle-dark: #5a6bc4;
+Journal is a writing surface: cream notebook paper, subtle horizontal ruling,
+a muted red margin rule, and a lightly torn decorative edge. Keep the edge
+decoration separate from interactive content so it does not clip text or focus.
 
-/* Coral - Audio Courses */
---coral: #ff8370;
---coral-light: #ffe5e0;
---coral-dark: #e66b59;
+Its toolbar is cream, with a thin border, 15px corners, and a green bottom rule.
+Menus and drawers use 12–14px corners, thin neutral borders, and soft shadows.
+Version selection and primary actions use rounded pills. Respect the learner's
+font and writing-size preferences.
 
-/* Strawberry - Narrow Listening */
---strawberry: #ff6b9d;
---strawberry-light: #ffe5ef;
---strawberry-dark: #e65889;
-
-/* Keylime (Olive Green) - Processing Instruction */
---keylime: #748c00;
---keylime-light: #eef2d9;
---keylime-dark: #627600;
-
-/* Yellow - Lexical Chunk Packs */
---yellow: #ffcc3f;
---yellow-light: #fff5dc;
---yellow-dark: #e6b835;
-```
+### Study
 
-### Neutrals
+Use cream cards with thin green-gray borders, approximately 14px corners,
+serif headings, and restrained shadows such as 0 4px 9px #2136290c.
+Study content and available actions determine the layout; do not copy a
+particular card arrangement blindly across routes or viewport sizes.
 
-```css
-/* Cream - Page Background */
---cream: #faf9f6;
+Primary actions have a green fill, white text, a 1px green border, pill radius,
+and a minimum 44px height. Secondary actions can be outlined or text links.
+Daily Audio uses a muted blue-gray panel, a thin blue rule, and blue-gray controls.
 
-/* Dark Brown - Primary Text */
---dark-brown: #4b1800;
-
-/* Grays - Secondary Elements */
---gray-200: #e5e7eb;
---gray-300: #d1d5db;
---gray-500: #6b7280;
---gray-600: #4b5563;
---gray-700: #374151;
-```
+Focused review uses the washi backdrop with a subtle fiber texture and removes
+the normal workspace header. This is specific to focused sessions, not a reason
+to hide navigation throughout the application.
 
-### Color Usage Guidelines
+### Forms and dialogs
 
-**Content Type Color Coding:**
-
-- Dialogues = Periwinkle
-- Audio Courses = Coral
-- Narrow Listening = Strawberry
-- Processing Instruction = Keylime (Olive Green)
-- Lexical Chunk Packs = Yellow
-
-**Avoid:**
-
-- Never use violet/purple (removed from palette)
-- No desaturated or muted versions of brand colors
-- No black (#000000) for text - use dark-brown instead
-
-## Typography
+Use cream or near-white fields, thin borders, readable labels, and visible
+focus. Keep errors next to the relevant operation. Show saving, success, and
+failure states clearly. Auto-save where the workflow already supports it;
+explicit submission is appropriate for creating an entry or sending a bug report.
 
-### Hierarchy
-
-```css
-/* Headings */
-h1: text-5xl (48px) font-bold
-h2: text-4xl (36px) font-bold
-h3: text-3xl (30px) font-bold
-
-/* Page Headers */
-Page Title: text-5xl font-bold text-dark-brown
-Page Subtitle: text-xl text-gray-600
-Border: border-b-4 border-[brand-color]
-
-/* Body Text */
-Large Body: text-lg (18px)
-Base Body: text-base (16px)
-Small Text: text-sm (14px)
-
-/* Labels */
-Form Labels: text-base font-bold text-dark-brown
-Section Labels: text-lg font-bold text-dark-brown
-```
-
-### Font Sizes - Key Guidelines
-
-- **Increase, don't decrease**: When in doubt, make text larger
-- **Japanese text needs extra size**: Grammar points, sentences, and kanji should be text-lg minimum
-- **Description boxes**: Headings text-xl, body text-lg
-- **Form inputs**: text-base minimum for better readability
-- **Help text**: text-sm for secondary information
-
-### Font Stack
-
-```css
-font-family:
-  -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-  'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-```
-
-## Layout Patterns
-
-### Page Structure
-
-```jsx
-<div className="max-w-6xl mx-auto">
-  {/* Page Header */}
-  <div className="mb-8 pb-6 border-b-4 border-[brand-color]">
-    <h1 className="text-5xl font-bold text-dark-brown mb-3">Page Title</h1>
-    <p className="text-xl text-gray-600">Descriptive subtitle</p>
-  </div>
-
-  {/* Main Content Card */}
-  <div className="max-w-4xl mx-auto">
-    <div className="bg-white border-l-8 border-[brand-color] p-8 shadow-sm">{/* Content */}</div>
-  </div>
-</div>
-```
-
-### Card Components
-
-**Standard Card:**
-
-```jsx
-<div className="bg-white border-l-8 border-[brand-color] p-8 shadow-sm">{/* Content */}</div>
-```
-
-**Info/Description Box:**
-
-```jsx
-<div className="bg-[brand-color]-light border-l-4 border-[brand-color] p-6 mb-8">
-  <h2 className="text-xl font-bold text-dark-brown mb-3">Section Title</h2>
-  <p className="text-lg text-gray-700 leading-relaxed">
-    Description text with <strong>emphasized points</strong>.
-  </p>
-</div>
-```
-
-### Sidebar Pattern (Library & Create Pages)
-
-Used for content type identification with large icons and bold colors:
-
-```jsx
-<div className="flex gap-3 cursor-pointer hover:opacity-90 transition-opacity">
-  {/* 96px or 128px wide colored sidebar */}
-  <div className="w-24 bg-[brand-color] flex flex-col items-center justify-center p-4">
-    <Icon className="w-8 h-8 text-white mb-2" />
-    <span className="text-white text-xs font-bold uppercase tracking-wide text-center">Label</span>
-  </div>
-
-  {/* Content area */}
-  <div className="flex-1 bg-white p-6 border-l-8 border-[brand-color]">{/* Card content */}</div>
-</div>
-```
-
-## Component Patterns
-
-### Buttons
-
-**Primary Action Button:**
-
-```jsx
-<button className="w-full bg-[brand-color] hover:bg-[brand-color]-dark text-white font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all">
-  Button Text
-</button>
-```
-
-**Selection Buttons (Active State):**
-
-```jsx
-<button
-  className={`px-6 py-4 rounded-lg border-2 font-bold transition-all ${
-    isActive
-      ? 'border-[brand-color] bg-[brand-color] text-white shadow-md'
-      : 'border-gray-200 bg-white text-gray-700 hover:border-[brand-color] hover:bg-[brand-color]-light'
-  }`}
->
-  Button Text
-</button>
-```
-
-### Form Inputs
-
-**Text Input:**
-
-```jsx
-<input
-  type="text"
-  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[brand-color] focus:outline-none text-base"
-  placeholder="Placeholder text"
-/>
-```
-
-**Select Dropdown:**
-
-```jsx
-<select className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[brand-color] focus:outline-none text-base">
-  <option>Option 1</option>
-</select>
-```
-
-**Form Label:**
-
-```jsx
-<label className="block text-base font-bold text-dark-brown mb-3">Label Text</label>
-```
-
-### Inline Feedback
-
-For auto-save confirmations and contextual messages:
-
-```jsx
-{
-  saveMessage && (
-    <p
-      className={`text-sm font-medium mt-2 ${
-        saveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'
-      }`}
-    >
-      {saveMessage}
-    </p>
-  );
-}
-{
-  !saveMessage && (
-    <p className="text-sm text-gray-500 mt-2">Helper text when not showing save status</p>
-  );
-}
-```
-
-### Navigation Tabs
-
-**Bold Button Style (Settings, etc.):**
-
-```jsx
-<button
-  className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
-    isActive
-      ? 'border-[brand-color] bg-[brand-color] text-white shadow-md'
-      : 'border-gray-200 bg-white text-gray-700 hover:border-[brand-color] hover:bg-[brand-color]-light'
-  }`}
->
-  Tab Name
-</button>
-```
-
-### Progress Bars
-
-```jsx
-<div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-  <div
-    className="h-full bg-strawberry transition-all duration-300"
-    style={{ width: `${progress}%` }}
-  />
-</div>
-```
-
-## Navigation
-
-### Top Navigation
-
-```jsx
-<nav className="sticky top-0 z-20 bg-periwinkle shadow-lg">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="flex h-16">
-      {/* Logo */}
-      <Link
-        to="/app/library"
-        className="flex items-center gap-2 px-4 text-white font-bold text-xl drop-shadow-md"
-      >
-        ConvoLab
-        <Logo size="small" />
-      </Link>
-
-      {/* Nav Items */}
-      <div className="hidden sm:ml-6 sm:flex h-16 items-center gap-1">
-        <Link
-          className={`px-4 h-10 rounded-lg ${
-            isActive ? 'bg-white text-[brand-color] shadow-md' : 'text-white hover:bg-white/20'
-          }`}
-        >
-          Nav Item
-        </Link>
-      </div>
-    </div>
-  </div>
-</nav>
-```
-
-### Logo Component
-
-ConvoLab logo consists of text + 2 icons (MessageCircle + FlaskConical):
-
-- Light variant (default): White icons for dark backgrounds
-- Dark variant: Dark-brown icons for light backgrounds (landing page)
-
-```jsx
-<Logo variant="light" size="small" />
-<Logo variant="dark" size="medium" />
-```
-
-## Interaction Patterns
-
-### Auto-Save Pattern
-
-**Always prefer auto-save over manual save buttons.**
-
-```jsx
-const handleFieldChange = async (value) => {
-  setFieldValue(value);
-  setSaveMessage(null);
-
-  try {
-    await updateUser({ fieldName: value });
-    setSaveMessage('Saved!');
-    setTimeout(() => setSaveMessage(null), 2000);
-  } catch (err) {
-    setSaveMessage('Failed to save');
-    setTimeout(() => setSaveMessage(null), 3000);
-  }
-};
-```
-
-### Feedback Placement
-
-- **Inline feedback**: Show "Saved!" message directly below the modified field
-- **Never use corner toasts**: Too far from the point of interaction
-- **Contextual errors**: Show error messages near the field that caused them
-
-### Loading States
-
-```jsx
-{
-  isLoading ? (
-    <>
-      <Loader className="w-5 h-5 animate-spin" />
-      Loading Text...
-    </>
-  ) : (
-    <>
-      <Icon className="w-5 h-5" />
-      Action Text
-    </>
-  );
-}
-```
-
-## Creator Forms (Setup Pages)
-
-All creator/setup pages follow this structure:
-
-### Page Header
-
-- Max width: `max-w-6xl`
-- Title: `text-5xl font-bold text-dark-brown`
-- Subtitle: `text-xl text-gray-600`
-- Bottom border: `border-b-4 border-[brand-color]`
-
-### Main Card
-
-- Max width: `max-w-4xl mx-auto`
-- Left border: `border-l-8 border-[brand-color]`
-- Padding: `p-8`
-
-### Info Box
-
-- Background: `bg-[brand-color]-light`
-- Left border: `border-l-4 border-[brand-color]`
-- Heading: `text-xl font-bold`
-- Body: `text-lg text-gray-700`
-
-### Selection Grids
-
-- Grid layouts for options
-- Active state uses brand color background
-- Hover state uses brand color light background
-
-### Generate Button
-
-- Full width
-- Large padding: `px-10 py-5`
-- Font: `text-lg font-bold`
-- Brand color background
-
-### No "Back" Buttons
+On small screens, stack controls or use the existing bottom-sheet pattern.
+Avoid horizontal page overflow; allow deliberate scrolling within navigation
+or bounded menus when appropriate.
 
-- Never include "Back to Create" or similar navigation
-- Users can use browser back or main navigation
+## Applying this system to companion sites
 
-## Library/Content Cards
-
-### Icon Sidebars (Library Page)
-
-- 96px wide colored sidebar
-- 8x8 icon (w-8 h-8)
-- Uppercase label
-- Color matches content type
-
-### Create Page Buttons
-
-- 128px wide colored sidebar
-- 12x12 icon (w-12 h-12) in white
-- Simplified content: Title + one-line description
-- Full width action button
-
-## Audio Player
-
-- Background: `bg-yellow`
-- Text: `text-dark-brown`
-- Progress bar: Strawberry on yellow background
-- Speed selector: Gray variants (not color-coded)
-
-## Settings Page
-
-### Tab Navigation
-
-- Bold button style with rounded corners
-- Active tab: Brand color background with white text
-- Inactive: White background with hover state
-
-### Form Structure
-
-- All cards have `border-l-8 border-periwinkle`
-- Danger Zone uses `border-strawberry`
-- All inputs auto-save with inline feedback
-- No Save/Cancel buttons in auto-save sections
-
-### Profile Tab
+A feature/bug tracker should inherit the current wordmark, fonts, green
+navigation, cream cards, pill actions, and thin rules. Keep content and controls
+plain: feature ideas, bugs, fixes, statuses, search, planning notes, and next steps.
 
-- Avatar with color picker
-- Display name input
-- Manual save required (profile changes are more significant)
+Do not add faux notebook decoration to every component. Journal's writing
+rules and torn edges serve its writing experience; Study's quieter cards are
+the closer reference for a list/detail planning tool.
 
-### Language Preferences Tab
+## Verification before publishing
 
-- All fields auto-save
-- Inline "Saved!" confirmation
-- No manual save buttons
+- Compare the result against both signed-in Journal and Study.
+- Check loaded fonts and computed styles, not only old token names.
+- Check desktop and phone widths, long titles, dialogs, selected states, and focus.
+- Verify the current source branch and note any live/source mismatch.
+- Preserve data and behavior when changing presentation.
 
-### Security Tab
-
-- Password change with manual submit
-- Clear validation and error messages
-
-## Responsive Considerations
-
-### Breakpoints
-
-- Mobile-first approach
-- sm: 640px
-- md: 768px
-- lg: 1024px
-
-### Navigation
-
-- Stack nav items vertically on mobile
-- Hide secondary navigation on small screens
-- Maintain icon sidebars on all sizes (scale down if needed)
-
-## Technical Implementation Notes
-
-### Always-Visible Scrollbar
-
-```css
-html {
-  overflow-y: scroll;
-}
-```
-
-This prevents navigation shift when switching between pages with different heights.
-
-### Z-Index Layers
-
-- Sticky nav: `z-20`
-- Modals: `z-30`
-- Toasts/Notifications: `z-40`
-
-### Transitions
-
-- Use `transition-all` for smooth state changes
-- Duration: 200-300ms for most interactions
-- Longer (500ms+) for major layout shifts
-
-## Design Anti-Patterns to Avoid
-
-❌ **Don't:**
-
-- Use gradients instead of solid colors
-- Make text smaller than necessary
-- Use corner toast notifications for save confirmations
-- Add "Back to X" buttons in creation flows
-- Use desaturated or muted colors
-- Create Save/Cancel buttons when auto-save is possible
-- Use black (#000) for text
-- Include violet/purple colors
-- Hide the scrollbar or let it auto-show
-
-✅ **Do:**
-
-- Use bold, saturated brand colors
-- Make text larger and more readable
-- Show inline feedback near the point of interaction
-- Let users navigate freely with browser controls
-- Use dark-brown for all text
-- Stick to the 5-color palette
-- Auto-save with inline confirmation
-- Force scrollbar to always be visible
-
-## Examples by Page Type
-
-### Creator/Setup Pages
-
-- Processing Instruction Setup (Keylime theme)
-- Lexical Chunk Pack Setup (Yellow theme)
-- Dialogue Creator (Periwinkle theme)
-- Course Creator (Coral theme)
-- Narrow Listening Creator (Strawberry theme)
-
-### Content Pages
-
-- Library Page (Icon sidebars, content type color coding)
-- Create Page (Large action buttons with colored sidebars)
-
-### Playback Pages
-
-- PlaybackPage (Coral header, yellow audio player)
-- Narrow Listening Playback (Strawberry variation buttons)
-
-### Settings Pages
-
-- Settings Page (Periwinkle theme, auto-save everywhere)
-
-## Future Considerations
-
-When designing new features:
-
-1. **Choose the appropriate brand color** based on content type
-2. **Start with large text sizes** and only decrease if absolutely necessary
-3. **Plan for auto-save** instead of manual save flows
-4. **Use inline feedback** for all user actions
-5. **Add bold colored borders** (8px left border) to main cards
-6. **Follow the sidebar pattern** for content type identification
-7. **Avoid adding navigation** that removes user agency (no forced "Back" buttons)
-
----
-
-**Last Updated:** November 24, 2025
-**Design System Version:** 1.0 (Bold Editorial)
+Updated November 27, 2026. Reference: live Journal and Study, checked against
+default-branch source at acd8c179. This guide supersedes Design System 1.0
+(Bold Editorial, November 24, 2025).
