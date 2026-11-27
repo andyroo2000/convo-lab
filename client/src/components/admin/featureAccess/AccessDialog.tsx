@@ -19,6 +19,7 @@ const AccessDialog = ({ title, busy = false, onClose, children }: Props) => {
       aria-busy={busy}
       onCancel={(event) => {
         event.preventDefault();
+        event.stopPropagation();
         if (!busy) onClose();
       }}
     >

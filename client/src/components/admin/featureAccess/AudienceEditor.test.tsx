@@ -130,3 +130,14 @@ it('keeps the draft after a conflict and prevents duplicate submissions while pe
   expect(screen.getByLabelText('Select Ken')).toBeChecked();
   expect(screen.getByRole('dialog', { name: 'Edit audience · Readings' })).toBeInTheDocument();
 });
+it('dismisses only the nested group dialog and keeps the unsaved audience open', async () => {
+  const { close } = setup();
+  await waitFor(() => expect(screen.getByLabelText('Select Ken')).toBeEnabled());
+  fireEvent.click(screen.getByLabelText('Select Ken'));
+  fireEvent.click(screen.getByRole('button', { name: 'Create group from selected users' }));
+  const groupDialog = screen.getByRole('dialog', { name: 'Create group' });
+  fireEvent(groupDialog, new Event('cancel', { cancelable: true }));
+  expect(screen.queryByRole('dialog', { name: 'Create group' })).not.toBeInTheDocument();
+  expect(close).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('Select Ken')).toBeChecked();
+});
