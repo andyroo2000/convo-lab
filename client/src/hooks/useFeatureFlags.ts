@@ -2,19 +2,19 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface FeatureFlags {
-  id: string;
+  id?: string;
 
   flashcardsEnabled: boolean;
   readingsEnabled?: boolean;
   studyTimeEnabled?: boolean;
   learnEnabled?: boolean;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export type FeatureFlagStatus = 'loading' | 'ready' | 'error' | 'adminOverride';
 
 async function fetchFeatureFlags(): Promise<FeatureFlags> {
-  const response = await fetch('/api/feature-flags', {
+  const response = await fetch('/api/convolab/feature-availability', {
     credentials: 'include',
   });
   if (!response.ok) {
@@ -22,6 +22,8 @@ async function fetchFeatureFlags(): Promise<FeatureFlags> {
   }
   return response.json();
 }
+
+const identityKey = (user: { id: string } | null | undefined) => user?.id ?? 'anonymous';
 
 export function useFeatureFlags() {
   const { user } = useAuth();
@@ -33,9 +35,10 @@ export function useFeatureFlags() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['featureFlags'],
+    queryKey: ['featureFlags', identityKey(user)],
     queryFn: fetchFeatureFlags,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   // The admin override is an intentional product rule. Everyone else must receive a

@@ -72,7 +72,7 @@ describe('useFeatureFlags', () => {
 
       expect(result.current.flags).toEqual(mockFlags);
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/feature-flags',
+        '/api/convolab/feature-availability',
         expect.objectContaining({ credentials: 'include' })
       );
     });
