@@ -1,0 +1,309 @@
+.access-dialog {
+  color-scheme: light;
+  width: min(820px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  border: 1px solid #d6ddcc;
+  border-top: 4px solid #398b47;
+  border-radius: 14px;
+  background: #fffdf5;
+  color: #4b1800;
+  box-shadow: 0 16px 50px #35291630;
+  font:
+    400 14px/1.5 Inter,
+    sans-serif;
+  overflow: auto;
+}
+.access-dialog::backdrop {
+  background: #403c2966;
+}
+.access-dialog header,
+.access-dialog footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  flex-wrap: wrap;
+}
+.access-dialog header {
+  border-bottom: 1px solid #e1d9c6;
+}
+.access-dialog footer {
+  border-top: 1px solid #e1d9c6;
+  background: #f7f6ec;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+.access-dialog footer > div {
+  display: flex;
+  gap: 8px;
+}
+.access-dialog h2 {
+  font:
+    500 32px/1.15 'Crimson Pro',
+    Georgia,
+    serif;
+  letter-spacing: -0.025em;
+  color: #4b1800;
+}
+.access-dialog h3 {
+  font:
+    500 24px/1.2 'Crimson Pro',
+    Georgia,
+    serif;
+  color: #4b1800;
+}
+.access-body {
+  padding: 20px 24px;
+  display: grid;
+  gap: 16px;
+}
+.access-dialog p {
+  color: #766552;
+}
+.access-dialog button,
+.feature-audience-controls button,
+.admin-feature-switches > .access-group-heading button {
+  font:
+    500 13px/1.4 Inter,
+    sans-serif;
+  border: 1px solid #c8d1be;
+  border-radius: 999px;
+  background: #fffdf5;
+  color: #355b43;
+  padding: 10px 16px;
+  min-height: 40px;
+}
+.access-dialog button.access-primary,
+.feature-audience-controls > button {
+  background: #355b43;
+  border-color: #355b43;
+  color: #fff;
+}
+.access-dialog button:disabled,
+.feature-audience-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.access-dialog :is(button, input, select):focus-visible,
+.feature-audience-controls button:focus-visible {
+  outline: 3px solid #668ee1 !important;
+  outline-offset: 3px;
+}
+.access-dialog header > button {
+  font-size: 22px;
+  padding: 0;
+  width: 40px;
+  background: #edf0e4;
+  border: 0;
+}
+.access-dialog .access-context {
+  background: #e4eef9;
+  color: #2e5271;
+  padding: 12px;
+  border-radius: 8px;
+}
+.access-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid #e1d9c6;
+}
+.access-tabs button {
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 8px 0;
+}
+.access-tabs button[aria-pressed='true'] {
+  border-color: #398b47;
+}
+.access-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 125px 160px;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.access-filters label,
+.access-name {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #766552;
+}
+.access-dialog input:not([type='checkbox']),
+.access-dialog select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cec9b7;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fffef9;
+  color: #4b1800;
+  font:
+    14px Inter,
+    sans-serif;
+  min-height: 42px;
+}
+.access-dialog input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #355b43;
+  flex-shrink: 0;
+}
+.access-table-scroll {
+  overflow: auto;
+  margin: 12px 0;
+}
+.access-dialog table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.access-dialog th {
+  background: #f0efe3;
+  font-size: 12px;
+  text-align: left;
+  font-weight: 500;
+}
+.access-dialog :is(th, td) {
+  padding: 12px 8px;
+  border-bottom: 1px solid #e1d9c6;
+}
+.access-dialog small,
+.access-group small {
+  display: block;
+  font-size: 12px;
+  color: #766552;
+  overflow-wrap: anywhere;
+}
+.access-dialog tr.is-selected {
+  background: #edf3e6;
+}
+.access-pagination,
+.access-group-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.access-hint {
+  font-size: 12px !important;
+  color: #766552 !important;
+  margin-top: 10px;
+}
+.access-selection {
+  background: #f0f3e8;
+  border: 1px solid #d6ddcc;
+  border-radius: 9px;
+  padding: 15px;
+}
+.access-selection ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  max-height: 160px;
+  overflow: auto;
+}
+.access-selection li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #fffdf5;
+  border: 1px solid #d6ddcc;
+  padding: 4px 8px;
+  border-radius: 7px;
+}
+.access-selection li button {
+  border: 0;
+  min-height: 28px;
+  padding: 0 5px;
+  font-size: 18px;
+}
+.access-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #d6ddcc;
+  border-radius: 9px;
+  padding: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.access-group label {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.access-dialog [role='alert'] {
+  color: #932d25;
+  background: #fff0eb;
+  padding: 12px;
+  border-radius: 8px;
+}
+.feature-access-section {
+  border-bottom: 1px solid #e1d9c6;
+  padding-bottom: 20px;
+}
+.feature-access-section .admin-feature-row {
+  border: 0;
+  padding-bottom: 12px;
+}
+.access-global {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.feature-audience-controls {
+  padding: 0 0 0 2px;
+  display: grid;
+  gap: 9px;
+  justify-items: start;
+}
+.feature-audience-controls h4 {
+  font:
+    500 18px 'Crimson Pro',
+    Georgia,
+    serif;
+}
+@media (max-width: 600px) {
+  .access-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .access-dialog header,
+  .access-dialog footer,
+  .access-body {
+    padding: 16px;
+  }
+  .access-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .access-filters label:first-child {
+    grid-column: 1/-1;
+  }
+  .access-dialog input:not([type='checkbox']),
+  .access-dialog select {
+    font-size: 16px;
+  }
+  .access-dialog td {
+    min-width: 85px;
+  }
+  .access-dialog td:first-child {
+    min-width: 30px;
+  }
+  .access-dialog h2 {
+    font-size: 28px;
+  }
+  .feature-access-section .admin-feature-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .access-global {
+    margin-left: auto;
+  }
+}

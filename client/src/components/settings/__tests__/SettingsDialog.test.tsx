@@ -50,7 +50,8 @@ function setup(enabled: boolean | undefined = false, route = '/app/journal') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  if (enabled !== undefined) client.setQueryData(['featureFlags'], { flashcardsEnabled: enabled });
+  if (enabled !== undefined)
+    client.setQueryData(['featureFlags', auth.user.id], { flashcardsEnabled: enabled });
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[route]}>
@@ -146,7 +147,7 @@ describe('Journal settings modal', () => {
   it('removes Calendar when the Study feature is revoked', async () => {
     const client = setup(true, '/app/settings/integrations');
     expect(screen.getByText('Google Calendar connection')).toBeInTheDocument();
-    client.setQueryData(['featureFlags'], { flashcardsEnabled: false });
+    client.setQueryData(['featureFlags', auth.user.id], { flashcardsEnabled: false });
     await waitFor(() =>
       expect(screen.queryByText('Google Calendar connection')).not.toBeInTheDocument()
     );

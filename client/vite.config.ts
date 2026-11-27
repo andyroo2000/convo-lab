@@ -76,6 +76,10 @@ export default defineConfig({
         target: learningOsApiUrl,
         changeOrigin: true,
       },
+      '/api/convolab/feature-availability': {
+        target: learningOsApiUrl,
+        changeOrigin: true,
+      },
       '/api/feature-flags': {
         target: learningOsApiUrl,
         changeOrigin: true,
