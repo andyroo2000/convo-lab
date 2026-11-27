@@ -75,6 +75,7 @@ export interface AdminFeatureFlags {
   flashcardsEnabled: boolean;
   readingsEnabled?: boolean;
   studyTimeEnabled?: boolean;
+  learnEnabled?: boolean;
   updatedAt: string;
 }
 

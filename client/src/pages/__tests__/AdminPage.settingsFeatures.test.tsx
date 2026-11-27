@@ -28,6 +28,19 @@ describe('AdminPage settingsFeatures', () => {
     });
   });
 
+  it('shows Learn off and sends only its switch value when enabled', async () => {
+    renderPage('settings');
+    const toggle = await screen.findByRole('switch', { name: 'Toggle Learn' });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/feature-flags'),
+        expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ learnEnabled: true }) })
+      );
+    });
+  });
+
   it('should fetch and display verb pronunciation overrides', async () => {
     renderPage('settings');
 

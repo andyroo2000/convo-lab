@@ -2,6 +2,12 @@ import type { AdminFeatureFlagKey, AdminFeatureFlags } from '../../lib/adminApi'
 
 const SECTIONS = [
   {
+    key: 'learnEnabled',
+    label: 'Learn',
+    description: 'Guided textbook lessons and tutor practice.',
+    aria: 'Toggle Learn',
+  },
+  {
     key: 'flashcardsEnabled',
     label: 'Study / Flashcards',
     description: 'Flashcards, imports, and study pages.',

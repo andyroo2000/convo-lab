@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Eye, BookOpen, BookMarked, Clock3, NotebookPen } from 'lucide-react';
+import { Eye, BookOpen, BookMarked, Clock3, NotebookPen, GraduationCap } from 'lucide-react';
 import useReadings from '../../features/readings/useReadings';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
@@ -196,6 +196,8 @@ function getWorkspaceItems({
   labels,
   route,
   isJournalActive,
+  isLearnActive,
+  learnEnabled,
   hasReadings,
   isReadingsActive,
   studyTimeEnabled,
@@ -205,6 +207,8 @@ function getWorkspaceItems({
   labels: { study: string; studyTime: string };
   route: LayoutRouteState;
   isJournalActive: boolean;
+  isLearnActive: boolean;
+  learnEnabled: boolean;
   hasReadings: boolean;
   isReadingsActive: boolean;
   studyTimeEnabled: boolean;
@@ -229,6 +233,17 @@ function getWorkspaceItems({
             path: '/app/journal',
             isActive: isJournalActive,
             icon: NotebookPen,
+          },
+        ]
+      : []),
+    ...(learnEnabled && !viewAsUserId
+      ? [
+          {
+            id: 'learn',
+            label: 'Learn',
+            path: '/app/learn',
+            isActive: isLearnActive,
+            icon: GraduationCap,
           },
         ]
       : []),
@@ -272,6 +287,7 @@ const Layout = () => {
   const readingsEnabled = isFeatureEnabled('readingsEnabled');
   const hasReadings = useVisibleReadings(viewAsUserId, readingsEnabled);
   const isJournalActive = location.pathname.startsWith('/app/journal');
+  const isLearnActive = location.pathname.startsWith('/app/learn');
   const isReadingsActive = location.pathname.startsWith('/app/readings');
   const route = getLayoutRouteState(location.pathname);
   const protectedReturnUrl = `${location.pathname}${location.search}${location.hash}`;
@@ -311,9 +327,11 @@ const Layout = () => {
     labels,
     route,
     isJournalActive,
+    isLearnActive,
     hasReadings,
     isReadingsActive,
     studyTimeEnabled: isFeatureEnabled('studyTimeEnabled'),
+    learnEnabled: isFeatureEnabled('learnEnabled'),
   });
 
   // Show loading spinner while checking authentication
