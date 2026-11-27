@@ -58,7 +58,16 @@ function accessReminder(global: boolean) {
     : 'Everyone: Off. Selected users and group members get access.';
 }
 const AudienceEditor = (props: Props) => {
-  const { audience, groups, label, global, onClose, onSaved, onGroupSaved } = props;
+  const {
+    audience: initialAudience,
+    groups,
+    label,
+    global,
+    onClose,
+    onSaved,
+    onGroupSaved,
+  } = props;
+  const [audience] = useState(initialAudience);
   const {
     users,
     setUsers,

@@ -141,3 +141,23 @@ it('dismisses only the nested group dialog and keeps the unsaved audience open',
   expect(close).not.toHaveBeenCalled();
   expect(screen.getByLabelText('Select Ken')).toBeChecked();
 });
+
+it('keeps the opening version when parent data refreshes during an unsaved edit', async () => {
+  const props = {
+    audience,
+    groups: [beta],
+    label: 'Readings',
+    global: false,
+    onClose: vi.fn(),
+    onSaved: vi.fn(),
+    onGroupSaved: vi.fn(),
+  };
+  const view = render(<AudienceEditor {...props} />);
+  await waitFor(() => expect(screen.getByLabelText('Select Ken')).toBeEnabled());
+  fireEvent.click(screen.getByLabelText('Select Ken'));
+  view.rerender(<AudienceEditor {...props} audience={{ ...audience, version: 5, users: [] }} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Save audience' }));
+  await waitFor(() =>
+    expect(api.saveAudience).toHaveBeenCalledWith({ ...audience, users: [maya, ken] })
+  );
+});
