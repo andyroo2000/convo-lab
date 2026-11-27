@@ -43,6 +43,7 @@ const JapaneseVerbConjugationToolPage = lazy(
 const PlaybackPage = lazy(() => import('./pages/PlaybackPage'));
 const PracticePage = lazy(() => import('./pages/PracticePage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
+const LearnPage = lazy(() => import('./pages/LearnPage'));
 const ReadingsPage = lazy(() => import('./pages/ReadingsPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
 const SettingsPage = lazy(() => import('./components/settings/SettingsDialog'));
@@ -293,6 +294,10 @@ const renderProtectedRoutes = () => (
   <Route path="/app" element={<Layout />}>
     <Route index element={<Navigate to="/app/journal" replace />} />
     <Route path="journal" element={<JournalPage />} />
+    <Route element={<SectionFeatureBoundary feature="learnEnabled" />}>
+      <Route path="learn" element={<LearnPage />} />
+      <Route path="learn/:lessonId" element={<LearnPage />} />
+    </Route>
     <Route path="journal/:entryId" element={<JournalPage />} />
     <Route element={<SectionFeatureBoundary feature="readingsEnabled" />}>
       <Route path="readings" element={<ReadingsPage />} />

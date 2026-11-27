@@ -21,6 +21,7 @@ const mockAuthState = vi.hoisted(() => ({
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   } as User | null,
   loading: false,
+  learnEnabled: true,
   logout: vi.fn<() => Promise<void>>(),
 }));
 
@@ -44,7 +45,7 @@ vi.mock('../../../hooks/useFeatureFlags', () => ({
     isLoading: false,
     error: null,
     isAdmin: false,
-    isFeatureEnabled: () => true,
+    isFeatureEnabled: (key: string) => key !== 'learnEnabled' || mockAuthState.learnEnabled,
   }),
 }));
 
@@ -122,6 +123,16 @@ describe('Layout', () => {
       </QueryClientProvider>
     );
   };
+
+  it('omits Learn from navigation when the feature is off', () => {
+    mockAuthState.learnEnabled = false;
+    try {
+      renderLayout('/app/other');
+      expect(screen.queryByText('Learn')).not.toBeInTheDocument();
+    } finally {
+      mockAuthState.learnEnabled = true;
+    }
+  });
 
   const renderAuthRoutes = () => {
     const queryClient = new QueryClient({
